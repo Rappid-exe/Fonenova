@@ -21,14 +21,14 @@ export function Hero() {
             <div className="flex flex-col sm:flex-row gap-3 pt-2">
               <Link
                 href="mailto:fonenovaltd@gmail.com"
-                className="inline-flex items-center justify-center gap-2 rounded-lg bg-primary px-7 py-3 text-sm font-semibold text-primary-foreground hover:opacity-90 transition-opacity"
+                className="group inline-flex items-center justify-center gap-2 rounded-lg bg-primary px-7 py-3 text-sm font-semibold text-primary-foreground transition-all duration-200 hover:opacity-90 hover:shadow-md active:scale-[0.97]"
               >
                 Request Pricing
-                <ArrowRight className="h-4 w-4" />
+                <ArrowRight className="h-4 w-4 transition-transform duration-200 group-hover:translate-x-0.5" />
               </Link>
               <Link
                 href="#products"
-                className="inline-flex items-center justify-center gap-2 rounded-lg border border-border px-7 py-3 text-sm font-semibold text-foreground hover:bg-secondary transition-colors"
+                className="inline-flex items-center justify-center gap-2 rounded-lg border border-border px-7 py-3 text-sm font-semibold text-foreground transition-all duration-200 hover:bg-secondary active:scale-[0.97]"
               >
                 View Products
               </Link>
@@ -36,7 +36,11 @@ export function Hero() {
           </div>
 
           <div className="relative flex items-center justify-center">
-            <div className="rounded-2xl overflow-hidden bg-secondary p-6 lg:p-10 border border-border">
+            <div
+              aria-hidden="true"
+              className="absolute inset-0 -z-10 bg-[radial-gradient(circle_at_50%_40%,var(--color-primary)/15,transparent_70%)] blur-2xl"
+            />
+            <div className="rounded-2xl overflow-hidden bg-gradient-to-b from-secondary to-muted p-6 lg:p-10 border border-border shadow-[0_24px_60px_-24px_rgba(0,0,0,0.18)]">
               <Image
                 src="/images/hero-phones.png"
                 alt="Premium smartphones available for wholesale"

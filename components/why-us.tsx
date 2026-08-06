@@ -39,7 +39,7 @@ export function WhyUs() {
       <div className="mx-auto max-w-7xl px-6 lg:px-8">
         <div className="flex flex-col items-center text-center gap-4 max-w-2xl mx-auto mb-16">
           <p className="text-sm font-semibold text-primary uppercase tracking-wider">Why Fonenova</p>
-          <h2 className="text-3xl sm:text-4xl font-bold tracking-tight text-foreground font-mono text-balance">
+          <h2 className="text-3xl sm:text-4xl font-bold tracking-tight text-foreground text-balance">
             Built for serious resellers
           </h2>
           <p className="text-lg text-muted-foreground leading-relaxed">
@@ -50,12 +50,12 @@ export function WhyUs() {
           {features.map((feature) => (
             <div
               key={feature.title}
-              className="flex flex-col gap-4 rounded-2xl border border-border bg-card p-8 hover:border-primary/30 transition-colors duration-300"
+              className="group flex flex-col gap-4 rounded-2xl border border-border bg-card p-8 transition-all duration-300 hover:border-primary/30 hover:-translate-y-1 hover:shadow-[0_20px_40px_-20px_rgba(0,0,0,0.2)]"
             >
-              <div className="flex items-center justify-center h-12 w-12 rounded-xl bg-primary/10 border border-primary/20">
+              <div className="flex items-center justify-center h-12 w-12 rounded-xl bg-primary/10 border border-primary/20 transition-colors duration-300 group-hover:bg-primary/15">
                 <feature.icon className="h-6 w-6 text-primary" />
               </div>
-              <h3 className="text-lg font-bold text-foreground font-mono">{feature.title}</h3>
+              <h3 className="text-lg font-bold tracking-tight text-foreground">{feature.title}</h3>
               <p className="text-muted-foreground leading-relaxed">{feature.description}</p>
             </div>
           ))}

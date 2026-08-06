@@ -1,15 +1,27 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Menu, X } from "lucide-react"
 import Link from "next/link"
 import Image from "next/image"
 
 export function Navbar() {
   const [isOpen, setIsOpen] = useState(false)
+  const [scrolled, setScrolled] = useState(false)
+
+  useEffect(() => {
+    const handleScroll = () => setScrolled(window.scrollY > 8)
+    handleScroll()
+    window.addEventListener("scroll", handleScroll, { passive: true })
+    return () => window.removeEventListener("scroll", handleScroll)
+  }, [])
 
   return (
-    <nav className="fixed top-0 left-0 right-0 z-50 bg-background/90 backdrop-blur-md border-b border-border">
+    <nav
+      className={`fixed top-0 left-0 right-0 z-50 bg-background/90 backdrop-blur-md border-b transition-all duration-300 ${
+        scrolled ? "border-border shadow-[0_4px_24px_-8px_rgba(0,0,0,0.12)]" : "border-transparent"
+      }`}
+    >
       <div className="mx-auto max-w-7xl px-6 lg:px-8">
         <div className="flex h-16 items-center justify-between">
           <Link href="/" className="flex items-center gap-2">
@@ -31,7 +43,7 @@ export function Navbar() {
             </Link>
             <Link
               href="mailto:fonenovaltd@gmail.com"
-              className="rounded-lg bg-primary px-5 py-2 text-sm font-semibold text-primary-foreground hover:opacity-90 transition-opacity"
+              className="rounded-lg bg-primary px-5 py-2 text-sm font-semibold text-primary-foreground transition-all duration-200 hover:opacity-90 hover:shadow-md active:scale-[0.97]"
             >
               Get a Quote
             </Link>

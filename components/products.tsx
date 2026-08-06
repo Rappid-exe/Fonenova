@@ -28,7 +28,7 @@ export function Products() {
     <section id="products" className="py-20 lg:py-28 border-t border-border">
       <div className="mx-auto max-w-7xl px-6 lg:px-8">
         <div className="flex flex-col gap-3 mb-12">
-          <h2 className="text-3xl sm:text-4xl font-bold tracking-tight text-foreground font-mono text-balance">
+          <h2 className="text-3xl sm:text-4xl font-bold tracking-tight text-foreground text-balance">
             What we supply
           </h2>
           <p className="text-muted-foreground text-lg">
@@ -39,7 +39,7 @@ export function Products() {
           {categories.map((category) => (
             <div
               key={category.title}
-              className="group flex flex-col rounded-xl border border-border bg-card overflow-hidden hover:border-primary/40 transition-colors"
+              className="group flex flex-col rounded-xl border border-border bg-card overflow-hidden transition-all duration-300 hover:border-primary/40 hover:-translate-y-1 hover:shadow-[0_20px_40px_-20px_rgba(0,0,0,0.25)]"
             >
               <div className="relative h-48 w-full bg-muted overflow-hidden">
                 <Image
@@ -50,7 +50,7 @@ export function Products() {
                 />
               </div>
               <div className="flex flex-col gap-1 p-5">
-                <h3 className="text-lg font-semibold text-foreground font-mono">{category.title}</h3>
+                <h3 className="text-lg font-semibold tracking-tight text-foreground">{category.title}</h3>
                 <p className="text-sm text-muted-foreground leading-relaxed">{category.description}</p>
               </div>
             </div>
