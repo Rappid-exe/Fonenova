@@ -40,7 +40,7 @@ export function Hero() {
               aria-hidden="true"
               className="absolute inset-0 -z-10 bg-[radial-gradient(circle_at_50%_40%,var(--color-primary)/15,transparent_70%)] blur-2xl"
             />
-            <div className="rounded-2xl overflow-hidden bg-gradient-to-b from-secondary to-muted p-6 lg:p-10 border border-border shadow-[0_24px_60px_-24px_rgba(0,0,0,0.18)]">
+            <div className="rounded-2xl overflow-hidden bg-white p-6 lg:p-10 border border-border shadow-[0_24px_60px_-24px_rgba(0,0,0,0.18)]">
               <Image
                 src="/images/hero-phones.png"
                 alt="Premium smartphones available for wholesale"
