@@ -9,11 +9,18 @@ export function Footer() {
         <div className="grid md:grid-cols-3 gap-12">
           <div className="flex flex-col gap-4">
             <Image
-              src="/images/logo.png"
+              src="/images/logo-light.png"
               alt="Fonenova logo"
-              width={240}
-              height={100}
-              className="h-20 w-auto object-contain object-left"
+              width={440}
+              height={296}
+              className="h-16 w-auto object-contain object-left dark:hidden"
+            />
+            <Image
+              src="/images/logo-dark.png"
+              alt="Fonenova logo"
+              width={440}
+              height={296}
+              className="h-16 w-auto object-contain object-left hidden dark:block"
             />
             <p className="text-sm text-muted-foreground leading-relaxed max-w-xs">
               Wholesale mobile phones and consumer electronics for retailers and resellers.

@@ -1,11 +1,20 @@
+"use client"
+
 import Link from "next/link"
+import { motion } from "motion/react"
 import { ArrowRight } from "lucide-react"
 
 export function CTA() {
   return (
     <section className="py-24 lg:py-32 bg-muted/50">
       <div className="mx-auto max-w-7xl px-6 lg:px-8">
-        <div className="relative rounded-3xl bg-foreground overflow-hidden">
+        <motion.div
+          initial={{ opacity: 0, y: 32 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true, margin: "-80px" }}
+          transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
+          className="relative rounded-3xl bg-foreground overflow-hidden"
+        >
           <div className="relative flex flex-col items-center text-center gap-8 px-8 py-20 lg:py-28">
             <p className="text-sm font-semibold text-primary uppercase tracking-wider">Ready to Partner?</p>
             <h2 className="text-3xl sm:text-4xl lg:text-5xl font-bold tracking-tight text-background font-mono text-balance max-w-3xl">
@@ -30,7 +39,7 @@ export function CTA() {
               </Link>
             </div>
           </div>
-        </div>
+        </motion.div>
       </div>
     </section>
   )

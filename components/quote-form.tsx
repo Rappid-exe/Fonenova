@@ -2,6 +2,7 @@
 
 import { useState } from "react"
 import { Mail, Send } from "lucide-react"
+import { motion } from "motion/react"
 
 const PRODUCT_OPTIONS = ["Smartphones", "Tablets", "Laptops", "Accessories", "Mixed / Not sure yet"]
 
@@ -43,7 +44,13 @@ export function QuoteForm() {
   return (
     <section id="quote" className="py-20 lg:py-28 border-t border-border">
       <div className="mx-auto max-w-3xl px-6 lg:px-8">
-        <div className="flex flex-col gap-3 mb-10 text-center">
+        <motion.div
+          initial={{ opacity: 0, y: 24 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true, margin: "-80px" }}
+          transition={{ duration: 0.7, ease: [0.16, 1, 0.3, 1] }}
+          className="flex flex-col gap-3 mb-10 text-center"
+        >
           <p className="text-sm font-semibold text-primary uppercase tracking-wider">Get a Quote</p>
           <h2 className="text-3xl sm:text-4xl font-bold tracking-tight text-foreground font-mono text-balance">
             Tell us what you need
@@ -52,7 +59,7 @@ export function QuoteForm() {
             Fill this in and it opens a pre-filled email to our team. We reply with pricing and availability, usually
             within hours.
           </p>
-        </div>
+        </motion.div>
 
         <form onSubmit={handleSubmit} className="grid sm:grid-cols-2 gap-4 rounded-2xl border border-border bg-card p-6 lg:p-8">
           <Field label="Full name" name="name" required />

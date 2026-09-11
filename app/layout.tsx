@@ -19,7 +19,7 @@ export const metadata: Metadata = {
     description,
     url: 'https://fonenova.com',
     siteName: 'Fonenova',
-    images: [{ url: '/images/hero-phones.png', width: 600, height: 450 }],
+    images: [{ url: '/images/lineup-dark-1000.jpg', width: 1000, height: 714 }],
     locale: 'en_GB',
     type: 'website',
   },
@@ -27,7 +27,7 @@ export const metadata: Metadata = {
     card: 'summary_large_image',
     title,
     description,
-    images: ['/images/hero-phones.png'],
+    images: ['/images/lineup-dark-1000.jpg'],
   },
   icons: {
     icon: [
@@ -49,7 +49,10 @@ export const metadata: Metadata = {
 }
 
 export const viewport: Viewport = {
-  themeColor: '#fafafa',
+  themeColor: [
+    { media: '(prefers-color-scheme: light)', color: '#fafafa' },
+    { media: '(prefers-color-scheme: dark)', color: '#0a0a0a' },
+  ],
 }
 
 export default function RootLayout({
@@ -58,7 +61,15 @@ export default function RootLayout({
   children: React.ReactNode
 }>) {
   return (
-    <html lang="en">
+    <html lang="en" suppressHydrationWarning>
+      <head>
+        {/* Applies the stored theme before paint so dark mode never flashes white. */}
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `(function(){try{var t=localStorage.getItem('theme');var d=t?t==='dark':window.matchMedia('(prefers-color-scheme: dark)').matches;if(d)document.documentElement.classList.add('dark')}catch(e){}})()`,
+          }}
+        />
+      </head>
       <body className={`${inter.variable} ${spaceGrotesk.variable} font-sans antialiased`}>
         {children}
         <Analytics />
