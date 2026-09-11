@@ -20,7 +20,7 @@ export function Hero() {
             </p>
             <div className="flex flex-col sm:flex-row gap-3 pt-2">
               <Link
-                href="mailto:fonenovaltd@gmail.com"
+                href="#quote"
                 className="inline-flex items-center justify-center gap-2 rounded-lg bg-primary px-7 py-3 text-sm font-semibold text-primary-foreground hover:opacity-90 transition-opacity"
               >
                 Request Pricing

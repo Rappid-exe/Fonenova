@@ -26,7 +26,7 @@ export function Footer() {
               <Link href="#products" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
                 Products
               </Link>
-              <Link href="mailto:fonenovaltd@gmail.com" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
+              <Link href="#quote" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
                 Get a Quote
               </Link>
             </div>

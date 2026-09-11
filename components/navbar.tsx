@@ -30,7 +30,7 @@ export function Navbar() {
               Contact
             </Link>
             <Link
-              href="mailto:fonenovaltd@gmail.com"
+              href="#quote"
               className="rounded-lg bg-primary px-5 py-2 text-sm font-semibold text-primary-foreground hover:opacity-90 transition-opacity"
             >
               Get a Quote
@@ -65,7 +65,7 @@ export function Navbar() {
               Contact
             </Link>
             <Link
-              href="mailto:fonenovaltd@gmail.com"
+              href="#quote"
               onClick={() => setIsOpen(false)}
               className="rounded-lg bg-primary px-5 py-2 text-sm font-semibold text-primary-foreground text-center hover:opacity-90 transition-opacity"
             >

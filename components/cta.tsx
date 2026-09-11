@@ -16,7 +16,7 @@ export function CTA() {
             </p>
             <div className="flex flex-col sm:flex-row gap-4">
               <Link
-                href="mailto:fonenovaltd@gmail.com"
+                href="#quote"
                 className="inline-flex items-center justify-center gap-2 rounded-lg bg-primary px-10 py-4 text-sm font-semibold text-primary-foreground hover:opacity-90 transition-opacity"
               >
                 Get a Quote Today
