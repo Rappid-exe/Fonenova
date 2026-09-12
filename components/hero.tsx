@@ -94,35 +94,18 @@ export function Hero() {
             className="relative flex items-center justify-center lg:justify-end origin-center"
           >
             <motion.div
-              initial={{ opacity: 0, y: 40, rotate: -3 }}
-              animate={{ opacity: 1, y: 0, rotate: -3 }}
+              initial={{ opacity: 0, y: 48 }}
+              animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 1, delay: 0.1, ease: [0.16, 1, 0.3, 1] }}
-              className="relative z-10 w-[58%] max-w-[300px] drop-shadow-2xl"
+              className="relative w-full max-w-[560px] drop-shadow-2xl"
             >
               <Image
-                src="/images/device-burgundy-900.webp"
-                alt="Latest generation iPhone in burgundy, front and back"
-                width={900}
-                height={1088}
+                src="/images/lineup4-960.webp"
+                alt="Latest generation iPhone lineup in black, white, blue and burgundy"
+                width={960}
+                height={836}
                 priority
-                sizes="(max-width: 1024px) 45vw, 300px"
-                className="h-auto w-full"
-              />
-            </motion.div>
-
-            <motion.div
-              initial={{ opacity: 0, y: 40, rotate: 5 }}
-              animate={{ opacity: 1, y: 0, rotate: 5 }}
-              transition={{ duration: 1, delay: 0.25, ease: [0.16, 1, 0.3, 1] }}
-              className="relative -ml-[14%] w-[58%] max-w-[300px] drop-shadow-2xl"
-            >
-              <Image
-                src="/images/device-black-900.webp"
-                alt="Latest generation iPhone in black, front and back"
-                width={900}
-                height={1088}
-                priority
-                sizes="(max-width: 1024px) 45vw, 300px"
+                sizes="(max-width: 1024px) 88vw, 560px"
                 className="h-auto w-full"
               />
             </motion.div>

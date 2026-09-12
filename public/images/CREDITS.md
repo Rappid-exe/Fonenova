@@ -21,6 +21,11 @@ sources. They are used as supplied; licensing for these sits with the owner.
 The lineup section carries an "images are for illustration" note because some
 of these are press or concept renders rather than photographs of stock held.
 
+`lineup4-*.webp` is the four-colourway group keyed from an owner-supplied
+source. The backdrop was removed by flood-filling inward from the frame edge
+rather than by colour distance: a distance key punched holes through the white
+handset, whose body sits within tolerance of the light background.
+
 ## Logo
 
 `logo-light.png` / `logo-dark.png` are derived from the original `logo.png`

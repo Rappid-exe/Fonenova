@@ -31,11 +31,11 @@ export function LineupScroll() {
     offset: ["start start", "end end"],
   })
 
-  // Cross-fade the two colourways across the pinned scroll.
-  const burgundyOpacity = useTransform(scrollYProgress, [0, 0.34, 0.62], [1, 1, 0])
-  const blackOpacity = useTransform(scrollYProgress, [0.34, 0.62, 1], [0, 1, 1])
-  const deviceRotate = useTransform(scrollYProgress, [0, 1], [reduce ? 0 : -6, reduce ? 0 : 6])
-  const deviceScale = useTransform(scrollYProgress, [0, 0.5, 1], reduce ? [1, 1, 1] : [0.92, 1.04, 0.96])
+  // Each layer drifts at its own rate so the cluster reads as depth, not a flat image.
+  const backY = useTransform(scrollYProgress, [0, 1], reduce ? ["0%", "0%"] : ["14%", "-14%"])
+    const frontY = useTransform(scrollYProgress, [0, 1], reduce ? ["0%", "0%"] : ["-4%", "4%"])
+  const clusterRotate = useTransform(scrollYProgress, [0, 1], [reduce ? 0 : -4, reduce ? 0 : 4])
+  const clusterScale = useTransform(scrollYProgress, [0, 0.5, 1], reduce ? [1, 1, 1] : [0.94, 1.02, 0.96])
 
   return (
     <section ref={ref} id="lineup" className="relative border-t border-border">
@@ -45,25 +45,31 @@ export function LineupScroll() {
           <div className="hidden lg:block">
             <div className="sticky top-0 h-screen flex items-center justify-center">
               <motion.div
-                style={{ rotate: deviceRotate, scale: deviceScale }}
-                className="relative w-full max-w-[330px] aspect-[900/1088]"
+                style={{ rotate: clusterRotate, scale: clusterScale }}
+                className="relative w-full max-w-[470px] aspect-[4/5]"
               >
-                <motion.div style={{ opacity: burgundyOpacity }} className="absolute inset-0 drop-shadow-2xl">
-                  <Image
-                    src="/images/device-burgundy-900.webp"
-                    alt="Latest generation iPhone in burgundy"
-                    fill
-                    sizes="330px"
-                    className="object-contain"
-                  />
-                </motion.div>
-                <motion.div style={{ opacity: blackOpacity }} className="absolute inset-0 drop-shadow-2xl">
+                {/* Two pairs on separate depth planes. The four-colour row already
+                    carries the hero and the dark band; a third ghosted copy here
+                    just read as clutter. */}
+                <motion.div style={{ y: backY }} className="absolute left-0 top-[6%] w-[52%] drop-shadow-2xl">
                   <Image
                     src="/images/device-black-900.webp"
                     alt="Latest generation iPhone in black"
-                    fill
-                    sizes="330px"
-                    className="object-contain"
+                    width={900}
+                    height={1088}
+                    sizes="240px"
+                    className="h-auto w-full -rotate-[7deg]"
+                  />
+                </motion.div>
+
+                <motion.div style={{ y: frontY }} className="absolute right-0 top-[26%] w-[56%] drop-shadow-2xl">
+                  <Image
+                    src="/images/device-burgundy-900.webp"
+                    alt="Latest generation iPhone in burgundy"
+                    width={900}
+                    height={1088}
+                    sizes="260px"
+                    className="h-auto w-full rotate-[6deg]"
                   />
                 </motion.div>
               </motion.div>
@@ -79,26 +85,16 @@ export function LineupScroll() {
         </div>
       </div>
 
-      {/* Mobile device strip: no pinning, just the pair side by side */}
+      {/* Mobile: no pinning, just the full row */}
       <div className="lg:hidden px-6 pb-20">
-        <div className="flex items-center justify-center gap-2">
-          <Image
-            src="/images/device-burgundy-450.webp"
-            alt="Latest generation iPhone in burgundy"
-            width={450}
-            height={543}
-            sizes="40vw"
-            className="w-[42%] h-auto drop-shadow-xl"
-          />
-          <Image
-            src="/images/device-black-450.webp"
-            alt="Latest generation iPhone in black"
-            width={450}
-            height={543}
-            sizes="40vw"
-            className="w-[42%] h-auto drop-shadow-xl"
-          />
-        </div>
+        <Image
+          src="/images/lineup4-960.webp"
+          alt="Latest generation iPhone lineup in black, white, blue and burgundy"
+          width={960}
+          height={836}
+          sizes="90vw"
+          className="mx-auto h-auto w-full max-w-md drop-shadow-xl"
+        />
       </div>
     </section>
   )
