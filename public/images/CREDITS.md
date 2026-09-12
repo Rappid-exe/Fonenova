@@ -28,6 +28,16 @@ handset, whose body sits within tolerance of the light background.
 
 ## Logo
 
-`logo-light.png` / `logo-dark.png` are derived from the original `logo.png`
-(white background keyed to transparent; lettering lifted to near-white for the
-dark variant).
+The brand lockup is drawn inline in `components/logo.tsx`, not shipped as a
+bitmap. The mark is a rounded-rect handset (`rect x=26 y=10 w=48 h=80 rx=13`
+on a 100x100 viewBox) holding a four-point nova spark. Both fills read from
+`var(--primary)` and `var(--background)`, so the mark follows the theme and
+needs no second dark-mode asset.
+
+`public/icon.svg`, `icon-light-32x32.png`, `icon-dark-32x32.png` and
+`apple-icon.png` are generated from that same geometry, scaled 1.15x about the
+centre so the handset fills the icon canvas rather than floating in it.
+
+`logo.png` / `logo.jpg` are the owner's original supplied artwork, kept as the
+source of record. They are not referenced by the site. The derived
+`logo-light.png` / `logo-dark.png` were removed when the lockup went inline.

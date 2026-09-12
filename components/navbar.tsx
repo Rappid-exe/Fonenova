@@ -3,9 +3,9 @@
 import { useState } from "react"
 import { Menu, X } from "lucide-react"
 import Link from "next/link"
-import Image from "next/image"
 import { motion, useScroll, useMotionValueEvent } from "motion/react"
 import { ThemeToggle } from "@/components/theme-toggle"
+import { Logo } from "@/components/logo"
 
 const LINKS = [
   { href: "#products", label: "Products" },
@@ -38,22 +38,9 @@ export function Navbar() {
         <div
           className={`flex items-center justify-between transition-all duration-300 ${scrolled ? "h-16" : "h-20"}`}
         >
-          <Link href="/" className="flex items-center gap-2">
-            <Image
-              src="/images/logo-light.png"
-              alt="Fonenova logo"
-              width={440}
-              height={296}
-              priority
-              className={`w-auto object-contain transition-all duration-300 dark:hidden ${scrolled ? "h-10" : "h-12"}`}
-            />
-            <Image
-              src="/images/logo-dark.png"
-              alt="Fonenova logo"
-              width={440}
-              height={296}
-              priority
-              className={`w-auto object-contain transition-all duration-300 hidden dark:block ${scrolled ? "h-10" : "h-12"}`}
+          <Link href="/" aria-label="FoneNova home" className="flex items-center">
+            <Logo
+              className={`transition-all duration-300 ${scrolled ? "text-[19px]" : "text-[22px]"}`}
             />
           </Link>
 
