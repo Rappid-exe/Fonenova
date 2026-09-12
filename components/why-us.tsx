@@ -21,8 +21,9 @@ const FEATURES = [
   },
   {
     icon: Truck,
-    title: "UK-Wide Delivery",
-    description: "Reliable, tracked and insured shipping across the UK. Next-day options available.",
+    title: "Europe-Wide Delivery",
+    description:
+      "Reliable, tracked and insured shipping across the UK, Ireland and mainland Europe. Next-day options within the UK and Ireland.",
   },
   {
     icon: PackageCheck,
