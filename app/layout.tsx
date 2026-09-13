@@ -31,6 +31,9 @@ export const metadata: Metadata = {
   },
   icons: {
     icon: [
+      // Broadest support and the path browsers request unprompted, so it is also
+      // what a stale cached favicon gets overwritten by.
+      { url: '/favicon.ico', sizes: '16x16 32x32 48x48' },
       {
         url: '/icon-light-32x32.png',
         media: '(prefers-color-scheme: light)',
