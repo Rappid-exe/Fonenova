@@ -29,6 +29,15 @@ Both were auto-cropped to the bounding box of the devices before resizing. The
 iPad source is 960x1000 with the devices in a band across the middle, so
 uncropped it left most of the card empty white above and below the products.
 
+Both also carry a bottom-weighted darkening baked into the file. Their grounds
+are light where the other two cards' shots are dark, and measured against the
+white caption text they came out at 4.36:1 and 3.64:1, under the 4.5:1 AA
+threshold that 14px body text has to meet. The card's own gradient is shared by
+all four cards and could not be strengthened for these two alone. The ramp
+reaches full strength at 78% of image height rather than 100%, because
+`object-cover` crops these cards to a middle band and a ramp peaking at the
+file's bottom edge never peaks inside the visible area.
+
 ## Device photography
 
 `device-burgundy-*.webp`, `device-black-*.webp`, `lineup-dark-*.jpg` and
