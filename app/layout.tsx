@@ -52,10 +52,9 @@ export const metadata: Metadata = {
 }
 
 export const viewport: Viewport = {
-  themeColor: [
-    { media: '(prefers-color-scheme: light)', color: '#fafafa' },
-    { media: '(prefers-color-scheme: dark)', color: '#0a0a0a' },
-  ],
+  // Matches --background in light mode. The toggle rewrites this at runtime, so the
+  // browser chrome tracks the chosen theme rather than the operating system's.
+  themeColor: '#fcfcfc',
 }
 
 export default function RootLayout({
@@ -66,10 +65,12 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <head>
-        {/* Applies the stored theme before paint so dark mode never flashes white. */}
+        {/* Applies the stored theme before paint so a returning dark-mode visitor never
+            flashes white. No stored choice means light: the OS preference is deliberately
+            not consulted, so every first-time visitor lands on the light design. */}
         <script
           dangerouslySetInnerHTML={{
-            __html: `(function(){try{var t=localStorage.getItem('theme');var d=t?t==='dark':window.matchMedia('(prefers-color-scheme: dark)').matches;if(d)document.documentElement.classList.add('dark')}catch(e){}})()`,
+            __html: `(function(){try{if(localStorage.getItem('theme')==='dark')document.documentElement.classList.add('dark')}catch(e){}})()`,
           }}
         />
       </head>
