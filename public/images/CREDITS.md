@@ -66,3 +66,21 @@ centre so the handset fills the icon canvas rather than floating in it.
 `logo.png` / `logo.jpg` are the owner's original supplied artwork, kept as the
 source of record. They are not referenced by the site. The derived
 `logo-light.png` / `logo-dark.png` were removed when the lockup went inline.
+
+## CTA lineup
+
+`cta-lineup-1000.webp` is Apple's homepage carriers promo shot, supplied by the
+owner as a URL. Taken from the `_large_2x` variant (2524x1160) rather than
+`_large`, which keys down to only 468px of usable handset.
+
+The grey ground was removed by flood-filling inward from the frame edge, seeded
+from the top and sides ONLY. The handsets bleed off the bottom edge of the
+frame, so seeding the bottom too lets the fill walk up inside the white and
+light-blue bodies, whose colour sits within tolerance of the ground, and hollow
+them out. That failure is invisible against a light background and obvious
+against the CTA panel, which is near-black in light mode.
+
+The panel inverts with the theme, so the keyed handsets have to hold on both a
+near-black and a near-white ground. They do: a light grey ground is the shot's
+native context, and the dark camera modules and edge highlights carry it
+against black.
