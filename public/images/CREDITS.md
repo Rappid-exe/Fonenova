@@ -15,7 +15,7 @@ Re-download with `https://images.unsplash.com/<id>?w=1600&q=80&fm=jpg`.
 cards. They are no longer referenced, having been replaced at the owner's
 direction by the files below.
 
-## Tablets and Laptops cards
+## Tablets, Laptops and Accessories cards
 
 Supplied by the owner as URLs rather than files; licensing sits with the owner
 as it does for the device photography below.
@@ -24,6 +24,7 @@ as it does for the device photography below.
 | --- | --- |
 | `tablets-ipad-800.webp` | `store.storeimages.cdn-apple.com` iPad compare card |
 | `laptops-macbook-800.webp` | `macworld.com` MacBook Air 15in |
+| `accessories-cases-900.webp` | `s.yimg.com` cases, MagSafe and crossbody straps |
 
 Both were auto-cropped to the bounding box of the devices before resizing. The
 iPad source is 960x1000 with the devices in a band across the middle, so
@@ -84,3 +85,7 @@ The panel inverts with the theme, so the keyed handsets have to hold on both a
 near-black and a near-white ground. They do: a light grey ground is the shot's
 native context, and the dark camera modules and edge highlights carry it
 against black.
+
+`accessories-cases-900.webp` needed no darkening: its products are darker and
+denser than the iPad and MacBook shots, and it measures 5.41:1 against the
+caption as supplied.

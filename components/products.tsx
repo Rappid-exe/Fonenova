@@ -31,7 +31,7 @@ const CATEGORIES = [
   {
     title: "Accessories",
     description: "Chargers, cases, earbuds and cables, by the pallet.",
-    image: "/images/accessories-1200.jpg",
+    image: "/images/accessories-cases-900.webp",
     span: "sm:col-span-2",
     height: "min-h-[240px]",
   },
