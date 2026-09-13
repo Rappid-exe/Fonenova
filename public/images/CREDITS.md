@@ -7,11 +7,27 @@ originals can be re-downloaded at higher resolution if needed.
 
 | File | Unsplash photo ID |
 | --- | --- |
-| `tablets-1200.jpg` | `photo-1593108409123-2f064dc2397f` |
-| `laptops-1200.jpg` | `photo-1531297484001-80022131f5a1` |
 | `accessories-1200.jpg` | `photo-1578319439584-104c94d37305` |
 
 Re-download with `https://images.unsplash.com/<id>?w=1600&q=80&fm=jpg`.
+
+`tablets-1200.jpg` and `laptops-1200.jpg` were the Unsplash shots for those two
+cards. They are no longer referenced, having been replaced at the owner's
+direction by the files below.
+
+## Tablets and Laptops cards
+
+Supplied by the owner as URLs rather than files; licensing sits with the owner
+as it does for the device photography below.
+
+| File | Source |
+| --- | --- |
+| `tablets-ipad-800.webp` | `store.storeimages.cdn-apple.com` iPad compare card |
+| `laptops-macbook-800.webp` | `macworld.com` MacBook Air 15in |
+
+Both were auto-cropped to the bounding box of the devices before resizing. The
+iPad source is 960x1000 with the devices in a band across the middle, so
+uncropped it left most of the card empty white above and below the products.
 
 ## Device photography
 

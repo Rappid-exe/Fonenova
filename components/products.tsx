@@ -17,14 +17,14 @@ const CATEGORIES = [
   {
     title: "Tablets",
     description: "iPads, Galaxy Tabs and more, with styluses and keyboards.",
-    image: "/images/tablets-1200.jpg",
+    image: "/images/tablets-ipad-800.webp",
     span: "",
     height: "min-h-[240px]",
   },
   {
     title: "Laptops",
     description: "MacBooks, ThinkPads and more.",
-    image: "/images/laptops-1200.jpg",
+    image: "/images/laptops-macbook-800.webp",
     span: "",
     height: "min-h-[240px]",
   },
