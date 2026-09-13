@@ -1,8 +1,9 @@
 "use client"
 
 import { useState } from "react"
-import { Mail, Send } from "lucide-react"
+import { Mail, Send, Phone } from "lucide-react"
 import { motion } from "motion/react"
+import { CONTACT } from "@/lib/site"
 
 const PRODUCT_OPTIONS = ["Smartphones", "Tablets", "Laptops", "Accessories", "Mixed / Not sure yet"]
 
@@ -33,7 +34,7 @@ export function QuoteForm() {
       message,
     ].filter(Boolean)
 
-    const mailto = `mailto:fonenovaltd@gmail.com?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(
+    const mailto = `mailto:${CONTACT.email}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(
       bodyLines.join("\n"),
     )}`
 
@@ -112,13 +113,22 @@ export function QuoteForm() {
               <Send className="h-4 w-4" />
               Send Enquiry
             </button>
-            <a
-              href="mailto:fonenovaltd@gmail.com"
-              className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
-            >
-              <Mail className="h-4 w-4" />
-              or email us directly
-            </a>
+            <div className="flex flex-wrap items-center gap-x-5 gap-y-2">
+              <a
+                href={CONTACT.phoneHref}
+                className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
+              >
+                <Phone className="h-4 w-4" />
+                or call {CONTACT.phone}
+              </a>
+              <a
+                href={`mailto:${CONTACT.email}`}
+                className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
+              >
+                <Mail className="h-4 w-4" />
+                email us directly
+              </a>
+            </div>
           </div>
 
           {status === "sent" && (

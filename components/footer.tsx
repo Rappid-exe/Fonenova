@@ -1,6 +1,7 @@
 import Link from "next/link"
-import { Mail, MapPin } from "lucide-react"
+import { Mail, MapPin, Phone } from "lucide-react"
 import { Logo } from "@/components/logo"
+import { CONTACT } from "@/lib/site"
 
 export function Footer() {
   return (
@@ -29,12 +30,19 @@ export function Footer() {
           <div className="flex flex-col gap-4">
             <h3 className="text-sm font-semibold text-foreground uppercase tracking-wider">Contact</h3>
             <div className="flex flex-col gap-3">
+              <a
+                href={CONTACT.phoneHref}
+                className="flex items-center gap-2 text-sm text-muted-foreground hover:text-primary transition-colors"
+              >
+                <Phone className="h-4 w-4 shrink-0 text-primary" />
+                {CONTACT.phone}
+              </a>
               <Link
-                href="mailto:fonenovaltd@gmail.com"
+                href={`mailto:${CONTACT.email}`}
                 className="flex items-center gap-2 text-sm text-muted-foreground hover:text-primary transition-colors"
               >
                 <Mail className="h-4 w-4 shrink-0 text-primary" />
-                fonenovaltd@gmail.com
+                {CONTACT.email}
               </Link>
               <div className="flex items-start gap-2 text-sm text-muted-foreground">
                 <MapPin className="h-4 w-4 shrink-0 text-primary mt-0.5" />

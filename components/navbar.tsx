@@ -1,11 +1,12 @@
 "use client"
 
 import { useState } from "react"
-import { Menu, X } from "lucide-react"
+import { Menu, X, Phone } from "lucide-react"
 import Link from "next/link"
 import { motion, useScroll, useMotionValueEvent } from "motion/react"
 import { ThemeToggle } from "@/components/theme-toggle"
 import { Logo } from "@/components/logo"
+import { CONTACT } from "@/lib/site"
 
 const LINKS = [
   { href: "#products", label: "Products" },
@@ -54,6 +55,13 @@ export function Navbar() {
                 {link.label}
               </Link>
             ))}
+            <a
+              href={CONTACT.phoneHref}
+              className="hidden lg:inline-flex items-center gap-2 text-[15px] font-medium text-foreground/70 hover:text-foreground transition-colors"
+            >
+              <Phone className="h-4 w-4 text-primary" />
+              {CONTACT.phone}
+            </a>
             <ThemeToggle />
             <Link
               href="#quote"
@@ -94,6 +102,13 @@ export function Navbar() {
                 {link.label}
               </Link>
             ))}
+            <a
+              href={CONTACT.phoneHref}
+              className="inline-flex items-center gap-2 text-[15px] font-medium text-foreground/70 hover:text-foreground transition-colors"
+            >
+              <Phone className="h-4 w-4 text-primary" />
+              {CONTACT.phone}
+            </a>
             <Link
               href="#quote"
               onClick={() => setIsOpen(false)}
