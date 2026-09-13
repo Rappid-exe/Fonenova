@@ -60,6 +60,18 @@ on a 100x100 viewBox) holding a four-point nova spark. Both fills read from
 `var(--primary)` and `var(--background)`, so the mark follows the theme and
 needs no second dark-mode asset.
 
+The wordmark is **Archivo** (SIL Open Font License 1.1, Omnibus-Type), cut to
+outlines in `components/logo-paths.ts` rather than loaded as a webfont. Eight
+characters and a subline do not justify a ~69KB typeface and an extra request;
+the outlines are 3.9KB gzipped, inline, and cannot reflow or shift if a font
+request is slow or fails. Keeping them as paths rather than an external SVG
+also preserves `currentColor` and `var(--primary)`, which an `<img>` could not
+inherit.
+
+Path data is generated at 1000 units/em with baseline at y=0, from Archivo 700
+for the wordmark and 500 for the subline, carrying the same -0.025em and
+0.34em tracking the CSS version used. Do not hand-edit it.
+
 `public/icon.svg`, `icon-light-32x32.png`, `icon-dark-32x32.png` and
 `apple-icon.png` are generated from that same geometry, scaled 1.15x about the
 centre so the handset fills the icon canvas rather than floating in it.

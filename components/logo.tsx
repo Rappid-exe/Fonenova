@@ -1,12 +1,18 @@
+import { CAP_HEIGHT, FONE_PATH, FULL, NOVA_PATH, SUBLINE_PATH, WORDMARK } from "@/components/logo-paths"
+
 /**
- * Brand lockup, drawn inline rather than shipped as a bitmap.
+ * Brand lockup, drawn inline rather than shipped as a bitmap or a webfont.
  *
- * The mark is a handset in brand blue holding a four-point nova spark. Both
- * fills read straight from the theme tokens, so the mark inverts with the rest
- * of the page instead of needing a second light/dark asset.
+ * The mark is a handset in brand blue holding a four-point nova spark. The wordmark is
+ * Archivo, cut to outlines: eight characters and a subline do not justify loading a
+ * typeface, and outlines cannot reflow or shift if a font request is slow or fails.
  *
- * Everything inside scales from the root font-size: set `text-[20px]` (or any
- * font-size) on the wrapper and the mark, wordmark and subline all follow.
+ * Both fills read from the theme tokens, so the whole lockup inverts with the page
+ * instead of needing a second dark-mode asset.
+ *
+ * Everything scales from the root font-size: set `text-[20px]` (or any font-size) on the
+ * wrapper and the mark and wordmark follow. Cap height lands at 0.72em either way, so
+ * dropping the subline does not change how large the wordmark reads.
  */
 
 type LogoProps = {
@@ -14,6 +20,9 @@ type LogoProps = {
   /** The subline is unreadable below roughly 16px of root size; drop it there. */
   withSubline?: boolean
 }
+
+/** Cap height as a fraction of the nominal em, matching the type it sits beside. */
+const CAP_EM = 0.72
 
 export function LogoMark({ className = "" }: { className?: string }) {
   return (
@@ -25,24 +34,33 @@ export function LogoMark({ className = "" }: { className?: string }) {
 }
 
 export function Logo({ className = "", withSubline = true }: LogoProps) {
+  const box = withSubline ? FULL : WORDMARK
+
   return (
     <span className={`inline-flex items-center gap-[0.5em] ${className}`}>
       <LogoMark className="h-[1.9em] w-auto shrink-0" />
-      <span className="inline-flex flex-col items-center leading-none">
-        <span className="font-mono font-bold tracking-[-0.025em] text-foreground">
-          FONE<span className="text-primary">NOVA</span>
-        </span>
+      <svg
+        viewBox={`${box.x} ${box.y} ${box.w} ${box.h}`}
+        role="img"
+        aria-label={withSubline ? "FoneNova, wholesale distribution" : "FoneNova"}
+        className="w-auto shrink-0 text-foreground"
+        style={{ height: `${((box.h / CAP_HEIGHT) * CAP_EM).toFixed(4)}em` }}
+      >
+        {/* Centred under the subline when it is present, which is wider than neither run
+            on its own; the offsets come from the generator so nothing is eyeballed. */}
+        <g transform={withSubline ? `translate(${FULL.wordDx} 0)` : undefined}>
+          <path fill="currentColor" d={FONE_PATH} />
+          <path fill="var(--primary)" d={NOVA_PATH} />
+        </g>
         {withSubline && (
-          /* The trailing letter-space sits after the final N, which throws the
-             block off-centre under the wordmark; the negative margin cancels it. */
-          <span
-            className="mt-[0.42em] font-mono font-medium text-[0.24em] tracking-[0.34em] text-foreground/55"
-            style={{ marginRight: "-0.34em" }}
-          >
-            WHOLESALE DISTRIBUTION
-          </span>
+          <path
+            transform={`translate(${FULL.subDx} 0)`}
+            fill="currentColor"
+            fillOpacity="0.55"
+            d={SUBLINE_PATH}
+          />
         )}
-      </span>
+      </svg>
     </span>
   )
 }
