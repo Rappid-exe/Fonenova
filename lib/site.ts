@@ -6,3 +6,15 @@ export const CONTACT = {
   /** Dial form: no spaces, so mobile browsers parse it reliably. */
   phoneHref: "tel:+447949922872",
 } as const
+
+/**
+ * Registered particulars. The Companies (Trading Disclosures) Regulations require a
+ * company's registered name, number, place of registration and office address to appear
+ * on its website, so the number is a legal requirement rather than a nicety.
+ */
+export const COMPANY = {
+  legalName: "FoneNova Ltd",
+  registrationNumber: "NI737184",
+  placeOfRegistration: "Northern Ireland",
+  vatNumber: "XI516452304",
+} as const

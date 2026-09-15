@@ -6,6 +6,7 @@ import { DarkLineup } from "@/components/dark-lineup"
 import { Products } from "@/components/products"
 import { WhyUs } from "@/components/why-us"
 import { HowItWorks } from "@/components/how-it-works"
+import { VatScheme } from "@/components/vat-scheme"
 import { QuoteForm } from "@/components/quote-form"
 import { CTA } from "@/components/cta"
 import { Footer } from "@/components/footer"
@@ -21,6 +22,7 @@ export default function Home() {
       <Products />
       <WhyUs />
       <HowItWorks />
+      <VatScheme />
       <QuoteForm />
       <CTA />
       <Footer />

@@ -1,7 +1,7 @@
 import Link from "next/link"
 import { Mail, MapPin, Phone } from "lucide-react"
 import { Logo } from "@/components/logo"
-import { CONTACT } from "@/lib/site"
+import { COMPANY, CONTACT } from "@/lib/site"
 
 export function Footer() {
   return (
@@ -75,9 +75,16 @@ export function Footer() {
             </div>
           </div>
 
-          <div className="pt-4 border-t border-border">
+          <div className="pt-4 border-t border-border flex flex-col gap-2">
+            {/* Required on the website by the Companies (Trading Disclosures) Regulations:
+                registered name, number, place of registration and office address. */}
             <p className="text-xs text-muted-foreground">
-              &copy; {new Date().getFullYear()} FoneNova Ltd. All rights reserved.
+              {COMPANY.legalName} is registered in {COMPANY.placeOfRegistration}, company number{" "}
+              <span className="font-mono">{COMPANY.registrationNumber}</span>. VAT registration{" "}
+              <span className="font-mono">{COMPANY.vatNumber}</span>. Registered office as above.
+            </p>
+            <p className="text-xs text-muted-foreground">
+              &copy; {new Date().getFullYear()} {COMPANY.legalName}. All rights reserved.
             </p>
           </div>
         </div>

@@ -8,7 +8,7 @@ import { motion, useReducedMotion } from "motion/react"
 const CATEGORIES = [
   {
     title: "Smartphones",
-    description: "Apple, Samsung, Google and more. New and graded stock across every current generation.",
+    description: "Apple, Samsung, Google and more. Used and graded stock across every current generation.",
     image: "/images/camera-macro-960.jpg",
     span: "sm:col-span-2 sm:row-span-2",
     height: "min-h-[280px] sm:min-h-[420px]",
@@ -55,7 +55,7 @@ export function Products() {
             Four categories. One supplier.
           </h2>
           <p className="text-muted-foreground text-lg max-w-lg">
-            New and graded stock across all major brands, with minimum order quantities confirmed at quotation.
+            Used and graded stock across all major brands, with minimum order quantities confirmed at quotation.
           </p>
         </motion.div>
 
