@@ -34,12 +34,14 @@ export const metadata: Metadata = {
       // Broadest support and the path browsers request unprompted, so it is also
       // what a stale cached favicon gets overwritten by.
       { url: '/favicon.ico', sizes: '16x16 32x32 48x48' },
+      // The PNGs are 128px rather than 32: browsers downscale them, which keeps the
+      // spark's curves clean on a 2x display where a 32px source goes muddy.
       {
-        url: '/icon-light-32x32.png',
+        url: '/icon-light-128.png',
         media: '(prefers-color-scheme: light)',
       },
       {
-        url: '/icon-dark-32x32.png',
+        url: '/icon-dark-128.png',
         media: '(prefers-color-scheme: dark)',
       },
       {

@@ -28,7 +28,7 @@ export function LogoMark({ className = "" }: { className?: string }) {
   return (
     <svg viewBox="0 0 100 100" aria-hidden="true" className={className}>
       <rect x="26" y="10" width="48" height="80" rx="13" fill="var(--primary)" />
-      <path d="M50 28 L57 45 L74 50 L57 55 L50 72 L43 55 L26 50 L43 45 Z" fill="var(--background)" />
+      <path d="M50 28 Q54.8 45.6 74 50 Q54.8 54.4 50 72 Q45.2 54.4 26 50 Q45.2 45.6 50 28 Z" fill="var(--background)" />
     </svg>
   )
 }

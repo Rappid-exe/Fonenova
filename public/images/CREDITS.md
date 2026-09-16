@@ -60,6 +60,14 @@ on a 100x100 viewBox) holding a four-point nova spark. Both fills read from
 `var(--primary)` and `var(--background)`, so the mark follows the theme and
 needs no second dark-mode asset.
 
+The spark's four points are quadratic curves rather than straight edges, with
+control points at 0.2 of the distance from the centre to each tip. That figure
+was chosen by rendering the alternatives down to 16px: past roughly 0.38 the
+concavity swallows the points and the shape reads as a diamond rather than a
+star. Tips stay at the same coordinates as the earlier straight-edged version,
+so the spark still spans the handset and keeps the mass that makes it legible
+as a favicon.
+
 The wordmark is **Archivo** (SIL Open Font License 1.1, Omnibus-Type), cut to
 outlines in `components/logo-paths.ts` rather than loaded as a webfont. Eight
 characters and a subline do not justify a ~69KB typeface and an extra request;
