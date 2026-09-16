@@ -80,8 +80,7 @@ export function Footer() {
                 registered name, number, place of registration and office address. */}
             <p className="text-xs text-muted-foreground">
               {COMPANY.legalName} is registered in {COMPANY.placeOfRegistration}, company number{" "}
-              <span className="font-mono">{COMPANY.registrationNumber}</span>. VAT registration{" "}
-              <span className="font-mono">{COMPANY.vatNumber}</span>. Registered office as above.
+              <span className="font-mono">{COMPANY.registrationNumber}</span>. Registered office as above.
             </p>
             <p className="text-xs text-muted-foreground">
               &copy; {new Date().getFullYear()} {COMPANY.legalName}. All rights reserved.
