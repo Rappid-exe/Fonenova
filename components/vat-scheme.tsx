@@ -2,7 +2,6 @@
 
 import { Receipt, ShieldCheck, FileCheck } from "lucide-react"
 import { motion, useReducedMotion } from "motion/react"
-import { COMPANY } from "@/lib/site"
 
 /**
  * Sits between How It Works and the quote form: the point at which a buyer is working
@@ -80,29 +79,19 @@ export function VatScheme() {
           ))}
         </motion.div>
 
-        <motion.div
+        {/* The registration numbers used to sit here too. They are down in the footer
+            only now, at the owner's direction: the company number has to appear
+            somewhere on the site by law, but it does not have to be given this
+            prominence halfway up the page. */}
+        <motion.p
           initial={{ opacity: 0 }}
           whileInView={{ opacity: 1 }}
           viewport={{ once: true, margin: "-40px" }}
           transition={{ duration: 0.6, delay: reduce ? 0 : 0.15 }}
-          className="mt-10 flex flex-col gap-4 rounded-2xl border border-border bg-card px-7 py-6 sm:flex-row sm:items-center sm:justify-between"
+          className="mt-8 text-xs text-muted-foreground leading-relaxed max-w-xl"
         >
-          <dl className="flex flex-col gap-3 sm:flex-row sm:gap-10">
-            <div className="flex flex-col gap-0.5">
-              <dt className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                Registered in Northern Ireland
-              </dt>
-              <dd className="text-sm font-mono font-bold text-foreground">{COMPANY.registrationNumber}</dd>
-            </div>
-            <div className="flex flex-col gap-0.5">
-              <dt className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">VAT registration</dt>
-              <dd className="text-sm font-mono font-bold text-foreground">{COMPANY.vatNumber}</dd>
-            </div>
-          </dl>
-          <p className="text-xs text-muted-foreground leading-relaxed sm:max-w-xs">
-            This describes how we invoice. It is not tax advice &mdash; confirm your own position with your accountant.
-          </p>
-        </motion.div>
+          This describes how we invoice. It is not tax advice &mdash; confirm your own position with your accountant.
+        </motion.p>
       </div>
     </section>
   )
