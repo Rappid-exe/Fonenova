@@ -1,14 +1,1 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="100" height="100">
-  <style>
-    .body { fill: #0076d2 }
-    .spark { fill: #fcfcfc }
-    @media (prefers-color-scheme: dark) {
-      .body { fill: #0099f2 }
-      .spark { fill: #0a0a0a }
-    }
-  </style>
-  <g transform="translate(50 50) scale(1.15) translate(-50 -50)">
-    <rect class="body" x="26" y="10" width="48" height="80" rx="13" />
-    <path class="spark" d="M50 28 Q54.8 45.6 74 50 Q54.8 54.4 50 72 Q45.2 54.4 26 50 Q45.2 45.6 50 28 Z" />
-  </g>
-</svg>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><rect width="100" height="100" rx="18" fill="#0076d2"/><g transform="translate(50 50) scale(.78) translate(-50 -50)"><path fill="#ffffff" fill-rule="evenodd" d="M39 10 H61 A13 13 0 0 1 74 23 V77 A13 13 0 0 1 61 90 H39 A13 13 0 0 1 26 77 V23 A13 13 0 0 1 39 10 Z M50 28 Q54.8 45.6 74 50 Q54.8 54.4 50 72 Q45.2 54.4 26 50 Q45.2 45.6 50 28 Z"/></g></svg>

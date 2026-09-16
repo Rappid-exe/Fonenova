@@ -34,20 +34,12 @@ export const metadata: Metadata = {
       // Broadest support and the path browsers request unprompted, so it is also
       // what a stale cached favicon gets overwritten by.
       { url: '/favicon.ico', sizes: '16x16 32x32 48x48' },
-      // The PNGs are 128px rather than 32: browsers downscale them, which keeps the
-      // spark's curves clean on a 2x display where a 32px source goes muddy.
-      {
-        url: '/icon-light-128.png',
-        media: '(prefers-color-scheme: light)',
-      },
-      {
-        url: '/icon-dark-128.png',
-        media: '(prefers-color-scheme: dark)',
-      },
-      {
-        url: '/icon.svg',
-        type: 'image/svg+xml',
-      },
+      // One icon for both themes. The mark sits on a solid brand-blue tile, which
+      // reads on a light and a dark tab bar alike, so the light/dark pair this
+      // used to carry is gone. The PNG is 512px and downscaled by the browser:
+      // the spark's curves lose far more to rasterisation than straight edges did.
+      { url: '/icon-128.png', type: 'image/png' },
+      { url: '/icon.svg', type: 'image/svg+xml' },
     ],
     apple: '/apple-icon.png',
   },

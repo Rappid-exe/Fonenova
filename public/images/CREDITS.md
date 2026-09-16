@@ -80,9 +80,17 @@ Path data is generated at 1000 units/em with baseline at y=0, from Archivo 700
 for the wordmark and 500 for the subline, carrying the same -0.025em and
 0.34em tracking the CSS version used. Do not hand-edit it.
 
-`public/icon.svg`, `icon-light-32x32.png`, `icon-dark-32x32.png` and
-`apple-icon.png` are generated from that same geometry, scaled 1.15x about the
-centre so the handset fills the icon canvas rather than floating in it.
+The browser and app icons take a different treatment from the in-page mark, at
+the owner's direction: a solid brand-blue tile with the handset knocked out in
+white and the spark punched back through to the tile. A filled tile reads on a
+light and a dark tab bar alike, so the light/dark pair the icons used to carry
+is gone and there is now one icon for both.
+
+`icon.svg`, `icon-128.png`, `favicon.ico` and `apple-icon.png` all come from
+that tile. `apple-icon.png` alone has square corners, because iOS applies its
+own mask and a pre-rounded icon ends up double-rounded. The rest have
+transparent corners outside the radius; filling them white leaves visible
+corner artefacts on a dark tab bar.
 
 `logo.png` / `logo.jpg` are the owner's original supplied artwork, kept as the
 source of record. They are not referenced by the site. The derived
