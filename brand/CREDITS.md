@@ -1,19 +1,19 @@
 # Image credits and licensing
 
-## Category photography (Unsplash License)
+Provenance notes for the assets under `public/images/`. This file sits in
+`brand/` rather than in `public/` deliberately: everything under `public/` is
+served, and these are working notes, not published copy.
 
-Free for commercial use, no attribution required. Source IDs kept here so the
-originals can be re-downloaded at higher resolution if needed.
+## Category photography (Unsplash License) — removed
 
-| File | Unsplash photo ID |
-| --- | --- |
-| `accessories-1200.jpg` | `photo-1578319439584-104c94d37305` |
+`accessories-1200.jpg`, `tablets-1200.jpg` and `laptops-1200.jpg` were the
+Unsplash shots for those three cards. All three were replaced at the owner's
+direction by the files below, and have now been deleted as unreferenced.
 
-Re-download with `https://images.unsplash.com/<id>?w=1600&q=80&fm=jpg`.
-
-`tablets-1200.jpg` and `laptops-1200.jpg` were the Unsplash shots for those two
-cards. They are no longer referenced, having been replaced at the owner's
-direction by the files below.
+Only the accessories ID was ever recorded, and it is kept here because it is the
+one route back to that shot: `photo-1578319439584-104c94d37305`, re-downloadable
+with `https://images.unsplash.com/<id>?w=1600&q=80&fm=jpg`. Unsplash License,
+free for commercial use, no attribution required.
 
 ## Tablets, Laptops and Accessories cards
 
@@ -93,8 +93,11 @@ transparent corners outside the radius; filling them white leaves visible
 corner artefacts on a dark tab bar.
 
 `logo.png` / `logo.jpg` are the owner's original supplied artwork, kept as the
-source of record. They are not referenced by the site. The derived
-`logo-light.png` / `logo-dark.png` were removed when the lockup went inline.
+source of record. They sit in `brand/` beside this file rather than in `public/`.
+The site does not reference them, and while they were in `public/` they were
+being served: the raw artwork was fetchable by anyone at `/images/logo.png`. The
+derived `logo-light.png` / `logo-dark.png` were removed when the lockup went
+inline.
 
 ## CTA lineup
 
