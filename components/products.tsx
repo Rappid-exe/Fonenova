@@ -77,7 +77,7 @@ export function Products() {
             >
               <Image
                 src={cat.image}
-                alt={cat.title}
+                alt={`Wholesale ${cat.title.toLowerCase()} — ${cat.description}`}
                 fill
                 sizes="(max-width: 640px) 100vw, 50vw"
                 className="object-cover transition-transform duration-700 group-hover:scale-[1.06]"

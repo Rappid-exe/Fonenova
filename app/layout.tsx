@@ -1,25 +1,61 @@
 import type { Metadata, Viewport } from 'next'
 import { Inter, Space_Grotesk } from 'next/font/google'
 import { Analytics } from '@vercel/analytics/next'
+import { buildJsonLd } from '@/lib/seo'
 import './globals.css'
 
 const inter = Inter({ subsets: ["latin"], variable: "--font-inter" });
 const spaceGrotesk = Space_Grotesk({ subsets: ["latin"], variable: "--font-space-grotesk" });
 
-const title = 'Fonenova - Wholesale Mobile Phones & Consumer Tech'
+// Leads with the brand for brand/name searches, then the two things a buyer
+// actually types: what we sell and where we are. Kept under ~60 chars so Google
+// does not truncate it in the results.
+const title = 'FoneNova — Wholesale Phones & Electronics Supplier, Belfast'
+// ~160 chars: the money terms (wholesale, phones/tablets/laptops), the trade-only
+// qualifier that filters out consumer clicks, the location, and the reach.
 const description =
-  'Your trusted partner for wholesale mobile phones, tablets, laptops, and consumer electronics. Competitive pricing, bulk orders, and fast delivery.'
+  'Belfast-based B2B wholesaler of used and graded phones, tablets, laptops and accessories. Trade only — bulk pricing and delivery across the UK, Ireland and Europe.'
 
 export const metadata: Metadata = {
   metadataBase: new URL('https://fonenova.com'),
-  title,
+  title: {
+    default: title,
+    // Any future page (e.g. /smartphones) sets its own short title and this
+    // appends the brand automatically.
+    template: '%s | FoneNova',
+  },
   description,
+  applicationName: 'FoneNova',
+  keywords: [
+    'wholesale phones Belfast',
+    'phone wholesaler Northern Ireland',
+    'wholesale mobile phones UK',
+    'used phone wholesaler',
+    'refurbished phones wholesale',
+    'bulk phones trade',
+    'wholesale tablets laptops Belfast',
+    'B2B electronics wholesaler',
+    'VAT margin scheme phones',
+    'FoneNova',
+  ],
+  category: 'Wholesale Electronics',
+  alternates: { canonical: '/' },
+  robots: {
+    index: true,
+    follow: true,
+    googleBot: {
+      index: true,
+      follow: true,
+      'max-image-preview': 'large',
+      'max-snippet': -1,
+    },
+  },
   openGraph: {
     title,
     description,
     url: 'https://fonenova.com',
-    siteName: 'Fonenova',
-    images: [{ url: '/images/lineup-dark-1000.jpg', width: 1000, height: 714 }],
+    siteName: 'FoneNova',
+    images: [{ url: '/images/og-cover.jpg', width: 1200, height: 630, alt: 'FoneNova — wholesale phones, tablets, laptops and accessories, Belfast' }],
     locale: 'en_GB',
     type: 'website',
   },
@@ -27,7 +63,7 @@ export const metadata: Metadata = {
     card: 'summary_large_image',
     title,
     description,
-    images: ['/images/lineup-dark-1000.jpg'],
+    images: ['/images/og-cover.jpg'],
   },
   icons: {
     icon: [
@@ -57,8 +93,14 @@ export default function RootLayout({
   children: React.ReactNode
 }>) {
   return (
-    <html lang="en" suppressHydrationWarning>
+    <html lang="en-GB" suppressHydrationWarning>
       <head>
+        {/* schema.org business data. Static, no user input, so it is safe to inline
+            and it is what search engines read to place FoneNova as a Belfast business. */}
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(buildJsonLd()) }}
+        />
         {/* Applies the stored theme before paint so a returning dark-mode visitor never
             flashes white. No stored choice means light: the OS preference is deliberately
             not consulted, so every first-time visitor lands on the light design. */}

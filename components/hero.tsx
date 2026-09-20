@@ -63,8 +63,8 @@ export function Hero() {
               transition={{ duration: 0.8, delay: 0.15, ease: [0.16, 1, 0.3, 1] }}
               className="max-w-lg text-lg text-muted-foreground leading-relaxed"
             >
-              Bulk smartphones, tablets, laptops and accessories at genuine wholesale prices. Built for retailers and
-              resellers who need stock that moves.
+              Bulk smartphones, tablets, laptops and accessories at genuine wholesale prices. A Belfast-based supplier
+              built for retailers and resellers across the UK, Ireland and Europe.
             </motion.p>
 
             <motion.div
