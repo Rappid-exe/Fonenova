@@ -74,8 +74,14 @@ export const metadata: Metadata = {
       // reads on a light and a dark tab bar alike, so the light/dark pair this
       // used to carry is gone. The PNG is 512px and downscaled by the browser:
       // the spark's curves lose far more to rasterisation than straight edges did.
-      { url: '/icon-128.png', type: 'image/png' },
-      { url: '/icon.svg', type: 'image/svg+xml' },
+      //
+      // Sizes are declared because they are what Google reads. Its favicon
+      // guidelines want a square raster at a multiple of 48px, and the 512px file
+      // below is not one (512 / 48 is not whole), so icon-192.png (4 x 48) exists
+      // for that. The name icon-128.png is historical: the file is 512px.
+      { url: '/icon-192.png', type: 'image/png', sizes: '192x192' },
+      { url: '/icon-128.png', type: 'image/png', sizes: '512x512' },
+      { url: '/icon.svg', type: 'image/svg+xml', sizes: 'any' },
     ],
     apple: '/apple-icon.png',
   },

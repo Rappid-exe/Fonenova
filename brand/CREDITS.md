@@ -86,11 +86,19 @@ white and the spark punched back through to the tile. A filled tile reads on a
 light and a dark tab bar alike, so the light/dark pair the icons used to carry
 is gone and there is now one icon for both.
 
-`icon.svg`, `icon-128.png`, `favicon.ico` and `apple-icon.png` all come from
-that tile. `apple-icon.png` alone has square corners, because iOS applies its
-own mask and a pre-rounded icon ends up double-rounded. The rest have
+`icon.svg`, `icon-192.png`, `icon-128.png`, `favicon.ico` and `apple-icon.png`
+all come from that tile. `apple-icon.png` alone has square corners, because iOS
+applies its own mask and a pre-rounded icon ends up double-rounded. The rest have
 transparent corners outside the radius; filling them white leaves visible
 corner artefacts on a dark tab bar.
+
+Two naming traps. `icon-128.png` is a **512px** file: the name is historical and
+it is left alone because renaming would break any cached link to it. And
+`icon-192.png` exists because Google's favicon guidelines want a square raster
+at a multiple of 48px, which 512 is not (192 = 4 x 48). When Google shows the
+wrong icon beside the site in search results, the cause is almost always its own
+cache rather than these files; `google.com/s2/favicons?domain=fonenova.com`
+shows what it currently holds.
 
 `logo.png` / `logo.jpg` are the owner's original supplied artwork, kept as the
 source of record. They sit in `brand/` beside this file rather than in `public/`.
