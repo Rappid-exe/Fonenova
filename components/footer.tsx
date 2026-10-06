@@ -18,10 +18,10 @@ export function Footer() {
           <div className="flex flex-col gap-4">
             <h3 className="text-sm font-semibold text-foreground uppercase tracking-wider">Links</h3>
             <div className="flex flex-col gap-2">
-              <Link href="#products" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
+              <Link href="/#products" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
                 Products
               </Link>
-              <Link href="#quote" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
+              <Link href="/#quote" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
                 Get a Quote
               </Link>
             </div>
@@ -64,7 +64,7 @@ export function Footer() {
             <h3 className="text-sm font-semibold text-foreground uppercase tracking-wider">Terms, Conditions & Privacy</h3>
             <div className="text-xs text-muted-foreground leading-relaxed max-w-4xl flex flex-col gap-2">
               <p>
-                FoneNova Ltd is a B2B wholesaler only &mdash; we do not sell to individual consumers. All buyers must be registered businesses and may be asked to provide proof of registration or a VAT number. Orders are subject to minimum order quantities (MOQs), which vary by product and will be confirmed at quotation.
+                FoneNova Ltd is a B2B wholesaler only. We do not sell to individual consumers. All buyers must be registered businesses and may be asked to provide proof of registration or a VAT number. Orders are subject to minimum order quantities (MOQs), which vary by product and will be confirmed at quotation.
               </p>
               <p>
                 Payment is by bank transfer in advance unless otherwise agreed in writing. Goods are dispatched once payment has cleared. Risk passes to the buyer upon dispatch; buyers should arrange adequate insurance. Returns require prior written authorisation and goods must be in original condition. Devices are graded (A/B/C) at the point of sale. Warranty is limited to the terms agreed at purchase; FoneNova Ltd is not liable for indirect or consequential losses.
@@ -82,9 +82,17 @@ export function Footer() {
               {COMPANY.legalName} is registered in {COMPANY.placeOfRegistration}, company number{" "}
               <span className="font-mono">{COMPANY.registrationNumber}</span>. Registered office as above.
             </p>
-            <p className="text-xs text-muted-foreground">
-              &copy; {new Date().getFullYear()} {COMPANY.legalName}. All rights reserved.
-            </p>
+            <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+              <p className="text-xs text-muted-foreground">
+                &copy; {new Date().getFullYear()} {COMPANY.legalName}. All rights reserved.
+              </p>
+              <Link
+                href="/privacy"
+                className="text-xs text-muted-foreground underline underline-offset-4 hover:text-foreground transition-colors"
+              >
+                Privacy Policy
+              </Link>
+            </div>
           </div>
         </div>
       </div>

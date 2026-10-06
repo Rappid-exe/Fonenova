@@ -8,5 +8,12 @@ export default function sitemap(): MetadataRoute.Sitemap {
       changeFrequency: "weekly",
       priority: 1,
     },
+    {
+      url: "https://fonenova.com/privacy",
+      // Matches the "Last updated" date on the page; bump both together.
+      lastModified: new Date("2026-10-06"),
+      changeFrequency: "yearly",
+      priority: 0.3,
+    },
   ]
 }

@@ -8,11 +8,13 @@ import { ThemeToggle } from "@/components/theme-toggle"
 import { Logo } from "@/components/logo"
 import { CONTACT } from "@/lib/site"
 
+// Rooted at "/" so the same links work from /privacy: a bare "#products" there would
+// only change the hash on the current page and scroll nowhere.
 const LINKS = [
-  { href: "#products", label: "Products" },
-  { href: "#why-us", label: "Why us" },
-  { href: "#how-it-works", label: "How it works" },
-  { href: "#contact", label: "Contact" },
+  { href: "/#products", label: "Products" },
+  { href: "/#why-us", label: "Why us" },
+  { href: "/#how-it-works", label: "How it works" },
+  { href: "/#contact", label: "Contact" },
 ]
 
 export function Navbar() {
@@ -64,7 +66,7 @@ export function Navbar() {
             </a>
             <ThemeToggle />
             <Link
-              href="#quote"
+              href="/#quote"
               className="rounded-xl bg-primary px-6 py-2.5 text-sm font-semibold text-primary-foreground shadow-sm hover:opacity-90 transition-opacity"
             >
               Get a Quote
@@ -110,7 +112,7 @@ export function Navbar() {
               {CONTACT.phone}
             </a>
             <Link
-              href="#quote"
+              href="/#quote"
               onClick={() => setIsOpen(false)}
               className="rounded-lg bg-primary px-5 py-2 text-sm font-semibold text-primary-foreground text-center hover:opacity-90 transition-opacity"
             >
