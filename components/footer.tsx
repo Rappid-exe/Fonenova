@@ -70,7 +70,7 @@ export function Footer() {
                 Payment is by bank transfer in advance unless otherwise agreed in writing. Goods are dispatched once payment has cleared. Risk passes to the buyer upon dispatch; buyers should arrange adequate insurance. Returns require prior written authorisation and goods must be in original condition. Devices are graded (A/B/C) at the point of sale. Warranty is limited to the terms agreed at purchase; FoneNova Ltd is not liable for indirect or consequential losses.
               </p>
               <p>
-                When you contact us, we may collect your name, email, phone number, and business details solely to process enquiries and orders. We do not sell or share your data for marketing. Data is stored securely with access restricted to authorised staff. Under GDPR, you may request access to, correction of, or deletion of your data by emailing fonenovaltd@gmail.com.
+                When you contact us, we may collect your name, email, phone number, and business details solely to process enquiries and orders. We do not sell or share your data for marketing. Data is stored securely with access restricted to authorised staff. Under GDPR, you may request access to, correction of, or deletion of your data by emailing {CONTACT.email}.
               </p>
             </div>
           </div>

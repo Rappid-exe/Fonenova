@@ -19,10 +19,9 @@ import { COMPANY, CONTACT } from "@/lib/site"
  * if they change.
  */
 
-const LAST_UPDATED = "6 October 2026"
+const LAST_UPDATED = "7 October 2026"
 
-const DESCRIPTION =
-  "How Fonenova Ltd collects, uses and protects personal data on this website and through our WhatsApp receipts service."
+const DESCRIPTION = "How Fonenova Ltd collects, uses and protects personal data on this website."
 
 export const metadata: Metadata = {
   // Absolute, because the layout's "%s | FoneNova" template would otherwise add a second brand.
@@ -119,17 +118,6 @@ export default function PrivacyPage() {
               discards the visitor identifier after 24 hours.
             </li>
           </ul>
-        </Section>
-
-        <Section title="Our WhatsApp receipts service">
-          <P>
-            We run a WhatsApp Business number used only by our own staff to submit business receipts, invoices, bank
-            statements and currency exchange confirmations for bookkeeping. For this service we process the files and
-            messages authorised staff send, their phone number and the time sent. Messages from anyone who isn&apos;t
-            an authorised staff member are ignored and not stored. Files are stored in the company&apos;s private
-            Microsoft OneDrive and processed by automated tools acting for the company, to record business expenses
-            and VAT.
-          </P>
         </Section>
 
         <Section title="How we use information">
