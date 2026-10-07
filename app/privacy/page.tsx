@@ -105,7 +105,10 @@ export default function PrivacyPage() {
               what you send to reply to your enquiry.
             </li>
             <li>
-              <Term>Contacting us directly.</Term> If you email or phone us, we receive the details you give us.
+              <Term>Contacting us directly.</Term> If you email, phone or message us on WhatsApp, we receive the details
+              you give us. On WhatsApp that includes your phone number, your WhatsApp profile name and the messages you
+              send. WhatsApp is run by Meta, which handles the conversation under its own privacy policy. The WhatsApp
+              button on this site is an ordinary link: nothing is shared with WhatsApp until you click it.
             </li>
             <li>
               <Term>Technical data.</Term> Our website host, Vercel, processes technical data such as your IP address,

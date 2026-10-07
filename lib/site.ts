@@ -5,6 +5,12 @@ export const CONTACT = {
   phone: "+44 7949 922872",
   /** Dial form: no spaces, so mobile browsers parse it reliably. */
   phoneHref: "tel:+447949922872",
+  /**
+   * WhatsApp click-to-chat. wa.me wants digits only (country code, no plus, no spaces),
+   * and the text is what the chat opens pre-filled with: the visitor can edit it, and it
+   * tells us a message came from the website.
+   */
+  whatsappHref: `https://wa.me/447949922872?text=${encodeURIComponent("Hi FoneNova, I'd like a wholesale quote.")}`,
 } as const
 
 /**

@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from 'next'
 import { Inter, Space_Grotesk } from 'next/font/google'
 import { Analytics } from '@vercel/analytics/next'
 import { buildJsonLd } from '@/lib/seo'
+import { WhatsAppButton } from '@/components/whatsapp-button'
 import './globals.css'
 
 const inter = Inter({ subsets: ["latin"], variable: "--font-inter" });
@@ -118,6 +119,7 @@ export default function RootLayout({
       </head>
       <body className={`${inter.variable} ${spaceGrotesk.variable} font-sans antialiased`}>
         {children}
+        <WhatsAppButton />
         <Analytics />
       </body>
     </html>

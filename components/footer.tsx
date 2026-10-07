@@ -6,7 +6,10 @@ import { COMPANY, CONTACT } from "@/lib/site"
 export function Footer() {
   return (
     <footer id="contact" className="border-t border-border">
-      <div className="mx-auto max-w-7xl px-6 lg:px-8 py-16">
+      {/* Bottom padding is deliberately larger than the top: the floating WhatsApp button sits
+          over the bottom-right corner of the viewport, and without this it covers the
+          Privacy Policy link when the page is scrolled all the way down. */}
+      <div className="mx-auto max-w-7xl px-6 lg:px-8 pt-16 pb-24">
         <div className="grid md:grid-cols-3 gap-12">
           <div className="flex flex-col gap-4">
             <Logo className="self-start text-[26px]" />
