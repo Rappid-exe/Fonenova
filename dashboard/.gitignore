@@ -1,0 +1,11 @@
+# Real financial data must never be committed.
+# Everything under data/ is ignored except the fake sample set.
+/data/*
+!/data/sample/
+
+node_modules/
+.next/
+next-env.d.ts
+*.tsbuildinfo
+.env*.local
+.DS_Store

@@ -10,3 +10,8 @@ node_modules/
 .DS_Store
 # typescript build cache
 *.tsbuildinfo
+
+# Profit dashboard: real financial data must never be committed (second guard;
+# dashboard/.gitignore is the primary rule). Only the fake sample set is tracked.
+/dashboard/data/*
+!/dashboard/data/sample/

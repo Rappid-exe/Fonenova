@@ -1,0 +1,75 @@
+@import 'tailwindcss';
+
+@theme {
+  --font-sans: 'Inter Variable', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;
+
+  /* Workspace and surfaces */
+  --color-canvas: #f5f4f0;
+  --color-surface: #ffffff;
+  --color-subtle: #f9f8f6;
+  --color-line: #e5e3dd;
+  --color-line-strong: #d3d0c8;
+
+  /* Ink */
+  --color-ink: #15181d;
+  --color-ink-2: #4f535b;
+  --color-ink-3: #7a7e86;
+
+  /* Shell */
+  --color-navy: #111b2b;
+  --color-navy-2: #1b2638;
+  --color-navy-ink: #c9cfd9;
+
+  /* The one accent */
+  --color-accent: #2b5fc7;
+  --color-accent-soft: #e9effb;
+
+  /* Gain / loss / warning: always paired with a sign or icon */
+  --color-gain: #17734a;
+  --color-gain-soft: #e6f2ec;
+  --color-loss: #b8322a;
+  --color-loss-soft: #fbeceb;
+  --color-warn: #9a5b00;
+  --color-warn-soft: #fbf1df;
+
+  /* Customer identity (validated categorical slots 1 to 3) */
+  --color-cat-1: #2a78d6;
+  --color-cat-2: #eb6834;
+  --color-cat-3: #1baf7a;
+}
+
+html {
+  color-scheme: light;
+}
+
+body {
+  background: var(--color-canvas);
+  color: var(--color-ink);
+  font-family: var(--font-sans);
+  font-variant-numeric: tabular-nums;
+  -webkit-font-smoothing: antialiased;
+}
+
+:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
+}
+
+.num {
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+  white-space: nowrap;
+}
+
+@keyframes fn-pulse {
+  50% { opacity: 0.5; }
+}
+.skeleton {
+  background: var(--color-line);
+  border-radius: 4px;
+  animation: fn-pulse 1.6s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .skeleton { animation: none; }
+}
