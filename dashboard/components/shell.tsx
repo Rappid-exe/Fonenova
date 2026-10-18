@@ -1,6 +1,6 @@
 'use client'
 import { useState } from 'react'
-import { AlertTriangle, BarChart3, Building2, FileMinus2, LayoutDashboard, Menu, Package, Settings, Users } from 'lucide-react'
+import { AlertTriangle, BarChart3, Building2, FileMinus2, LayoutDashboard, LogOut, Menu, Package, Settings, Users } from 'lucide-react'
 import { Sheet } from '@/components/ui/sheet'
 import { cn } from '@/lib/utils'
 
@@ -49,14 +49,29 @@ function Nav() {
   )
 }
 
-export function Shell({ children, footer }: { children: React.ReactNode; footer?: React.ReactNode }) {
+function Account({ email }: { email: string | null }) {
+  if (!email) return null
+  return (
+    <form action="/auth/logout" method="post" className="mb-4 border-b border-white/10 pb-4">
+      <div className="truncate text-[12px] text-navy-ink/80" title={email}>{email}</div>
+      <button type="submit" className="mt-1.5 inline-flex items-center gap-1.5 text-[12.5px] font-medium text-white/90 hover:text-white">
+        <LogOut className="h-3.5 w-3.5" aria-hidden />Sign out
+      </button>
+    </form>
+  )
+}
+
+export function Shell({ children, footer, email = null }: { children: React.ReactNode; footer?: React.ReactNode; email?: string | null }) {
   const [open, setOpen] = useState(false)
   return (
     <div className="min-h-dvh lg:pl-[232px]">
       <aside className="fixed inset-y-0 left-0 hidden w-[232px] flex-col bg-navy px-4 py-5 lg:flex">
         <Wordmark />
         <Nav />
-        <div className="mt-auto text-[11.5px] leading-relaxed text-navy-ink/60">{footer}</div>
+        <div className="mt-auto">
+          <Account email={email} />
+          <div className="text-[11.5px] leading-relaxed text-navy-ink/60">{footer}</div>
+        </div>
       </aside>
       <div className="sticky top-0 z-30 flex h-12 items-center justify-between bg-navy px-4 lg:hidden">
         <Wordmark />
@@ -72,7 +87,10 @@ export function Shell({ children, footer }: { children: React.ReactNode; footer?
       <Sheet open={open} onOpenChange={setOpen} side="left" title="Navigation" className={cn('max-w-[280px] bg-navy [&>div:first-child]:bg-navy [&>div:first-child]:border-white/10 [&_h2]:text-white')}>
         <div className="px-4 pb-6">
           <Nav />
-          <div className="mt-6 text-[11.5px] leading-relaxed text-navy-ink/60">{footer}</div>
+          <div className="mt-6">
+            <Account email={email} />
+            <div className="text-[11.5px] leading-relaxed text-navy-ink/60">{footer}</div>
+          </div>
         </div>
       </Sheet>
       <main className="mx-auto max-w-[1400px] px-4 pb-16 sm:px-6 lg:px-8">{children}</main>

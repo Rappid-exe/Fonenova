@@ -7,6 +7,7 @@
  */
 import 'server-only'
 import fs from 'node:fs/promises'
+import zlib from 'node:zlib'
 import path from 'node:path'
 import type { Ledger } from './types'
 
@@ -72,7 +73,29 @@ function validate(value: unknown, file: string): LoadResult {
   return { ok: true, ledger: v as Ledger }
 }
 
+/**
+ * Hosted adapter: the ledger arrives brotli-compressed and base64-encoded in an encrypted
+ * environment variable (FN_LEDGER_BR, written by `npm run pack-ledger`), so real figures
+ * never pass through git.
+ */
+export class EnvLedgerSource implements DataSource {
+  readonly name = 'Hosted ledger (encrypted environment variable)'
+
+  constructor(private readonly encoded: string) {}
+
+  async load(): Promise<LoadResult> {
+    let value: unknown
+    try {
+      value = JSON.parse(zlib.brotliDecompressSync(Buffer.from(this.encoded, 'base64')).toString('utf8'))
+    } catch (e) {
+      return { ok: false, title: 'Hosted ledger could not be read', detail: `FN_LEDGER_BR did not decode (${e instanceof Error ? e.message : String(e)}). Run "npm run pack-ledger" and update the variable.` }
+    }
+    return validate(value, 'FN_LEDGER_BR')
+  }
+}
+
 export function getDataSource(): DataSource {
+  if (process.env.FN_LEDGER_BR) return new EnvLedgerSource(process.env.FN_LEDGER_BR)
   const kind = process.env.FN_DATA_SOURCE ?? 'local'
   if (kind !== 'local') throw new Error(`Data source "${kind}" is not available in v1`)
   const dir = process.env.FN_DATA_DIR ?? path.join(process.cwd(), 'data')

@@ -52,3 +52,25 @@ exceljs drops cached formula results equal to 0, so a formula cell with no cache
 The import prints how many cells this affected (60 in the current ledger, all verified as 0 with a
 second parser). A formula that was genuinely never calculated would also read as 0, but the
 reconciliation would then fail rather than pass silently.
+
+## Hosting (dashboard.fonenova.com)
+
+Separate Vercel project (`fonenova-dashboard`, root directory `dashboard/`), not the marketing site.
+
+**Access.** Google sign-in, locked to one address. Every request passes `proxy.ts`, and the page
+re-checks the session before loading any data. Sessions are signed cookies (12 hours). Missing
+configuration in production locks everyone out; it never opens up.
+
+| Variable | Purpose |
+| --- | --- |
+| `AUTH_ALLOWED_EMAIL` | The only Google account that can sign in |
+| `AUTH_URL` | `https://dashboard.fonenova.com` (fixed OAuth redirect origin) |
+| `AUTH_SECRET` | 32+ random characters; signs cookies. Changing it signs everyone out |
+| `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET` | Google OAuth web client, redirect URI `https://dashboard.fonenova.com/auth/callback` |
+| `FN_LEDGER_BR` | The ledger, from `npm run pack-ledger` (brotli + base64, file paths stripped) |
+
+**Updating the figures.** `npm run import && npm run pack-ledger`, paste
+`data/generated/ledger.br.b64` into `FN_LEDGER_BR` on Vercel (Production), redeploy. The real
+ledger never enters git. Without `FN_LEDGER_BR` the hosted app shows the fake sample with its banner.
+
+Local `npm run dev` skips sign-in when `GOOGLE_CLIENT_ID` is unset. Production builds never do.
