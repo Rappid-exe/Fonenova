@@ -1,0 +1,1140 @@
+{
+  "meta": {
+    "sourceFile": "sample (generated)",
+    "importedAt": "2026-10-04T00:00:00.000Z",
+    "snapshotDate": "2026-10-04",
+    "currency": "EUR",
+    "isSample": true
+  },
+  "summary": {
+    "ordersMatched": 14,
+    "clientTotalCents": 45560800,
+    "supplierTotalCents": 44924700,
+    "grossMarginCents": 636100,
+    "clientCreditsCents": 250000,
+    "supplierCreditsCents": 330000,
+    "marginAfterCreditsCents": 716100,
+    "clientsOweCents": 16028400,
+    "weOweSupplierCents": 8079900,
+    "ordersWithFlag": 7,
+    "byCustomer": [
+      {
+        "customerName": "Sample Customer A (fake)",
+        "orders": 10,
+        "clientTotalCents": 30987900,
+        "grossMarginCents": 484500
+      },
+      {
+        "customerName": "Sample Customer B (fake)",
+        "orders": 2,
+        "clientTotalCents": 9629400,
+        "grossMarginCents": 122700
+      },
+      {
+        "customerName": "Sample Customer C (fake)",
+        "orders": 2,
+        "clientTotalCents": 4943500,
+        "grossMarginCents": 28900
+      }
+    ]
+  },
+  "totalRow": {
+    "clientTotalCents": 45560800,
+    "supplierTotalCents": 44924700,
+    "grossMarginCents": 636100,
+    "goodsMarginCents": 456100,
+    "shippingMarginCents": 180000,
+    "clientOwesCents": 16028400,
+    "weOweSupplierCents": 8079900
+  },
+  "customers": [
+    {
+      "id": "sample-customer-a",
+      "name": "Sample Customer A (fake)"
+    },
+    {
+      "id": "sample-customer-b",
+      "name": "Sample Customer B (fake)"
+    },
+    {
+      "id": "sample-customer-c",
+      "name": "Sample Customer C (fake)"
+    }
+  ],
+  "suppliers": [
+    {
+      "id": "sample-supplier",
+      "name": "Sample Supplier (fake)"
+    }
+  ],
+  "orders": [
+    {
+      "id": "SAMPLE-001",
+      "date": "2026-03-04",
+      "customerId": "sample-customer-a",
+      "customerName": "Sample Customer A (fake)",
+      "supplierId": "sample-supplier",
+      "supplierName": "Sample Supplier (fake)",
+      "clientInvoiceNo": "S-INV-1000",
+      "supplierInvoiceNo": "S-BILL-5000",
+      "clientTotalCents": 1079800,
+      "supplierTotalCents": 1071600,
+      "grossMarginCents": 8200,
+      "goodsMarginCents": 13200,
+      "shippingMarginCents": -5000,
+      "ledgerMarginRatio": 0.007593998888683089,
+      "clientStatus": "PAID",
+      "clientOwesCents": 0,
+      "supplierStatus": "PAID",
+      "weOweSupplierCents": 0,
+      "clientOwesMinusWeOweCents": 0,
+      "flags": [
+        "Shipping under-recharged"
+      ],
+      "clientPdf": {
+        "fileName": "sample-invoice-1000.pdf"
+      },
+      "supplierPdf": {
+        "fileName": "sample-bill-5000.pdf"
+      }
+    },
+    {
+      "id": "SAMPLE-002",
+      "date": "2026-05-06",
+      "customerId": "sample-customer-a",
+      "customerName": "Sample Customer A (fake)",
+      "supplierId": "sample-supplier",
+      "supplierName": "Sample Supplier (fake)",
+      "clientInvoiceNo": "S-INV-1001",
+      "supplierInvoiceNo": "S-BILL-5001",
+      "clientTotalCents": 3468600,
+      "supplierTotalCents": 3411400,
+      "grossMarginCents": 57200,
+      "goodsMarginCents": 37200,
+      "shippingMarginCents": 20000,
+      "ledgerMarginRatio": 0.0164908032059044,
+      "clientStatus": "PAID",
+      "clientOwesCents": 0,
+      "supplierStatus": "PAID",
+      "weOweSupplierCents": 0,
+      "clientOwesMinusWeOweCents": 0,
+      "flags": [],
+      "clientPdf": {
+        "fileName": "sample-invoice-1001.pdf"
+      },
+      "supplierPdf": {
+        "fileName": "sample-bill-5001.pdf"
+      }
+    },
+    {
+      "id": "SAMPLE-003",
+      "date": "2026-05-20",
+      "customerId": "sample-customer-a",
+      "customerName": "Sample Customer A (fake)",
+      "supplierId": "sample-supplier",
+      "supplierName": "Sample Supplier (fake)",
+      "clientInvoiceNo": "S-INV-1002",
+      "supplierInvoiceNo": "S-BILL-5002",
+      "clientTotalCents": 5303700,
+      "supplierTotalCents": 5227400,
+      "grossMarginCents": 76300,
+      "goodsMarginCents": 56300,
+      "shippingMarginCents": 20000,
+      "ledgerMarginRatio": 0.014386183230574882,
+      "clientStatus": "PAID",
+      "clientOwesCents": 0,
+      "supplierStatus": "PAID",
+      "weOweSupplierCents": 0,
+      "clientOwesMinusWeOweCents": 0,
+      "flags": [],
+      "clientPdf": {
+        "fileName": "sample-invoice-1002.pdf"
+      },
+      "supplierPdf": {
+        "fileName": "sample-bill-5002.pdf"
+      }
+    },
+    {
+      "id": "SAMPLE-004",
+      "date": "2026-06-03",
+      "customerId": "sample-customer-a",
+      "customerName": "Sample Customer A (fake)",
+      "supplierId": "sample-supplier",
+      "supplierName": "Sample Supplier (fake)",
+      "clientInvoiceNo": "S-INV-1003",
+      "supplierInvoiceNo": "S-BILL-5003",
+      "clientTotalCents": 5562200,
+      "supplierTotalCents": 5486400,
+      "grossMarginCents": 75800,
+      "goodsMarginCents": 55800,
+      "shippingMarginCents": 20000,
+      "ledgerMarginRatio": 0.01362770126928194,
+      "clientStatus": "PAID",
+      "clientOwesCents": 0,
+      "supplierStatus": "PAID",
+      "weOweSupplierCents": 0,
+      "clientOwesMinusWeOweCents": 0,
+      "flags": [],
+      "clientPdf": {
+        "fileName": "sample-invoice-1003.pdf"
+      },
+      "supplierPdf": {
+        "fileName": "sample-bill-5003.pdf"
+      }
+    },
+    {
+      "id": "SAMPLE-005",
+      "date": "2026-06-17",
+      "customerId": "sample-customer-c",
+      "customerName": "Sample Customer C (fake)",
+      "supplierId": "sample-supplier",
+      "supplierName": "Sample Supplier (fake)",
+      "clientInvoiceNo": "S-INV-1004",
+      "supplierInvoiceNo": "S-BILL-5004",
+      "clientTotalCents": 2553700,
+      "supplierTotalCents": 2526200,
+      "grossMarginCents": 27500,
+      "goodsMarginCents": 32500,
+      "shippingMarginCents": -5000,
+      "ledgerMarginRatio": 0.010768688569526568,
+      "clientStatus": "PAID",
+      "clientOwesCents": 0,
+      "supplierStatus": "PAID",
+      "weOweSupplierCents": 0,
+      "clientOwesMinusWeOweCents": 0,
+      "flags": [
+        "Shipping under-recharged"
+      ],
+      "clientPdf": {
+        "fileName": "sample-invoice-1004.pdf"
+      },
+      "supplierPdf": {
+        "fileName": "sample-bill-5004.pdf"
+      }
+    },
+    {
+      "id": "SAMPLE-006",
+      "date": "2026-06-25",
+      "customerId": "sample-customer-a",
+      "customerName": "Sample Customer A (fake)",
+      "supplierId": "sample-supplier",
+      "supplierName": "Sample Supplier (fake)",
+      "clientInvoiceNo": "S-INV-1005",
+      "supplierInvoiceNo": "S-BILL-5005",
+      "clientTotalCents": 330400,
+      "supplierTotalCents": 307100,
+      "grossMarginCents": 23300,
+      "goodsMarginCents": 3300,
+      "shippingMarginCents": 20000,
+      "ledgerMarginRatio": 0.07052058111380145,
+      "clientStatus": "PAID",
+      "clientOwesCents": 0,
+      "supplierStatus": "PAID",
+      "weOweSupplierCents": 0,
+      "clientOwesMinusWeOweCents": 0,
+      "flags": [],
+      "clientPdf": {
+        "fileName": "sample-invoice-1005.pdf"
+      },
+      "supplierPdf": {
+        "fileName": "sample-bill-5005.pdf"
+      }
+    },
+    {
+      "id": "SAMPLE-007",
+      "date": "2026-07-01",
+      "customerId": "sample-customer-c",
+      "customerName": "Sample Customer C (fake)",
+      "supplierId": "sample-supplier",
+      "supplierName": "Sample Supplier (fake)",
+      "clientInvoiceNo": "S-INV-1006",
+      "supplierInvoiceNo": "S-BILL-5006",
+      "clientTotalCents": 2389800,
+      "supplierTotalCents": 2388400,
+      "grossMarginCents": 1400,
+      "goodsMarginCents": -18600,
+      "shippingMarginCents": 20000,
+      "ledgerMarginRatio": 0.0005858230814294083,
+      "clientStatus": "PAID",
+      "clientOwesCents": 0,
+      "supplierStatus": "PAID",
+      "weOweSupplierCents": 0,
+      "clientOwesMinusWeOweCents": 0,
+      "flags": [],
+      "clientPdf": {
+        "fileName": "sample-invoice-1006.pdf"
+      },
+      "supplierPdf": {
+        "fileName": "sample-bill-5006.pdf"
+      }
+    },
+    {
+      "id": "SAMPLE-008",
+      "date": "2026-07-08",
+      "customerId": "sample-customer-a",
+      "customerName": "Sample Customer A (fake)",
+      "supplierId": "sample-supplier",
+      "supplierName": "Sample Supplier (fake)",
+      "clientInvoiceNo": "S-INV-1007",
+      "supplierInvoiceNo": "S-BILL-5007",
+      "clientTotalCents": 1379600,
+      "supplierTotalCents": 1318800,
+      "grossMarginCents": 60800,
+      "goodsMarginCents": 40800,
+      "shippingMarginCents": 20000,
+      "ledgerMarginRatio": 0.044070745143519864,
+      "clientStatus": "PAID",
+      "clientOwesCents": 0,
+      "supplierStatus": "PAID",
+      "weOweSupplierCents": 0,
+      "clientOwesMinusWeOweCents": 0,
+      "flags": [],
+      "clientPdf": {
+        "fileName": "sample-invoice-1007.pdf"
+      },
+      "supplierPdf": {
+        "fileName": "sample-bill-5007.pdf"
+      }
+    },
+    {
+      "id": "SAMPLE-009",
+      "date": "2026-07-15",
+      "customerId": "sample-customer-a",
+      "customerName": "Sample Customer A (fake)",
+      "supplierId": "sample-supplier",
+      "supplierName": "Sample Supplier (fake)",
+      "clientInvoiceNo": "S-INV-1008",
+      "supplierInvoiceNo": "S-BILL-5008",
+      "clientTotalCents": 2067200,
+      "supplierTotalCents": 2038000,
+      "grossMarginCents": 29200,
+      "goodsMarginCents": 34200,
+      "shippingMarginCents": -5000,
+      "ledgerMarginRatio": 0.014125386996904025,
+      "clientStatus": "PAID",
+      "clientOwesCents": 0,
+      "supplierStatus": "PAID",
+      "weOweSupplierCents": 0,
+      "clientOwesMinusWeOweCents": 0,
+      "flags": [
+        "Shipping under-recharged"
+      ],
+      "clientPdf": {
+        "fileName": "sample-invoice-1008.pdf"
+      },
+      "supplierPdf": {
+        "fileName": "sample-bill-5008.pdf"
+      }
+    },
+    {
+      "id": "SAMPLE-010",
+      "date": "2026-07-22",
+      "customerId": "sample-customer-b",
+      "customerName": "Sample Customer B (fake)",
+      "supplierId": "sample-supplier",
+      "supplierName": "Sample Supplier (fake)",
+      "clientInvoiceNo": "S-INV-1009",
+      "supplierInvoiceNo": "S-BILL-5009",
+      "clientTotalCents": 5397400,
+      "supplierTotalCents": 5340800,
+      "grossMarginCents": 56600,
+      "goodsMarginCents": 36600,
+      "shippingMarginCents": 20000,
+      "ledgerMarginRatio": 0.010486530551747137,
+      "clientStatus": "PAID",
+      "clientOwesCents": 0,
+      "supplierStatus": "PAID",
+      "weOweSupplierCents": 0,
+      "clientOwesMinusWeOweCents": 0,
+      "flags": [],
+      "clientPdf": {
+        "fileName": "sample-invoice-1009.pdf"
+      },
+      "supplierPdf": {
+        "fileName": "sample-bill-5009.pdf"
+      }
+    },
+    {
+      "id": "SAMPLE-011",
+      "date": "2026-08-05",
+      "customerId": "sample-customer-b",
+      "customerName": "Sample Customer B (fake)",
+      "supplierId": "sample-supplier",
+      "supplierName": "Sample Supplier (fake)",
+      "clientInvoiceNo": "S-INV-1010",
+      "supplierInvoiceNo": "S-BILL-5010",
+      "clientTotalCents": 4232000,
+      "supplierTotalCents": 4165900,
+      "grossMarginCents": 66100,
+      "goodsMarginCents": 46100,
+      "shippingMarginCents": 20000,
+      "ledgerMarginRatio": 0.015619092627599244,
+      "clientStatus": "AUTHORISED",
+      "clientOwesCents": 4232000,
+      "supplierStatus": "AUTHORISED",
+      "weOweSupplierCents": 4165900,
+      "clientOwesMinusWeOweCents": 66100,
+      "flags": [
+        "Client overdue 10 days (sample)"
+      ],
+      "clientPdf": {
+        "fileName": "sample-invoice-1010.pdf"
+      },
+      "supplierPdf": {
+        "fileName": "sample-bill-5010.pdf"
+      }
+    },
+    {
+      "id": "SAMPLE-012",
+      "date": "2026-08-26",
+      "customerId": "sample-customer-a",
+      "customerName": "Sample Customer A (fake)",
+      "supplierId": "sample-supplier",
+      "supplierName": "Sample Supplier (fake)",
+      "clientInvoiceNo": "S-INV-1011",
+      "supplierInvoiceNo": "S-BILL-5011",
+      "clientTotalCents": 3081200,
+      "supplierTotalCents": 3034000,
+      "grossMarginCents": 47200,
+      "goodsMarginCents": 27200,
+      "shippingMarginCents": 20000,
+      "ledgerMarginRatio": 0.01531870699727379,
+      "clientStatus": "AUTHORISED",
+      "clientOwesCents": 3081200,
+      "supplierStatus": "PAID",
+      "weOweSupplierCents": 0,
+      "clientOwesMinusWeOweCents": 3081200,
+      "flags": [
+        "Client overdue 10 days (sample)"
+      ],
+      "clientPdf": {
+        "fileName": "sample-invoice-1011.pdf"
+      },
+      "supplierPdf": {
+        "fileName": "sample-bill-5011.pdf"
+      }
+    },
+    {
+      "id": "SAMPLE-013",
+      "date": "2026-09-09",
+      "customerId": "sample-customer-a",
+      "customerName": "Sample Customer A (fake)",
+      "supplierId": "sample-supplier",
+      "supplierName": "Sample Supplier (fake)",
+      "clientInvoiceNo": "S-INV-1012",
+      "supplierInvoiceNo": "S-BILL-5012",
+      "clientTotalCents": 3953000,
+      "supplierTotalCents": 3914000,
+      "grossMarginCents": 39000,
+      "goodsMarginCents": 44000,
+      "shippingMarginCents": -5000,
+      "ledgerMarginRatio": 0.00986592461421705,
+      "clientStatus": "AUTHORISED",
+      "clientOwesCents": 3953000,
+      "supplierStatus": "AUTHORISED",
+      "weOweSupplierCents": 3914000,
+      "clientOwesMinusWeOweCents": 39000,
+      "flags": [
+        "Shipping under-recharged",
+        "Client overdue 10 days (sample)"
+      ],
+      "clientPdf": {
+        "fileName": "sample-invoice-1012.pdf"
+      },
+      "supplierPdf": {
+        "fileName": "sample-bill-5012.pdf"
+      }
+    },
+    {
+      "id": "SAMPLE-014",
+      "date": "2026-09-23",
+      "customerId": "sample-customer-a",
+      "customerName": "Sample Customer A (fake)",
+      "supplierId": "sample-supplier",
+      "supplierName": "Sample Supplier (fake)",
+      "clientInvoiceNo": "S-INV-1013",
+      "supplierInvoiceNo": "S-BILL-5013",
+      "clientTotalCents": 4762200,
+      "supplierTotalCents": 4694700,
+      "grossMarginCents": 67500,
+      "goodsMarginCents": 47500,
+      "shippingMarginCents": 20000,
+      "ledgerMarginRatio": 0.014174121204485322,
+      "clientStatus": "AUTHORISED",
+      "clientOwesCents": 4762200,
+      "supplierStatus": "PAID",
+      "weOweSupplierCents": 0,
+      "clientOwesMinusWeOweCents": 4762200,
+      "flags": [
+        "Client overdue 10 days (sample)"
+      ],
+      "clientPdf": {
+        "fileName": "sample-invoice-1013.pdf"
+      },
+      "supplierPdf": {
+        "fileName": "sample-bill-5013.pdf"
+      }
+    }
+  ],
+  "lines": [
+    {
+      "orderId": "SAMPLE-001",
+      "lineNo": 1,
+      "type": "goods",
+      "description": "Phone Model X 128GB - Used",
+      "qty": 44,
+      "clientUnitCents": 24200,
+      "supplierUnitCents": 23900,
+      "clientAmountCents": 1064800,
+      "supplierAmountCents": 1051600,
+      "marginCents": 13200,
+      "marginPerUnitCents": 300,
+      "note": null
+    },
+    {
+      "orderId": "SAMPLE-001",
+      "lineNo": 2,
+      "type": "shipping",
+      "description": "Shipping, freight and any invoice-level discounts (net)",
+      "qty": 1,
+      "clientUnitCents": 0,
+      "supplierUnitCents": 0,
+      "clientAmountCents": 15000,
+      "supplierAmountCents": 20000,
+      "marginCents": -5000,
+      "marginPerUnitCents": 0,
+      "note": "Shipping/discounts recharged below what supplier charged"
+    },
+    {
+      "orderId": "SAMPLE-002",
+      "lineNo": 1,
+      "type": "goods",
+      "description": "Phone Model Y 256GB - Used",
+      "qty": 62,
+      "clientUnitCents": 55300,
+      "supplierUnitCents": 54700,
+      "clientAmountCents": 3428600,
+      "supplierAmountCents": 3391400,
+      "marginCents": 37200,
+      "marginPerUnitCents": 600,
+      "note": null
+    },
+    {
+      "orderId": "SAMPLE-002",
+      "lineNo": 2,
+      "type": "shipping",
+      "description": "Shipping, freight and any invoice-level discounts (net)",
+      "qty": 1,
+      "clientUnitCents": 0,
+      "supplierUnitCents": 0,
+      "clientAmountCents": 40000,
+      "supplierAmountCents": 20000,
+      "marginCents": 20000,
+      "marginPerUnitCents": 0,
+      "note": null
+    },
+    {
+      "orderId": "SAMPLE-003",
+      "lineNo": 1,
+      "type": "goods",
+      "description": "Tablet Model Q 64GB - Used",
+      "qty": 45,
+      "clientUnitCents": 18700,
+      "supplierUnitCents": 18600,
+      "clientAmountCents": 841500,
+      "supplierAmountCents": 837000,
+      "marginCents": 4500,
+      "marginPerUnitCents": 100,
+      "note": null
+    },
+    {
+      "orderId": "SAMPLE-003",
+      "lineNo": 2,
+      "type": "goods",
+      "description": "Phone Model X 128GB - Used",
+      "qty": 65,
+      "clientUnitCents": 50900,
+      "supplierUnitCents": 50500,
+      "clientAmountCents": 3308500,
+      "supplierAmountCents": 3282500,
+      "marginCents": 26000,
+      "marginPerUnitCents": 400,
+      "note": null
+    },
+    {
+      "orderId": "SAMPLE-003",
+      "lineNo": 3,
+      "type": "goods",
+      "description": "Tablet Model Q 64GB - Used",
+      "qty": 43,
+      "clientUnitCents": 25900,
+      "supplierUnitCents": 25300,
+      "clientAmountCents": 1113700,
+      "supplierAmountCents": 1087900,
+      "marginCents": 25800,
+      "marginPerUnitCents": 600,
+      "note": null
+    },
+    {
+      "orderId": "SAMPLE-003",
+      "lineNo": 4,
+      "type": "shipping",
+      "description": "Shipping, freight and any invoice-level discounts (net)",
+      "qty": 1,
+      "clientUnitCents": 0,
+      "supplierUnitCents": 0,
+      "clientAmountCents": 40000,
+      "supplierAmountCents": 20000,
+      "marginCents": 20000,
+      "marginPerUnitCents": 0,
+      "note": null
+    },
+    {
+      "orderId": "SAMPLE-004",
+      "lineNo": 1,
+      "type": "goods",
+      "description": "Phone Model Z 128GB - Grade A",
+      "qty": 38,
+      "clientUnitCents": 17500,
+      "supplierUnitCents": 17400,
+      "clientAmountCents": 665000,
+      "supplierAmountCents": 661200,
+      "marginCents": 3800,
+      "marginPerUnitCents": 100,
+      "note": null
+    },
+    {
+      "orderId": "SAMPLE-004",
+      "lineNo": 2,
+      "type": "goods",
+      "description": "Phone Model Y 256GB - Used",
+      "qty": 59,
+      "clientUnitCents": 49300,
+      "supplierUnitCents": 48800,
+      "clientAmountCents": 2908700,
+      "supplierAmountCents": 2879200,
+      "marginCents": 29500,
+      "marginPerUnitCents": 500,
+      "note": null
+    },
+    {
+      "orderId": "SAMPLE-004",
+      "lineNo": 3,
+      "type": "goods",
+      "description": "Phone Model Z 128GB - Grade A",
+      "qty": 45,
+      "clientUnitCents": 43300,
+      "supplierUnitCents": 42800,
+      "clientAmountCents": 1948500,
+      "supplierAmountCents": 1926000,
+      "marginCents": 22500,
+      "marginPerUnitCents": 500,
+      "note": null
+    },
+    {
+      "orderId": "SAMPLE-004",
+      "lineNo": 4,
+      "type": "shipping",
+      "description": "Shipping, freight and any invoice-level discounts (net)",
+      "qty": 1,
+      "clientUnitCents": 0,
+      "supplierUnitCents": 0,
+      "clientAmountCents": 40000,
+      "supplierAmountCents": 20000,
+      "marginCents": 20000,
+      "marginPerUnitCents": 0,
+      "note": null
+    },
+    {
+      "orderId": "SAMPLE-005",
+      "lineNo": 1,
+      "type": "goods",
+      "description": "Phone Model X 128GB - Used",
+      "qty": 15,
+      "clientUnitCents": 22900,
+      "supplierUnitCents": 22600,
+      "clientAmountCents": 343500,
+      "supplierAmountCents": 339000,
+      "marginCents": 4500,
+      "marginPerUnitCents": 300,
+      "note": null
+    },
+    {
+      "orderId": "SAMPLE-005",
+      "lineNo": 2,
+      "type": "goods",
+      "description": "Phone Model Y 256GB - Used",
+      "qty": 56,
+      "clientUnitCents": 39200,
+      "supplierUnitCents": 38700,
+      "clientAmountCents": 2195200,
+      "supplierAmountCents": 2167200,
+      "marginCents": 28000,
+      "marginPerUnitCents": 500,
+      "note": null
+    },
+    {
+      "orderId": "SAMPLE-005",
+      "lineNo": 3,
+      "type": "shipping",
+      "description": "Shipping, freight and any invoice-level discounts (net)",
+      "qty": 1,
+      "clientUnitCents": 0,
+      "supplierUnitCents": 0,
+      "clientAmountCents": 15000,
+      "supplierAmountCents": 20000,
+      "marginCents": -5000,
+      "marginPerUnitCents": 0,
+      "note": "Shipping/discounts recharged below what supplier charged"
+    },
+    {
+      "orderId": "SAMPLE-006",
+      "lineNo": 1,
+      "type": "goods",
+      "description": "Tablet Model Q 64GB - Used",
+      "qty": 11,
+      "clientUnitCents": 26400,
+      "supplierUnitCents": 26100,
+      "clientAmountCents": 290400,
+      "supplierAmountCents": 287100,
+      "marginCents": 3300,
+      "marginPerUnitCents": 300,
+      "note": null
+    },
+    {
+      "orderId": "SAMPLE-006",
+      "lineNo": 2,
+      "type": "shipping",
+      "description": "Shipping, freight and any invoice-level discounts (net)",
+      "qty": 1,
+      "clientUnitCents": 0,
+      "supplierUnitCents": 0,
+      "clientAmountCents": 40000,
+      "supplierAmountCents": 20000,
+      "marginCents": 20000,
+      "marginPerUnitCents": 0,
+      "note": null
+    },
+    {
+      "orderId": "SAMPLE-007",
+      "lineNo": 1,
+      "type": "goods",
+      "description": "Phone Model Y 256GB - Used",
+      "qty": 62,
+      "clientUnitCents": 37900,
+      "supplierUnitCents": 38200,
+      "clientAmountCents": 2349800,
+      "supplierAmountCents": 2368400,
+      "marginCents": -18600,
+      "marginPerUnitCents": -300,
+      "note": null
+    },
+    {
+      "orderId": "SAMPLE-007",
+      "lineNo": 2,
+      "type": "shipping",
+      "description": "Shipping, freight and any invoice-level discounts (net)",
+      "qty": 1,
+      "clientUnitCents": 0,
+      "supplierUnitCents": 0,
+      "clientAmountCents": 40000,
+      "supplierAmountCents": 20000,
+      "marginCents": 20000,
+      "marginPerUnitCents": 0,
+      "note": null
+    },
+    {
+      "orderId": "SAMPLE-008",
+      "lineNo": 1,
+      "type": "goods",
+      "description": "Tablet Model Q 64GB - Used",
+      "qty": 68,
+      "clientUnitCents": 19700,
+      "supplierUnitCents": 19100,
+      "clientAmountCents": 1339600,
+      "supplierAmountCents": 1298800,
+      "marginCents": 40800,
+      "marginPerUnitCents": 600,
+      "note": null
+    },
+    {
+      "orderId": "SAMPLE-008",
+      "lineNo": 2,
+      "type": "shipping",
+      "description": "Shipping, freight and any invoice-level discounts (net)",
+      "qty": 1,
+      "clientUnitCents": 0,
+      "supplierUnitCents": 0,
+      "clientAmountCents": 40000,
+      "supplierAmountCents": 20000,
+      "marginCents": 20000,
+      "marginPerUnitCents": 0,
+      "note": null
+    },
+    {
+      "orderId": "SAMPLE-009",
+      "lineNo": 1,
+      "type": "goods",
+      "description": "Phone Model X 128GB - Used",
+      "qty": 28,
+      "clientUnitCents": 20100,
+      "supplierUnitCents": 19700,
+      "clientAmountCents": 562800,
+      "supplierAmountCents": 551600,
+      "marginCents": 11200,
+      "marginPerUnitCents": 400,
+      "note": null
+    },
+    {
+      "orderId": "SAMPLE-009",
+      "lineNo": 2,
+      "type": "goods",
+      "description": "Phone Model Y 256GB - Used",
+      "qty": 24,
+      "clientUnitCents": 39600,
+      "supplierUnitCents": 39100,
+      "clientAmountCents": 950400,
+      "supplierAmountCents": 938400,
+      "marginCents": 12000,
+      "marginPerUnitCents": 500,
+      "note": null
+    },
+    {
+      "orderId": "SAMPLE-009",
+      "lineNo": 3,
+      "type": "goods",
+      "description": "Tablet Model Q 64GB - Used",
+      "qty": 22,
+      "clientUnitCents": 24500,
+      "supplierUnitCents": 24000,
+      "clientAmountCents": 539000,
+      "supplierAmountCents": 528000,
+      "marginCents": 11000,
+      "marginPerUnitCents": 500,
+      "note": null
+    },
+    {
+      "orderId": "SAMPLE-009",
+      "lineNo": 4,
+      "type": "shipping",
+      "description": "Shipping, freight and any invoice-level discounts (net)",
+      "qty": 1,
+      "clientUnitCents": 0,
+      "supplierUnitCents": 0,
+      "clientAmountCents": 15000,
+      "supplierAmountCents": 20000,
+      "marginCents": -5000,
+      "marginPerUnitCents": 0,
+      "note": "Shipping/discounts recharged below what supplier charged"
+    },
+    {
+      "orderId": "SAMPLE-010",
+      "lineNo": 1,
+      "type": "goods",
+      "description": "Phone Model X 128GB - Used",
+      "qty": 60,
+      "clientUnitCents": 31100,
+      "supplierUnitCents": 31000,
+      "clientAmountCents": 1866000,
+      "supplierAmountCents": 1860000,
+      "marginCents": 6000,
+      "marginPerUnitCents": 100,
+      "note": null
+    },
+    {
+      "orderId": "SAMPLE-010",
+      "lineNo": 2,
+      "type": "goods",
+      "description": "Phone Model Y 256GB - Used",
+      "qty": 42,
+      "clientUnitCents": 41600,
+      "supplierUnitCents": 41000,
+      "clientAmountCents": 1747200,
+      "supplierAmountCents": 1722000,
+      "marginCents": 25200,
+      "marginPerUnitCents": 600,
+      "note": null
+    },
+    {
+      "orderId": "SAMPLE-010",
+      "lineNo": 3,
+      "type": "goods",
+      "description": "Phone Model X 128GB - Used",
+      "qty": 54,
+      "clientUnitCents": 32300,
+      "supplierUnitCents": 32200,
+      "clientAmountCents": 1744200,
+      "supplierAmountCents": 1738800,
+      "marginCents": 5400,
+      "marginPerUnitCents": 100,
+      "note": null
+    },
+    {
+      "orderId": "SAMPLE-010",
+      "lineNo": 4,
+      "type": "shipping",
+      "description": "Shipping, freight and any invoice-level discounts (net)",
+      "qty": 1,
+      "clientUnitCents": 0,
+      "supplierUnitCents": 0,
+      "clientAmountCents": 40000,
+      "supplierAmountCents": 20000,
+      "marginCents": 20000,
+      "marginPerUnitCents": 0,
+      "note": null
+    },
+    {
+      "orderId": "SAMPLE-011",
+      "lineNo": 1,
+      "type": "goods",
+      "description": "Phone Model Y 256GB - Used",
+      "qty": 57,
+      "clientUnitCents": 22000,
+      "supplierUnitCents": 21700,
+      "clientAmountCents": 1254000,
+      "supplierAmountCents": 1236900,
+      "marginCents": 17100,
+      "marginPerUnitCents": 300,
+      "note": null
+    },
+    {
+      "orderId": "SAMPLE-011",
+      "lineNo": 2,
+      "type": "goods",
+      "description": "Phone Model X 128GB - Used",
+      "qty": 39,
+      "clientUnitCents": 49200,
+      "supplierUnitCents": 48600,
+      "clientAmountCents": 1918800,
+      "supplierAmountCents": 1895400,
+      "marginCents": 23400,
+      "marginPerUnitCents": 600,
+      "note": null
+    },
+    {
+      "orderId": "SAMPLE-011",
+      "lineNo": 3,
+      "type": "goods",
+      "description": "Phone Model Y 256GB - Used",
+      "qty": 28,
+      "clientUnitCents": 36400,
+      "supplierUnitCents": 36200,
+      "clientAmountCents": 1019200,
+      "supplierAmountCents": 1013600,
+      "marginCents": 5600,
+      "marginPerUnitCents": 200,
+      "note": null
+    },
+    {
+      "orderId": "SAMPLE-011",
+      "lineNo": 4,
+      "type": "shipping",
+      "description": "Shipping, freight and any invoice-level discounts (net)",
+      "qty": 1,
+      "clientUnitCents": 0,
+      "supplierUnitCents": 0,
+      "clientAmountCents": 40000,
+      "supplierAmountCents": 20000,
+      "marginCents": 20000,
+      "marginPerUnitCents": 0,
+      "note": null
+    },
+    {
+      "orderId": "SAMPLE-012",
+      "lineNo": 1,
+      "type": "goods",
+      "description": "Phone Model Z 128GB - Grade A",
+      "qty": 32,
+      "clientUnitCents": 34100,
+      "supplierUnitCents": 33900,
+      "clientAmountCents": 1091200,
+      "supplierAmountCents": 1084800,
+      "marginCents": 6400,
+      "marginPerUnitCents": 200,
+      "note": null
+    },
+    {
+      "orderId": "SAMPLE-012",
+      "lineNo": 2,
+      "type": "goods",
+      "description": "Phone Model X 128GB - Used",
+      "qty": 52,
+      "clientUnitCents": 37500,
+      "supplierUnitCents": 37100,
+      "clientAmountCents": 1950000,
+      "supplierAmountCents": 1929200,
+      "marginCents": 20800,
+      "marginPerUnitCents": 400,
+      "note": null
+    },
+    {
+      "orderId": "SAMPLE-012",
+      "lineNo": 3,
+      "type": "shipping",
+      "description": "Shipping, freight and any invoice-level discounts (net)",
+      "qty": 1,
+      "clientUnitCents": 0,
+      "supplierUnitCents": 0,
+      "clientAmountCents": 40000,
+      "supplierAmountCents": 20000,
+      "marginCents": 20000,
+      "marginPerUnitCents": 0,
+      "note": null
+    },
+    {
+      "orderId": "SAMPLE-013",
+      "lineNo": 1,
+      "type": "goods",
+      "description": "Tablet Model Q 64GB - Used",
+      "qty": 66,
+      "clientUnitCents": 25000,
+      "supplierUnitCents": 24400,
+      "clientAmountCents": 1650000,
+      "supplierAmountCents": 1610400,
+      "marginCents": 39600,
+      "marginPerUnitCents": 600,
+      "note": null
+    },
+    {
+      "orderId": "SAMPLE-013",
+      "lineNo": 2,
+      "type": "goods",
+      "description": "Phone Model Y 256GB - Used",
+      "qty": 44,
+      "clientUnitCents": 52000,
+      "supplierUnitCents": 51900,
+      "clientAmountCents": 2288000,
+      "supplierAmountCents": 2283600,
+      "marginCents": 4400,
+      "marginPerUnitCents": 100,
+      "note": null
+    },
+    {
+      "orderId": "SAMPLE-013",
+      "lineNo": 3,
+      "type": "shipping",
+      "description": "Shipping, freight and any invoice-level discounts (net)",
+      "qty": 1,
+      "clientUnitCents": 0,
+      "supplierUnitCents": 0,
+      "clientAmountCents": 15000,
+      "supplierAmountCents": 20000,
+      "marginCents": -5000,
+      "marginPerUnitCents": 0,
+      "note": "Shipping/discounts recharged below what supplier charged"
+    },
+    {
+      "orderId": "SAMPLE-014",
+      "lineNo": 1,
+      "type": "goods",
+      "description": "Tablet Model Q 64GB - Used",
+      "qty": 67,
+      "clientUnitCents": 54600,
+      "supplierUnitCents": 54100,
+      "clientAmountCents": 3658200,
+      "supplierAmountCents": 3624700,
+      "marginCents": 33500,
+      "marginPerUnitCents": 500,
+      "note": null
+    },
+    {
+      "orderId": "SAMPLE-014",
+      "lineNo": 2,
+      "type": "goods",
+      "description": "Phone Model X 128GB - Used",
+      "qty": 28,
+      "clientUnitCents": 38000,
+      "supplierUnitCents": 37500,
+      "clientAmountCents": 1064000,
+      "supplierAmountCents": 1050000,
+      "marginCents": 14000,
+      "marginPerUnitCents": 500,
+      "note": null
+    },
+    {
+      "orderId": "SAMPLE-014",
+      "lineNo": 3,
+      "type": "shipping",
+      "description": "Shipping, freight and any invoice-level discounts (net)",
+      "qty": 1,
+      "clientUnitCents": 0,
+      "supplierUnitCents": 0,
+      "clientAmountCents": 40000,
+      "supplierAmountCents": 20000,
+      "marginCents": 20000,
+      "marginPerUnitCents": 0,
+      "note": null
+    }
+  ],
+  "creditNotes": [
+    {
+      "side": "client",
+      "number": "S-CN-01",
+      "date": "2026-08-12",
+      "amountCents": 250000,
+      "refersToInvoices": "S-INV-1007",
+      "orderIds": [
+        "SAMPLE-008"
+      ],
+      "covers": "Returned units (fake)",
+      "xeroShows": "Sample",
+      "check": "Sample data"
+    },
+    {
+      "side": "supplier",
+      "number": "S-SCN-01",
+      "date": "2026-08-10",
+      "amountCents": 240000,
+      "refersToInvoices": "S-BILL-5007",
+      "orderIds": [
+        "SAMPLE-008"
+      ],
+      "covers": "Returned units (fake)",
+      "xeroShows": "Sample",
+      "check": "Sample data"
+    },
+    {
+      "side": "supplier",
+      "number": "S-SCN-02",
+      "date": "2026-08-20",
+      "amountCents": 90000,
+      "refersToInvoices": "S-BILL-5008 & S-BILL-5009",
+      "orderIds": [
+        "SAMPLE-009",
+        "SAMPLE-010"
+      ],
+      "covers": "Price adjustment across two orders (fake)",
+      "xeroShows": "Sample",
+      "check": "Sample data"
+    }
+  ],
+  "exceptions": [
+    {
+      "id": "EX-01",
+      "priority": "HIGH",
+      "reference": "SAMPLE-007",
+      "orderId": "SAMPLE-007",
+      "issue": "Loss-making sample order.",
+      "impactCents": 1400,
+      "suggestedAction": "Sample data: no action."
+    },
+    {
+      "id": "EX-02",
+      "priority": "MEDIUM",
+      "reference": "SAMPLE-013",
+      "orderId": "SAMPLE-013",
+      "issue": "Client invoice overdue (sample).",
+      "impactCents": 3953000,
+      "suggestedAction": "Sample data: no action."
+    },
+    {
+      "id": "EX-03",
+      "priority": "LOW",
+      "reference": "All orders",
+      "orderId": null,
+      "issue": "This is fake sample data for development.",
+      "impactCents": 0,
+      "suggestedAction": "Import the real ledger with npm run import."
+    }
+  ]
+}
