@@ -132,3 +132,20 @@ re-imports. Rows for office rent, housing rent and car finance are linked to tho
 skipped once the overhead is entered, so nothing is counted twice. The panel also shows VAT
 reclaimed on rows not confirmed as business, personal spending paid by the company, and the rate
 actually achieved on EUR to GBP conversions.
+
+## Automatic sync (local)
+
+Copy `.env.local.example` to `.env.local` and set where OneDrive keeps your files:
+
+```
+FN_LEDGER_PATH=C:\Users\fonen\OneDrive\Desktop\FoneNova_Order_Ledger.xlsx
+FN_EXPENSES_DIR=C:\Users\fonen\OneDrive\Desktop\VAT RETURNS
+```
+
+Then start the dashboard with **`Start dashboard.cmd`** (double-click; put a shortcut in
+`shell:startup` to run it at login). From then on there is nothing to run: when you save either
+file, the dashboard re-imports it on its next refresh (an open page refreshes itself every
+minute). The newest `VAT Return From….xlsx` in the folder is used; `_backups` folders are skipped.
+If a save cannot be read (still syncing, or the layout changed), the last good import stays on
+screen and the status bar says why. Xero, once connected, refreshes itself when its data is more
+than 30 minutes old. The manual `npm run import` commands still work and read `.env.local` too.

@@ -14,6 +14,8 @@ const securityHeaders = [
 const nextConfig = {
   typescript: { ignoreBuildErrors: false },
   poweredByHeader: false,
+  // exceljs reads the ledger and tracker on the server during automatic sync.
+  serverExternalPackages: ['exceljs'],
   turbopack: { root: import.meta.dirname },
   // Hosted, the real ledger comes from the FN_LEDGER_BR environment variable. Ship the
   // fake sample with the server function so a missing variable shows sample data, banner and all.
