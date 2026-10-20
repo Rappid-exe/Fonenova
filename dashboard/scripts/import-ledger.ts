@@ -5,6 +5,9 @@
  *   npm run import -- path/to/file.xlsx     # another copy of the ledger
  *   npm run import -- in.xlsx --out dir     # another output folder
  *
+ * With no path given, it reads FN_LEDGER_PATH if set (e.g. the copy OneDrive syncs to the
+ * desktop), otherwise data/FoneNova_Order_Ledger.xlsx.
+ *
  * The script never adjusts figures to make them fit. It writes what the ledger says, then runs
  * the reconciliation checks and exits with code 1 if any check fails.
  */
@@ -355,10 +358,13 @@ async function main() {
   const args = process.argv.slice(2)
   const outIdx = args.indexOf('--out')
   const outDir = outIdx >= 0 ? args[outIdx + 1] : 'data/generated'
-  const input = args.find((a, i) => !a.startsWith('--') && i !== outIdx + 1) ?? 'data/FoneNova_Order_Ledger.xlsx'
+  const input =
+    args.find((a, i) => !a.startsWith('--') && (outIdx === -1 || i !== outIdx + 1)) ??
+    process.env.FN_LEDGER_PATH ??
+    'data/FoneNova_Order_Ledger.xlsx'
 
   if (!fs.existsSync(input)) {
-    console.error(`Ledger not found: ${input}\nPlace FoneNova_Order_Ledger.xlsx in dashboard/data/ and run again.`)
+    console.error(`Ledger not found: ${input}\nSet FN_LEDGER_PATH to the ledger's location, pass the path, or place the file in dashboard/data/.`)
     process.exit(2)
   }
 
@@ -368,7 +374,7 @@ async function main() {
   fs.writeFileSync(outFile, JSON.stringify(ledger, null, 2) + '\n')
 
   const goods = ledger.lines.filter((l) => l.type === 'goods').length
-  console.log(`Read ${input}`)
+  console.log(`Read ${input} (last saved ${fs.statSync(input).mtime.toLocaleString('en-GB')})`)
   console.log(`  Orders ${ledger.orders.length} (TOTAL row excluded)  Lines ${ledger.lines.length} (${goods} goods, ${ledger.lines.length - goods} shipping)`)
   console.log(`  Credit notes ${ledger.creditNotes.length}  Exceptions ${ledger.exceptions.length}  Customers ${ledger.customers.length}  Suppliers ${ledger.suppliers.length}`)
   console.log(`  Order dates ${ledger.orders.map((o) => o.date).sort()[0]} to ${ledger.orders.map((o) => o.date).sort().at(-1)}  Xero snapshot ${ledger.meta.snapshotDate}`)

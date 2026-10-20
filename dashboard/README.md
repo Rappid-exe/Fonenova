@@ -14,6 +14,15 @@ npm run dev         # http://localhost:3100
 npm test            # unit tests + to-the-cent reconciliation against the real import
 ```
 
+To read the ledger where it already lives (for example the copy OneDrive syncs to the desktop)
+instead of copying it into `data/`, set it once on Windows, then open a new terminal:
+
+```powershell
+setx FN_LEDGER_PATH "C:\Users\fonen\OneDrive\Desktop\FoneNova_Order_Ledger.xlsx"
+```
+
+The import prints which file it read and when that file was last saved.
+
 Without the real file the app falls back to `data/sample/ledger.json` (fake data, `npm run sample`
 regenerates it) and shows a "Sample data" banner on every screen.
 
