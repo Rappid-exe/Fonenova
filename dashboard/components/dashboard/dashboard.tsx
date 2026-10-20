@@ -15,6 +15,8 @@ import { OverheadsPanel } from './overheads-panel'
 import { ExpensesPanel } from './expenses-panel'
 import { CashCalendarPanel } from './cash-calendar'
 import { XeroBar } from './xero-bar'
+import { AutoRefresh } from './auto-refresh'
+import type { SourceStatus } from '@/lib/sync-core'
 import type { XeroState } from '@/lib/data-source'
 import { matchOrders } from '@/lib/xero/map'
 import { CurrencyNote, CurrencySwitch } from './currency-switch'
@@ -41,6 +43,7 @@ interface Props {
   expenses: ExpenseLog | null
   expenseOverrides: ExpenseOverrides
   expensesError: string | null
+  sources: SourceStatus[]
 }
 
 export function Dashboard(props: Props) {
@@ -51,7 +54,7 @@ export function Dashboard(props: Props) {
   )
 }
 
-function DashboardBody({ ledger: rawLedger, today, overheads, overheadsSaved, overheadsError, overheadsWritable, xero, notice, expenses, expenseOverrides, expensesError }: Props) {
+function DashboardBody({ ledger: rawLedger, today, overheads, overheadsSaved, overheadsError, overheadsWritable, xero, notice, expenses, expenseOverrides, expensesError, sources }: Props) {
   const { fx } = useMoney()
   // Reconcile against the untouched ledger; everything else uses Xero's live statuses where found.
   const checks = useMemo(() => reconcileLedger(rawLedger), [rawLedger])
@@ -124,7 +127,8 @@ function DashboardBody({ ledger: rawLedger, today, overheads, overheadsSaved, ov
       )}
 
       <div className="pt-5">
-        <XeroBar xero={xero} summary={live?.summary ?? null} ledgerImported={formatDate(ledger.meta.importedAt.slice(0, 10))} ledgerSnapshot={formatDate(ledger.meta.snapshotDate)} notice={notice} />
+        <AutoRefresh />
+        <XeroBar sources={sources} xero={xero} summary={live?.summary ?? null} ledgerImported={formatDate(ledger.meta.importedAt.slice(0, 10))} ledgerSnapshot={formatDate(ledger.meta.snapshotDate)} notice={notice} />
       </div>
 
       <header className="flex flex-col gap-4 pt-2 pb-5 md:flex-row md:items-end md:justify-between">

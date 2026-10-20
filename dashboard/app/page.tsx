@@ -3,6 +3,7 @@ import { FileWarning } from 'lucide-react'
 import { Dashboard } from '@/components/dashboard/dashboard'
 import { Shell } from '@/components/shell'
 import { currentUser } from '@/lib/session'
+import { syncSources } from '@/lib/sync'
 import { getDataSource, loadExpenses, loadFxRate, loadOverheads, loadXeroState, overheadsWritable, toClientLedger } from '@/lib/data-source'
 import { todayIso } from '@/lib/periods'
 
@@ -16,6 +17,8 @@ export default async function Page({ searchParams }: { searchParams: Promise<Rec
   if (user === false) redirect('/login')
   const email = user
 
+  // Pick up any ledger or tracker saved since the last visit, before reading the data.
+  const sources = await syncSources()
   const source = getDataSource()
   const [result, fx, oh, xero, exp] = await Promise.all([source.load(), loadFxRate(), loadOverheads(), loadXeroState(), loadExpenses()])
 
@@ -37,7 +40,7 @@ export default async function Page({ searchParams }: { searchParams: Promise<Rec
   const { ledger } = result
   return (
     <Shell email={email} footer={<>Source: {ledger.meta.sourceFile}<br />Imported {ledger.meta.importedAt.slice(0, 10)}</>}>
-      <Dashboard ledger={toClientLedger(ledger)} today={todayIso()} fx={fx} overheads={oh.overheads} overheadsSaved={oh.saved} overheadsError={oh.error ?? null} overheadsWritable={overheadsWritable()} xero={xero} notice={notice} expenses={exp.log} expenseOverrides={exp.overrides} expensesError={exp.error ?? null} />
+      <Dashboard ledger={toClientLedger(ledger)} today={todayIso()} fx={fx} overheads={oh.overheads} overheadsSaved={oh.saved} overheadsError={oh.error ?? null} overheadsWritable={overheadsWritable()} xero={xero} notice={notice} expenses={exp.log} expenseOverrides={exp.overrides} expensesError={exp.error ?? null} sources={sources} />
     </Shell>
   )
 }

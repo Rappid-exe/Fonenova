@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import type { XeroState } from '@/lib/data-source'
 import type { LiveSummary } from '@/lib/metrics'
+import type { SourceStatus } from '@/lib/sync-core'
 import { formatDate } from '@/lib/periods'
 import { cn } from '@/lib/utils'
 
@@ -17,7 +18,8 @@ const NOTICE: Record<string, string> = {
   'not-configured': 'Xero is not set up on this computer yet.',
 }
 
-export function XeroBar({ xero, summary, ledgerImported, ledgerSnapshot, notice }: {
+export function XeroBar({ xero, summary, ledgerImported, ledgerSnapshot, notice, sources }: {
+  sources: SourceStatus[]
   xero: XeroState
   summary: LiveSummary | null
   ledgerImported: string
@@ -48,14 +50,18 @@ export function XeroBar({ xero, summary, ledgerImported, ledgerSnapshot, notice 
   const problems = snap?.problems ?? []
 
   return (
-    <div className="mb-3 flex flex-wrap items-center gap-x-3 gap-y-2 rounded-lg border border-line bg-surface px-3 py-2 text-[12.5px]" role="status">
-      <span className="text-ink-3">Ledger imported {ledgerImported} (snapshot {ledgerSnapshot})</span>
-      <span className="hidden h-4 w-px bg-line sm:block" aria-hidden />
+    <div className="mb-3 rounded-lg border border-line bg-surface text-[12.5px]" role="status">
+      <ul className="divide-y divide-line">
+        {(sources.length ? sources.filter((x) => x.source !== 'xero') : []).map((x) => <SourceLine key={x.source} s={x} />)}
+        {sources.length === 0 && <li className="px-3 py-1.5 text-ink-3">Ledger imported {ledgerImported} (snapshot {ledgerSnapshot}). Automatic file sync is off on the hosted version.</li>}
+      </ul>
+      <div className="flex flex-wrap items-center gap-x-3 gap-y-2 border-t border-line px-3 py-2">
+      <span className="font-medium text-ink-2">Xero</span>
       {!xero.configured ? (
-        <span className="text-ink-3">Xero not set up: add <code>XERO_CLIENT_ID</code> to <code>.env.local</code>. Statuses come from the ledger snapshot.</span>
+        <span className="text-ink-3">Not set up: add <code>XERO_CLIENT_ID</code> to <code>.env.local</code>. Statuses come from the ledger snapshot.</span>
       ) : !xero.connected ? (
         <>
-          <span className="text-ink-2">Xero not connected. Statuses come from the ledger snapshot.</span>
+          <span className="text-ink-2">Not connected. Statuses come from the ledger snapshot.</span>
           <a href="/xero/connect" className="inline-flex h-8 items-center gap-1.5 rounded-md bg-navy px-2.5 font-medium text-white hover:bg-navy-2">
             <Link2 className="h-4 w-4" aria-hidden />Connect Xero (read-only)
           </a>
@@ -97,6 +103,26 @@ export function XeroBar({ xero, summary, ledgerImported, ledgerSnapshot, notice 
         </>
       )}
       {(error || (notice && NOTICE[notice])) && <span className={cn(error || notice !== 'connected' ? 'text-loss' : 'text-gain')}>{error ?? NOTICE[notice!]}</span>}
+      </div>
     </div>
+  )
+}
+
+const time = (iso: string | null) => {
+  if (!iso) return null
+  const d = new Date(iso)
+  return `${formatDate(iso.slice(0, 10))}, ${d.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}`
+}
+
+function SourceLine({ s }: { s: SourceStatus }) {
+  return (
+    <li className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5 px-3 py-1.5">
+      <span className={cn('h-2 w-2 shrink-0 translate-y-[-1px] rounded-full', s.ok ? 'bg-gain' : s.configured ? 'bg-loss' : 'bg-line-strong')} aria-hidden />
+      <span className="font-medium text-ink-2">{s.label}</span>
+      {s.fileName && <span className="text-ink-3" title={s.fileName}>{s.fileName}</span>}
+      {s.fileSavedAt && <span className="text-ink-3">saved {time(s.fileSavedAt)}</span>}
+      {s.importedAt && <span className="text-ink-3">imported {time(s.importedAt)}</span>}
+      <span className={cn(s.ok ? 'text-ink-2' : s.configured ? 'text-loss' : 'text-ink-3')}>{s.changed ? 'Just synced: ' : ''}{s.message}</span>
+    </li>
   )
 }

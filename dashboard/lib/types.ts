@@ -152,6 +152,8 @@ export interface LedgerMeta {
   snapshotDate: IsoDate
   currency: Currency
   isSample: boolean
+  /** When the source file was last saved, as read by the import. Drives automatic re-imports. */
+  sourceModifiedAt?: string
 }
 
 export interface Ledger {
@@ -269,7 +271,7 @@ export interface FxConversion {
 }
 
 export interface ExpenseLog {
-  meta: { sourceFile: string; importedAt: string; currency: 'GBP' }
+  meta: { sourceFile: string; importedAt: string; currency: 'GBP'; sourceModifiedAt?: string }
   expenses: Expense[]
   fxConversions: FxConversion[]
 }
