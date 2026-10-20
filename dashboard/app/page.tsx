@@ -3,7 +3,7 @@ import { FileWarning } from 'lucide-react'
 import { Dashboard } from '@/components/dashboard/dashboard'
 import { Shell } from '@/components/shell'
 import { currentUser } from '@/lib/session'
-import { getDataSource, loadFxRate, loadOverheads, loadXeroState, overheadsWritable, toClientLedger } from '@/lib/data-source'
+import { getDataSource, loadExpenses, loadFxRate, loadOverheads, loadXeroState, overheadsWritable, toClientLedger } from '@/lib/data-source'
 import { todayIso } from '@/lib/periods'
 
 // Read the ledger on every request so a fresh import shows without a rebuild.
@@ -17,7 +17,7 @@ export default async function Page({ searchParams }: { searchParams: Promise<Rec
   const email = user
 
   const source = getDataSource()
-  const [result, fx, oh, xero] = await Promise.all([source.load(), loadFxRate(), loadOverheads(), loadXeroState()])
+  const [result, fx, oh, xero, exp] = await Promise.all([source.load(), loadFxRate(), loadOverheads(), loadXeroState(), loadExpenses()])
 
   if (!result.ok) {
     return (
@@ -37,7 +37,7 @@ export default async function Page({ searchParams }: { searchParams: Promise<Rec
   const { ledger } = result
   return (
     <Shell email={email} footer={<>Source: {ledger.meta.sourceFile}<br />Imported {ledger.meta.importedAt.slice(0, 10)}</>}>
-      <Dashboard ledger={toClientLedger(ledger)} today={todayIso()} fx={fx} overheads={oh.overheads} overheadsSaved={oh.saved} overheadsError={oh.error ?? null} overheadsWritable={overheadsWritable()} xero={xero} notice={notice} />
+      <Dashboard ledger={toClientLedger(ledger)} today={todayIso()} fx={fx} overheads={oh.overheads} overheadsSaved={oh.saved} overheadsError={oh.error ?? null} overheadsWritable={overheadsWritable()} xero={xero} notice={notice} expenses={exp.log} expenseOverrides={exp.overrides} expensesError={exp.error ?? null} />
     </Shell>
   )
 }

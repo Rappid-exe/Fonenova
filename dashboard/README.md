@@ -114,3 +114,21 @@ accounting.reports.banksummary.read`. If Xero's app settings name them different
   counted until they arrive.
 - Saving overheads and the Xero connection need a writable disk, so both are local-only until the
   hosted version gets online storage.
+
+## Expenses from the VAT return tracker
+
+```powershell
+npm.cmd run import-expenses -- "C:\path\to\VAT Return From Sept-Dec, 2026.xlsx"
+```
+
+(or set `FN_EXPENSES_PATH`, or save the file as `dashboard/data/expenses.xlsx`). The import reads
+Sheet2 (the expense log) and the "FX Exchanges (Reference)" sheet, and prints its totals to check
+against the tracker's summary. Output: `data/generated/expenses.json` (git-ignored).
+
+Each row is sorted by plain rules in `lib/expenses.ts` into **Business** (comes off net profit),
+**Needs review** (business purpose not recorded) or **Personal**. Change any row with its
+dropdown; your choices are saved to `data/expense-overrides.json` (git-ignored) and survive
+re-imports. Rows for office rent, housing rent and car finance are linked to those overheads and
+skipped once the overhead is entered, so nothing is counted twice. The panel also shows VAT
+reclaimed on rows not confirmed as business, personal spending paid by the company, and the rate
+actually achieved on EUR to GBP conversions.

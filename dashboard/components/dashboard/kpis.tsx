@@ -63,26 +63,28 @@ function NetRow({ net }: { net: NetProfit | { status: 'filtered' } }) {
   const wrap = 'flex flex-wrap items-baseline gap-x-2 gap-y-0.5 border-t border-dashed border-line px-5 py-2.5 text-[12px] text-ink-3'
   if (net.status !== 'ok') {
     const why =
-      net.status === 'filtered' ? 'Not shown for one customer: overheads belong to the whole business.'
-      : net.status === 'not-entered' ? 'Not shown yet: enter business overhead amounts and start dates below.'
-      : net.status === 'incomplete' ? `Not shown yet: enter the amount and start date for ${net.missing.join(', ')}.`
-      : 'Not shown: overheads are in GBP and no exchange rate is available to combine them with EUR profit.'
+      net.status === 'filtered' ? 'Not shown for one customer: overheads and expenses belong to the whole business.'
+      : net.status === 'not-entered' ? 'Not shown yet: enter business overheads below or import the expense log.'
+      : 'Not shown: costs are in GBP and no exchange rate is available to combine them with EUR profit.'
     return <div className={wrap}><span className="font-medium text-ink-2">Net business profit</span><span>{why}</span></div>
   }
   const primary = currency === 'GBP' ? fmtMoney(net.netGbpCents, 'GBP') : fmtMoney(net.netEurCents, 'EUR')
   const other = currency === 'GBP' ? fmtMoney(net.netEurCents, 'EUR') : fmtMoney(net.netGbpCents, 'GBP')
   const negative = (currency === 'GBP' ? net.netGbpCents : net.netEurCents) < 0
+  const parts = [
+    net.businessOverheads.GBP ? `overheads ${fmtMoney(net.businessOverheads.GBP, 'GBP')}` : '',
+    net.businessOverheads.EUR ? `overheads ${fmtMoney(net.businessOverheads.EUR, 'EUR')}` : '',
+    net.businessExpensesCents ? `logged business expenses ${fmtMoney(net.businessExpensesCents, 'GBP')}` : '',
+  ].filter(Boolean)
   return (
     <div className={wrap}>
       <span className="font-medium text-ink-2">Net business profit</span>
       <span className={cn('text-[14px] font-semibold', negative ? 'text-loss' : 'text-ink')}>{primary}</span>
       <span>({other})</span>
       <span className="basis-full">
-        Gross after credit notes, less business overheads taken up to {formatDate(net.chargedTo)}
-        {net.businessOverheads.GBP ? ` (${fmtMoney(net.businessOverheads.GBP, 'GBP')}` : ' ('}
-        {net.businessOverheads.EUR ? `${net.businessOverheads.GBP ? ' + ' : ''}${fmtMoney(net.businessOverheads.EUR, 'EUR')}` : ''}
-        {!net.businessOverheads.GBP && !net.businessOverheads.EUR ? 'none in this period' : ''}). Converted at the ECB rate. Excludes your own shipping, bank and FX fees, which are not recorded.
+        Gross after credit notes, less {parts.length ? parts.join(' and ') : 'no business costs'} up to {formatDate(net.chargedTo)}. Converted at the ECB rate. Personal and unreviewed items are not deducted.
       </span>
+      {net.warnings.map((w) => <span key={w} className="basis-full text-warn">{w}.</span>)}
     </div>
   )
 }

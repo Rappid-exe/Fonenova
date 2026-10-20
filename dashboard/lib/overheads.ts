@@ -1,11 +1,14 @@
 /** Overhead list validation and the starting list. Pure, so it is shared by the API and tests. */
 import type { Overhead } from './types'
 
-/** The owner's starting list: names and days only. Amounts and start dates are never assumed. */
+/**
+ * The owner's starting list: names, days and type only. Amounts and start dates are never
+ * assumed. Housing rent defaults to personal: it is invoiced to the owner for their home.
+ */
 export const STARTER_OVERHEADS: Overhead[] = [
   { id: 'office-rent', name: 'Office rent', amountCents: null, currency: 'GBP', dayOfMonth: 15, category: 'business', startDate: null, endDate: null },
-  { id: 'housing-rent', name: 'Housing rent', amountCents: null, currency: 'GBP', dayOfMonth: 1, category: 'business', startDate: null, endDate: null },
-  { id: 'car-payment', name: 'Car payment', amountCents: null, currency: 'GBP', dayOfMonth: 1, category: 'business', startDate: null, endDate: null },
+  { id: 'housing-rent', name: 'Housing rent', amountCents: null, currency: 'GBP', dayOfMonth: 1, category: 'personal', startDate: null, endDate: null },
+  { id: 'car-payment', name: 'Car payment', amountCents: null, currency: 'GBP', dayOfMonth: 7, category: 'business', startDate: null, endDate: null },
 ]
 
 const ISO = /^\d{4}-\d{2}-\d{2}$/

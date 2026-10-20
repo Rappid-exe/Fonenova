@@ -10,7 +10,8 @@
     "sample": "tsx scripts/make-sample.ts",
     "test": "vitest run",
     "typecheck": "tsc --noEmit",
-    "pack-ledger": "tsx scripts/pack-ledger.ts"
+    "pack-ledger": "tsx scripts/pack-ledger.ts",
+    "import-expenses": "tsx scripts/import-expenses.ts"
   },
   "dependencies": {
     "@fontsource-variable/inter": "^5.2.5",

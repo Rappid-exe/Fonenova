@@ -3,8 +3,9 @@
  * Components format numbers; they never add them up.
  */
 import { ratio, sumCents } from './money'
-import { addDays, bucketKey, buckets, inRange, monthEnd, monthStart, type DateRange, type Granularity } from './periods'
-import type { Cents, CreditNote, FxRate, InvoiceStatus, IsoDate, Ledger, LiveOrderStatus, Order, OrderLine, Overhead, XeroBankBalance, XeroInvoice } from './types'
+import { addDays, bucketKey, buckets, formatDate, inRange, monthEnd, monthStart, type DateRange, type Granularity } from './periods'
+import { classifyExpense, type Classified } from './expenses'
+import type { Cents, CreditNote, Expense, ExpenseClass, ExpenseLog, ExpenseOverrides, FxConversion, FxRate, InvoiceStatus, IsoDate, Ledger, LiveOrderStatus, Order, OrderLine, Overhead, XeroBankBalance, XeroInvoice } from './types'
 
 // ---------------------------------------------------------------------------
 // Filters
@@ -332,7 +333,7 @@ export type Currency = 'EUR' | 'GBP'
  * when a conversion is needed and no rate is available, so the caller cannot fall back to a guess.
  */
 export function convertCents(cents: Cents, from: Currency, to: Currency, fx: FxRate | null): Cents | null {
-  if (from === to) return cents
+  if (from === to || cents === 0) return cents
   if (!fx || !(fx.rate > 0)) return null
   const v = from === 'EUR' ? Math.round(cents * fx.rate) : Math.round(cents / fx.rate)
   return v === 0 ? 0 : v
@@ -391,24 +392,108 @@ export function monthlyOverheads(overheads: readonly Overhead[], onDate: IsoDate
   return out
 }
 
+// ---------------------------------------------------------------------------
+// Expense log
+// ---------------------------------------------------------------------------
+
+export interface ExpenseRow {
+  expense: Expense
+  auto: Classified
+  cls: ExpenseClass
+  overridden: boolean
+  /** The overhead schedule already charges this cost, so it is not counted again. */
+  coveredBy: string | null
+}
+
+export interface ExpenseSummary {
+  rows: ExpenseRow[]
+  /** First and last date in the whole log, so screens can say what period it covers. */
+  coverage: { start: IsoDate; end: IsoDate } | null
+  /** Business costs counted in net profit (GBP pence). */
+  businessCents: Cents
+  coveredByOverheadCents: Cents
+  reviewCents: Cents
+  personalCents: Cents
+  /** VAT reclaimed on rows that are not confirmed business. */
+  vatAtRiskCents: Cents
+  vatOnBusinessCents: Cents
+  byCategory: { category: string; cls: ExpenseClass; cents: Cents; count: number }[]
+}
+
+export function expenseSummary(log: ExpenseLog | null, overrides: ExpenseOverrides, overheads: readonly Overhead[], range: DateRange | null): ExpenseSummary {
+  const all = log?.expenses ?? []
+  const dates = all.map((e) => e.date).sort()
+  const rows: ExpenseRow[] = all
+    .filter((e) => !range || inRange(e.date, range))
+    .map((e) => {
+      const auto = classifyExpense(e)
+      const cls = overrides[e.id] ?? auto.cls
+      const linked = auto.overheadId ? overheads.find((o) => o.id === auto.overheadId && overheadReady(o)) : undefined
+      return { expense: e, auto, cls, overridden: overrides[e.id] !== undefined && overrides[e.id] !== auto.cls, coveredBy: linked ? linked.name : null }
+    })
+    .sort((a, b) => b.expense.date.localeCompare(a.expense.date) || b.expense.amountCents - a.expense.amountCents)
+  const sum = (f: (r: ExpenseRow) => boolean, v: (r: ExpenseRow) => Cents = (r) => r.expense.amountCents) => rows.filter(f).reduce((n, r) => n + v(r), 0)
+  const cats = new Map<string, { category: string; cls: ExpenseClass; cents: Cents; count: number }>()
+  for (const r of rows) {
+    const key = `${r.cls}|${r.auto.category}`
+    const c = cats.get(key) ?? { category: r.auto.category, cls: r.cls, cents: 0, count: 0 }
+    c.cents += r.expense.amountCents
+    c.count++
+    cats.set(key, c)
+  }
+  return {
+    rows,
+    coverage: dates.length ? { start: dates[0], end: dates.at(-1)! } : null,
+    businessCents: sum((r) => r.cls === 'business' && !r.coveredBy),
+    coveredByOverheadCents: sum((r) => !!r.coveredBy),
+    reviewCents: sum((r) => r.cls === 'review' && !r.coveredBy),
+    personalCents: sum((r) => r.cls === 'personal'),
+    vatAtRiskCents: sum((r) => r.cls !== 'business', (r) => r.expense.vatCents),
+    vatOnBusinessCents: sum((r) => r.cls === 'business', (r) => r.expense.vatCents),
+    byCategory: [...cats.values()].sort((a, b) => b.cents - a.cents),
+  }
+}
+
+export interface FxSummary {
+  count: number
+  eurCents: Cents
+  gbpCents: Cents
+  feeCents: Cents
+  /** GBP received per EUR, before the separate fee. */
+  effectiveRate: number | null
+  feeShare: number | null
+}
+
+export function fxSummary(conversions: readonly FxConversion[], range: DateRange | null): FxSummary {
+  const cs = conversions.filter((c) => !range || inRange(c.date, range))
+  const eur = cs.reduce((n, c) => n + c.eurCents, 0)
+  const gbp = cs.reduce((n, c) => n + c.gbpCents, 0)
+  const fee = cs.reduce((n, c) => n + c.feeCents, 0)
+  return { count: cs.length, eurCents: eur, gbpCents: gbp, feeCents: fee, effectiveRate: eur ? gbp / eur : null, feeShare: gbp ? fee / gbp : null }
+}
+
 export type NetProfit =
   | { status: 'not-entered' }
-  | { status: 'incomplete'; missing: string[] }
   | { status: 'needs-rate' }
   | {
       status: 'ok'
-      /** Overheads taken from the period start up to this date (today, or the period end if earlier). */
+      /** Costs counted from the period start up to this date (today, or the period end if earlier). */
       chargedTo: IsoDate
       charges: OverheadCharge[]
       businessOverheads: ByCurrency
+      /** Business costs from the expense log, GBP pence. */
+      businessExpensesCents: Cents
       /** Net business profit, in each currency. Each is converted once from its booked figures. */
       netEurCents: Cents
       netGbpCents: Cents
+      /** Plain-words caveats: overheads not entered, expense log not covering the whole period. */
+      warnings: string[]
     }
 
 /**
- * Net business profit = gross profit after credit notes - business overheads taken in the period.
- * Personal items never come off business profit. Overheads count up to today, not future dates.
+ * Net business profit = gross profit after credit notes, minus business overheads taken in the
+ * period, minus business costs from the expense log. Personal and unreviewed items never come
+ * off business profit. Costs count up to today, not future dates.
  */
 export function netBusinessProfit(args: {
   grossAfterCreditsEurCents: Cents
@@ -416,28 +501,41 @@ export function netBusinessProfit(args: {
   range: DateRange
   today: IsoDate
   fx: FxRate | null
+  expenses?: ExpenseLog | null
+  overrides?: ExpenseOverrides
 }): NetProfit {
-  const business = args.overheads.filter((o) => o.category === 'business')
-  if (business.length === 0 || business.every((o) => !overheadReady(o))) return { status: 'not-entered' }
-  const missing = business.filter((o) => !overheadReady(o)).map((o) => o.name)
-  if (missing.length) return { status: 'incomplete', missing }
-
   const chargedTo = args.range.end < args.today ? args.range.end : args.today
-  const charges = args.range.start > chargedTo ? [] : overheadCharges(business, { start: args.range.start, end: chargedTo })
+  const window = args.range.start > chargedTo ? null : { start: args.range.start, end: chargedTo }
+  const business = args.overheads.filter((o) => o.category === 'business')
+  const ready = business.filter(overheadReady)
+  const charges = window ? overheadCharges(ready, window) : []
+  const exp = window ? expenseSummary(args.expenses ?? null, args.overrides ?? {}, args.overheads, window) : null
+  const expCents = exp?.businessCents ?? 0
+  if (ready.length === 0 && expCents === 0) return { status: 'not-entered' }
+
   const sums = sumByCurrency(charges)
-  const needsRate = sums.GBP !== 0 || sums.EUR !== 0
-  const gbpAsEur = convertCents(sums.GBP, 'GBP', 'EUR', args.fx)
+  const gbpCosts = sums.GBP + expCents
+  const gbpAsEur = convertCents(gbpCosts, 'GBP', 'EUR', args.fx)
   const eurAsGbp = convertCents(sums.EUR, 'EUR', 'GBP', args.fx)
   const grossGbp = convertCents(args.grossAfterCreditsEurCents, 'EUR', 'GBP', args.fx)
-  if (needsRate && (gbpAsEur === null || eurAsGbp === null || grossGbp === null)) return { status: 'needs-rate' }
-  if (grossGbp === null) return { status: 'needs-rate' }
+  if (gbpAsEur === null || eurAsGbp === null || grossGbp === null) return { status: 'needs-rate' }
+
+  const warnings: string[] = []
+  const missing = business.filter((o) => !overheadReady(o)).map((o) => o.name)
+  if (missing.length) warnings.push(`${missing.join(', ')} not entered as overheads, so only payments in the expense log count for them`)
+  const cov = exp?.coverage
+  if (!cov) warnings.push('No expense log imported, so day-to-day business costs are not included')
+  else if (window && cov.start > window.start) warnings.push(`The expense log starts ${formatDate(cov.start)}, so business costs before then are not included`)
+
   return {
     status: 'ok',
     chargedTo,
     charges,
     businessOverheads: sums,
-    netEurCents: args.grossAfterCreditsEurCents - sums.EUR - (gbpAsEur ?? 0),
-    netGbpCents: grossGbp - sums.GBP - (eurAsGbp ?? 0),
+    businessExpensesCents: expCents,
+    netEurCents: args.grossAfterCreditsEurCents - sums.EUR - gbpAsEur,
+    netGbpCents: grossGbp - gbpCosts - eurAsGbp,
+    warnings,
   }
 }
 

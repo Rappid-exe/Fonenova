@@ -42,7 +42,9 @@ describe('net business profit', () => {
   it('is not shown until business overheads are entered', () => {
     expect(netBusinessProfit({ ...base, overheads: [] }).status).toBe('not-entered')
     expect(netBusinessProfit({ ...base, overheads: [oh({ amountCents: null })] }).status).toBe('not-entered')
-    expect(netBusinessProfit({ ...base, overheads: [office, oh({ name: 'Housing rent', amountCents: null })] })).toEqual({ status: 'incomplete', missing: ['Housing rent'] })
+    const partial = netBusinessProfit({ ...base, overheads: [office, oh({ name: 'Housing rent', amountCents: null })] })
+    expect(partial.status).toBe('ok')
+    if (partial.status === 'ok') expect(partial.warnings.join(' ')).toMatch(/Housing rent not entered/)
   })
   it('subtracts business overheads taken up to today, in both currencies, ignoring personal ones', () => {
     const n = netBusinessProfit({ ...base, overheads: [office, housing, car] })
@@ -67,8 +69,9 @@ import { STARTER_OVERHEADS, validateOverheads } from '@/lib/overheads'
 describe('overhead input checks', () => {
   it('starts with the three named items and no assumed amounts or dates', () => {
     expect(STARTER_OVERHEADS.map((o) => [o.name, o.dayOfMonth, o.amountCents, o.startDate])).toEqual([
-      ['Office rent', 15, null, null], ['Housing rent', 1, null, null], ['Car payment', 1, null, null],
+      ['Office rent', 15, null, null], ['Housing rent', 1, null, null], ['Car payment', 7, null, null],
     ])
+    expect(STARTER_OVERHEADS.map((o) => o.category)).toEqual(['business', 'personal', 'business'])
     expect(validateOverheads(STARTER_OVERHEADS).ok).toBe(true)
   })
   it('rejects bad rows with a reason', () => {
