@@ -242,3 +242,37 @@ export interface LiveOrderStatus {
   client: XeroInvoice | null
   bill: XeroInvoice | null
 }
+
+// ---------------------------------------------------------------------------
+// Expense log (the VAT return tracker). Amounts are GBP, in pence.
+// ---------------------------------------------------------------------------
+
+export type ExpenseClass = 'business' | 'review' | 'personal'
+
+export interface Expense {
+  id: string
+  date: IsoDate
+  payee: string
+  description: string
+  amountCents: Cents
+  /** VAT the tracker reclaims on this row. */
+  vatCents: Cents
+  reference: string
+  remarks: string
+}
+
+export interface FxConversion {
+  date: IsoDate
+  eurCents: Cents
+  gbpCents: Cents
+  feeCents: Cents
+}
+
+export interface ExpenseLog {
+  meta: { sourceFile: string; importedAt: string; currency: 'GBP' }
+  expenses: Expense[]
+  fxConversions: FxConversion[]
+}
+
+/** The owner's own decision for a row, which always beats the automatic rules. */
+export type ExpenseOverrides = Record<string, ExpenseClass>

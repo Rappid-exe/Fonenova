@@ -12,7 +12,7 @@ import path from 'node:path'
 import { parseFxResponse } from './fx'
 import { STARTER_OVERHEADS, validateOverheads } from './overheads'
 import { loadSnapshot, xeroAvailable, xeroConfig, xeroConnected } from './xero/client'
-import type { FxResult, Ledger, Overhead, XeroSnapshot } from './types'
+import type { ExpenseClass, ExpenseLog, ExpenseOverrides, FxResult, Ledger, Overhead, XeroSnapshot } from './types'
 
 export type LoadResult =
   | { ok: true; ledger: Ledger }
@@ -185,4 +185,38 @@ export async function loadXeroState(): Promise<XeroState> {
   if (!configured) return { configured, connected: false, tenantName: null, snapshot: null }
   const { connected, tenantName } = await xeroConnected()
   return { configured, connected, tenantName, snapshot: connected ? await loadSnapshot() : null }
+}
+
+// ---------------------------------------------------------------------------
+// Expense log (from the VAT return tracker) and the owner's overrides. Both local, git-ignored.
+// ---------------------------------------------------------------------------
+
+export async function loadExpenses(): Promise<{ log: ExpenseLog | null; overrides: ExpenseOverrides; error?: string }> {
+  const read = await readJson(path.join(dataDir(), 'generated', 'expenses.json'))
+  const ov = await readJson(path.join(dataDir(), 'expense-overrides.json'))
+  const overrides = ov.kind === 'ok' ? validateOverrides(ov.value) ?? {} : {}
+  if (read.kind === 'missing') return { log: null, overrides }
+  if (read.kind === 'invalid') return { log: null, overrides, error: `expenses.json is not valid JSON (${read.message})` }
+  const v = read.value as Partial<ExpenseLog>
+  if (!Array.isArray(v?.expenses)) return { log: null, overrides, error: 'expenses.json has no expense list. Run "npm run import-expenses" again.' }
+  return { log: { meta: v.meta!, expenses: v.expenses, fxConversions: v.fxConversions ?? [] }, overrides }
+}
+
+const CLASSES: ExpenseClass[] = ['business', 'review', 'personal']
+
+export function validateOverrides(input: unknown): ExpenseOverrides | null {
+  if (!input || typeof input !== 'object' || Array.isArray(input)) return null
+  const out: ExpenseOverrides = {}
+  for (const [k, v] of Object.entries(input as Record<string, unknown>)) {
+    if (!/^[a-f0-9]{12}(-\d+)?$/.test(k) || !CLASSES.includes(v as ExpenseClass)) return null
+    out[k] = v as ExpenseClass
+  }
+  return out
+}
+
+export async function saveExpenseOverrides(o: ExpenseOverrides): Promise<void> {
+  const file = path.join(dataDir(), 'expense-overrides.json')
+  await fs.mkdir(path.dirname(file), { recursive: true })
+  await fs.writeFile(`${file}.tmp`, JSON.stringify(o, null, 2) + '\n')
+  await fs.rename(`${file}.tmp`, file)
 }

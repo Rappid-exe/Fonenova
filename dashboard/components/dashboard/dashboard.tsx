@@ -9,9 +9,10 @@ import {
 import {
   comparisonFor, coverageFor, formatDate, formatRange, presetRange, PRESETS, type DateRange, type Granularity, type PresetId,
 } from '@/lib/periods'
-import type { FxResult, Ledger, Overhead } from '@/lib/types'
+import type { ExpenseLog, ExpenseOverrides, FxResult, Ledger, Overhead } from '@/lib/types'
 import { CurrencyProvider, useMoney } from '@/components/currency'
 import { OverheadsPanel } from './overheads-panel'
+import { ExpensesPanel } from './expenses-panel'
 import { CashCalendarPanel } from './cash-calendar'
 import { XeroBar } from './xero-bar'
 import type { XeroState } from '@/lib/data-source'
@@ -37,6 +38,9 @@ interface Props {
   overheadsWritable: boolean
   xero: XeroState
   notice: string | null
+  expenses: ExpenseLog | null
+  expenseOverrides: ExpenseOverrides
+  expensesError: string | null
 }
 
 export function Dashboard(props: Props) {
@@ -47,7 +51,7 @@ export function Dashboard(props: Props) {
   )
 }
 
-function DashboardBody({ ledger: rawLedger, today, overheads, overheadsSaved, overheadsError, overheadsWritable, xero, notice }: Props) {
+function DashboardBody({ ledger: rawLedger, today, overheads, overheadsSaved, overheadsError, overheadsWritable, xero, notice, expenses, expenseOverrides, expensesError }: Props) {
   const { fx } = useMoney()
   // Reconcile against the untouched ledger; everything else uses Xero's live statuses where found.
   const checks = useMemo(() => reconcileLedger(rawLedger), [rawLedger])
@@ -99,8 +103,8 @@ function DashboardBody({ ledger: rawLedger, today, overheads, overheadsSaved, ov
 
   // Overheads are company-wide, so net profit is only meaningful without a customer filter.
   const net = useMemo(
-    () => netBusinessProfit({ grossAfterCreditsEurCents: view.afterCreditsCents, overheads, range, today, fx: fx.ok ? fx.fx : null }),
-    [view.afterCreditsCents, overheads, range, today, fx],
+    () => netBusinessProfit({ grossAfterCreditsEurCents: view.afterCreditsCents, overheads, range, today, fx: fx.ok ? fx.fx : null, expenses, overrides: expenseOverrides }),
+    [view.afterCreditsCents, overheads, range, today, fx, expenses, expenseOverrides],
   )
 
   const openOrder = openOrderId ? ledger.orders.find((o) => o.id === openOrderId) ?? null : null
@@ -192,6 +196,10 @@ function DashboardBody({ ledger: rawLedger, today, overheads, overheadsSaved, ov
 
       <div className="mt-4">
         <OverheadsPanel overheads={overheads} saved={overheadsSaved} loadError={overheadsError} writable={overheadsWritable} today={today} />
+      </div>
+
+      <div className="mt-4">
+        <ExpensesPanel log={expenses} overrides={expenseOverrides} overheads={overheads} range={range} error={expensesError} writable={overheadsWritable} />
       </div>
 
       <div className="mt-4">
