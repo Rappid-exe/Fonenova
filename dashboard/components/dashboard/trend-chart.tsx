@@ -6,7 +6,8 @@ import { Button } from '@/components/ui/button'
 import { Segmented } from '@/components/ui/segmented'
 import { THIN_MARGIN, type SeriesPoint } from '@/lib/metrics'
 import { formatDate, formatDay, type DateRange, type Granularity } from '@/lib/periods'
-import { eur, eurCompact, pct, plural } from '@/lib/format'
+import { pct, plural } from '@/lib/format'
+import { useMoney } from '@/components/currency'
 import { cn } from '@/lib/utils'
 
 type Lower = 'profit' | 'margin'
@@ -23,6 +24,7 @@ const C = {
 type Row = SeriesPoint & { sales: number; profit: number; margin: number | null }
 
 function TooltipBody({ active, payload, granularity }: { active?: boolean; payload?: { payload: Row }[]; granularity: Granularity }) {
+  const { money } = useMoney()
   if (!active || !payload?.length) return null
   const p = payload[0].payload
   const title = granularity === 'month' ? p.label : `Week of ${formatDay(p.start)}`
@@ -36,9 +38,9 @@ function TooltipBody({ active, payload, granularity }: { active?: boolean; paylo
         <div className="text-ink-3">No orders</div>
       ) : (
         <dl className="grid grid-cols-[1fr_auto] gap-x-4 gap-y-0.5">
-          <dt className="text-ink-2">Sales</dt><dd className="num text-ink">{eur(p.salesCents)}</dd>
-          <dt className="text-ink-2">Cost</dt><dd className="num text-ink">{eur(p.costCents)}</dd>
-          <dt className="text-ink-2">Gross profit</dt><dd className={cn('num font-semibold', p.grossProfitCents < 0 ? 'text-loss' : 'text-gain')}>{eur(p.grossProfitCents, { sign: true })}</dd>
+          <dt className="text-ink-2">Sales</dt><dd className="num text-ink">{money(p.salesCents)}</dd>
+          <dt className="text-ink-2">Cost</dt><dd className="num text-ink">{money(p.costCents)}</dd>
+          <dt className="text-ink-2">Gross profit</dt><dd className={cn('num font-semibold', p.grossProfitCents < 0 ? 'text-loss' : 'text-gain')}>{money(p.grossProfitCents, { sign: true })}</dd>
           <dt className="text-ink-2">Gross margin</dt><dd className="num text-ink">{pct(p.marginRatio)}</dd>
         </dl>
       )}
@@ -65,6 +67,7 @@ export function TrendChart({
   coverageEnd: string
   onShowAllTime: () => void
 }) {
+  const { money, compact } = useMoney()
   const [lower, setLower] = useState<Lower>('profit')
   const [asTable, setAsTable] = useState(false)
   const rows: Row[] = series.map((p) => ({ ...p, sales: p.salesCents / 100, profit: p.grossProfitCents / 100, margin: p.marginRatio === null ? null : p.marginRatio * 100 }))
@@ -122,9 +125,9 @@ export function TrendChart({
                 <tr key={p.key} className={cn('border-t border-line', p.orderCount === 0 && 'text-ink-3')}>
                   <td className="px-4 py-1.5">{granularity === 'month' ? p.label : formatDay(p.start)}</td>
                   <td className="num px-4 py-1.5">{p.orderCount}</td>
-                  <td className="num px-4 py-1.5">{p.orderCount ? eur(p.salesCents) : 'none'}</td>
-                  <td className="num px-4 py-1.5">{p.orderCount ? eur(p.costCents) : ''}</td>
-                  <td className={cn('num px-4 py-1.5 font-medium', p.grossProfitCents < 0 && 'text-loss')}>{p.orderCount ? eur(p.grossProfitCents) : ''}</td>
+                  <td className="num px-4 py-1.5">{p.orderCount ? money(p.salesCents) : 'none'}</td>
+                  <td className="num px-4 py-1.5">{p.orderCount ? money(p.costCents) : ''}</td>
+                  <td className={cn('num px-4 py-1.5 font-medium', p.grossProfitCents < 0 && 'text-loss')}>{p.orderCount ? money(p.grossProfitCents) : ''}</td>
                   <td className="num px-4 py-1.5">{p.orderCount ? pct(p.marginRatio) : ''}</td>
                 </tr>
               ))}
@@ -141,7 +144,7 @@ export function TrendChart({
               <BarChart data={rows} syncId="trend" margin={{ top: 8, right: 8, bottom: 0, left: 0 }} barCategoryGap={dense ? '18%' : '28%'}>
                 <CartesianGrid vertical={false} stroke={C.grid} />
                 <XAxis dataKey="key" hide />
-                <YAxis {...axisProps} width={56} tickFormatter={(v: number) => eurCompact(v * 100)} />
+                <YAxis {...axisProps} width={56} tickFormatter={(v: number) => compact(v * 100)} />
                 {tooltip}
                 <Bar dataKey="sales" fill={C.sales} radius={[3, 3, 0, 0]} maxBarSize={48} isAnimationActive={false} />
               </BarChart>
@@ -167,7 +170,7 @@ export function TrendChart({
                 <BarChart data={rows} syncId="trend" margin={{ top: 8, right: 8, bottom: 0, left: 0 }} barCategoryGap={dense ? '18%' : '28%'}>
                   <CartesianGrid vertical={false} stroke={C.grid} />
                   <XAxis dataKey="key" {...axisProps} tickFormatter={(key: string) => labelOf.get(key) ?? ''} interval="preserveStartEnd" minTickGap={14} />
-                  <YAxis {...axisProps} width={56} tickFormatter={(v: number) => eurCompact(v * 100)} />
+                  <YAxis {...axisProps} width={56} tickFormatter={(v: number) => compact(v * 100)} />
                   <ReferenceLine y={0} stroke="#c9c5bc" />
                   {tooltip}
                   <Bar dataKey="profit" radius={[3, 3, 0, 0]} maxBarSize={48} isAnimationActive={false}>

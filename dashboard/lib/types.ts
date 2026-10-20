@@ -59,6 +59,15 @@ export interface Order {
   flags: string[]
   clientPdf: DocumentRef
   supplierPdf: DocumentRef
+  /** Present when the statuses above come live from Xero rather than the ledger snapshot. */
+  live?: LiveOrderFields
+}
+
+export interface LiveOrderFields {
+  clientDueDate: IsoDate | null
+  billDueDate: IsoDate | null
+  clientPayments: XeroPayment[]
+  billPayments: XeroPayment[]
 }
 
 export type LineType = 'goods' | 'shipping'
@@ -155,4 +164,81 @@ export interface Ledger {
   lines: OrderLine[]
   creditNotes: CreditNote[]
   exceptions: LedgerException[]
+}
+
+/** EUR to GBP reference rate. 1 EUR = `rate` GBP. */
+export interface FxRate {
+  base: 'EUR'
+  quote: 'GBP'
+  rate: number
+  /** The ECB publication date the rate belongs to (not when we fetched it). */
+  rateDate: IsoDate
+  source: string
+  fetchedAt: string
+}
+
+export type FxResult = { ok: true; fx: FxRate } | { ok: false; reason: string }
+
+/** A recurring monthly cost, entered by the owner. */
+export interface Overhead {
+  id: string
+  name: string
+  /** Null until the owner enters it. Never assumed. */
+  amountCents: Cents | null
+  currency: 'GBP' | 'EUR'
+  /** Day of the month it is taken. 29 to 31 fall on the last day in shorter months. */
+  dayOfMonth: number
+  category: 'business' | 'personal'
+  /** First payment date. Null until entered, so no cost is charged to months before it began. */
+  startDate: IsoDate | null
+  endDate: IsoDate | null
+}
+
+// ---------------------------------------------------------------------------
+// Xero (read-only). Amounts are in the invoice's own currency, in cents.
+// ---------------------------------------------------------------------------
+
+export interface XeroPayment {
+  id: string
+  date: IsoDate | null
+  amountCents: Cents
+}
+
+export interface XeroInvoice {
+  id: string
+  number: string
+  reference: string
+  kind: 'sale' | 'bill'
+  /** Xero status: DRAFT, SUBMITTED, AUTHORISED, PAID, VOIDED, DELETED. */
+  status: string
+  contactName: string
+  currency: string
+  date: IsoDate | null
+  dueDate: IsoDate | null
+  totalCents: Cents
+  amountDueCents: Cents
+  amountPaidCents: Cents
+  payments: XeroPayment[]
+}
+
+export interface XeroBankBalance {
+  accountName: string
+  /** Closing balance as Xero's Bank Summary reports it, in the organisation's base currency. */
+  closingCents: Cents
+}
+
+export interface XeroSnapshot {
+  fetchedAt: string
+  tenantName: string
+  baseCurrency: string
+  invoices: XeroInvoice[]
+  bankBalances: XeroBankBalance[] | null
+  /** Parts of the refresh that failed, in plain words (e.g. a missing permission). */
+  problems: string[]
+}
+
+/** What Xero says right now about one order's two invoices. */
+export interface LiveOrderStatus {
+  client: XeroInvoice | null
+  bill: XeroInvoice | null
 }

@@ -1,27 +1,23 @@
-import { cookies } from 'next/headers'
 import { redirect } from 'next/navigation'
 import { FileWarning } from 'lucide-react'
 import { Dashboard } from '@/components/dashboard/dashboard'
 import { Shell } from '@/components/shell'
-import { authBypassed, authConfig, readSession, SESSION_COOKIE } from '@/lib/auth'
-import { getDataSource, toClientLedger } from '@/lib/data-source'
+import { currentUser } from '@/lib/session'
+import { getDataSource, loadFxRate, loadOverheads, loadXeroState, overheadsWritable, toClientLedger } from '@/lib/data-source'
 import { todayIso } from '@/lib/periods'
 
 // Read the ledger on every request so a fresh import shows without a rebuild.
 export const dynamic = 'force-dynamic'
 
-export default async function Page() {
+export default async function Page({ searchParams }: { searchParams: Promise<Record<string, string | undefined>> }) {
+  const notice = (await searchParams).xero ?? null
   // Second lock: proxy.ts already gates this route, but the data never loads without a session here either.
-  let email: string | null = null
-  if (!authBypassed()) {
-    const cfg = authConfig()
-    const session = cfg.ok ? await readSession((await cookies()).get(SESSION_COOKIE)?.value, cfg.config) : null
-    if (!session) redirect('/login')
-    email = session.email
-  }
+  const user = await currentUser()
+  if (user === false) redirect('/login')
+  const email = user
 
   const source = getDataSource()
-  const result = await source.load()
+  const [result, fx, oh, xero] = await Promise.all([source.load(), loadFxRate(), loadOverheads(), loadXeroState()])
 
   if (!result.ok) {
     return (
@@ -41,7 +37,7 @@ export default async function Page() {
   const { ledger } = result
   return (
     <Shell email={email} footer={<>Source: {ledger.meta.sourceFile}<br />Imported {ledger.meta.importedAt.slice(0, 10)}</>}>
-      <Dashboard ledger={toClientLedger(ledger)} today={todayIso()} />
+      <Dashboard ledger={toClientLedger(ledger)} today={todayIso()} fx={fx} overheads={oh.overheads} overheadsSaved={oh.saved} overheadsError={oh.error ?? null} overheadsWritable={overheadsWritable()} xero={xero} notice={notice} />
     </Shell>
   )
 }

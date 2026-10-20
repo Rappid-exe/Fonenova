@@ -2,7 +2,8 @@
 import { ArrowRight, Clock } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import type { CashPosition } from '@/lib/metrics'
-import { eur, plural } from '@/lib/format'
+import { plural } from '@/lib/format'
+import { useMoney } from '@/components/currency'
 import { formatDate } from '@/lib/periods'
 import { cn } from '@/lib/utils'
 
@@ -19,6 +20,7 @@ export function CashPositionPanel({
   filtered: boolean
   onOpenOrder: (id: string) => void
 }) {
+  const { money } = useMoney()
   const gapCount = cash.open.filter((x) => x.fundingGap).length
   return (
     <section aria-labelledby="cash-title" className="flex h-full flex-col rounded-lg border border-line bg-surface">
@@ -33,22 +35,22 @@ export function CashPositionPanel({
       <dl className="grid grid-cols-1 gap-px bg-line sm:grid-cols-3">
         <div className="bg-surface px-4 py-3">
           <dt className="text-[12px] font-medium text-ink-3">Clients still owe Fone Nova</dt>
-          <dd className="mt-1 text-[17px] font-semibold text-ink">{eur(cash.clientsOweCents)}</dd>
+          <dd className="mt-1 text-[17px] font-semibold text-ink">{money(cash.clientsOweCents)}</dd>
           {cash.unknownClientBalances > 0 && <dd className="mt-0.5 text-[11.5px] text-warn">+ {plural(cash.unknownClientBalances, 'invoice')} not in Xero, balance unknown</dd>}
         </div>
         <div className="bg-surface px-4 py-3">
           <dt className="text-[12px] font-medium text-ink-3">Fone Nova still owes {supplierName}</dt>
-          <dd className="mt-1 text-[17px] font-semibold text-ink">{eur(cash.weOweSupplierCents)}</dd>
+          <dd className="mt-1 text-[17px] font-semibold text-ink">{money(cash.weOweSupplierCents)}</dd>
         </div>
         <div className="bg-surface px-4 py-3">
           <dt className="text-[12px] font-medium text-ink-3">Difference (owed to us minus we owe)</dt>
-          <dd className={cn('mt-1 text-[17px] font-semibold', cash.differenceCents < 0 ? 'text-loss' : 'text-ink')}>{eur(cash.differenceCents, { sign: true })}</dd>
+          <dd className={cn('mt-1 text-[17px] font-semibold', cash.differenceCents < 0 ? 'text-loss' : 'text-ink')}>{money(cash.differenceCents, { sign: true })}</dd>
         </div>
       </dl>
 
       {gapCount > 0 && (
         <div className="border-t border-line bg-loss-soft/60 px-4 py-2 text-[12.5px] text-loss">
-          <strong className="font-semibold">Funding gap: {eur(cash.fundingGapCents)}</strong> owed to the supplier on {plural(gapCount, 'order')} where the client has not paid yet.
+          <strong className="font-semibold">Funding gap: {money(cash.fundingGapCents)}</strong> owed to the supplier on {plural(gapCount, 'order')} where the client has not paid yet.
         </div>
       )}
 
@@ -78,8 +80,8 @@ export function CashPositionPanel({
                     {fundingGap && <div className="text-[11px] font-medium text-loss sm:hidden">Funding gap</div>}
                   </td>
                   <td className="hidden max-w-[160px] truncate px-2 py-1.5 text-ink-2 sm:table-cell">{order.customerName}<span className="text-ink-3"> · {formatDate(order.date)}</span></td>
-                  <td className="num px-2 py-1.5">{clientOwesCents === null ? <span className="text-warn">Not in Xero</span> : clientOwesCents ? eur(clientOwesCents) : <span className="text-ink-3">Paid</span>}</td>
-                  <td className="num py-1.5 pl-2 pr-4 sm:pr-2">{weOweCents ? eur(weOweCents) : <span className="text-ink-3">Paid</span>}</td>
+                  <td className="num px-2 py-1.5">{clientOwesCents === null ? <span className="text-warn">Not in Xero</span> : clientOwesCents ? money(clientOwesCents) : <span className="text-ink-3">Paid</span>}</td>
+                  <td className="num py-1.5 pl-2 pr-4 sm:pr-2">{weOweCents ? money(weOweCents) : <span className="text-ink-3">Paid</span>}</td>
                   <td className="hidden px-4 py-1.5 text-right sm:table-cell">{fundingGap && <Badge tone="loss">Funding gap</Badge>}</td>
                 </tr>
               ))}

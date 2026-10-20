@@ -1,8 +1,11 @@
 'use client'
 import { ArrowDownRight, ArrowUpRight, Info, Minus } from 'lucide-react'
-import { change, marginBand, marginChangePts, type CreditTotals, type Totals } from '@/lib/metrics'
+import { change, marginBand, marginChangePts, type CreditTotals, type NetProfit, type Totals } from '@/lib/metrics'
 import type { Comparison } from '@/lib/periods'
-import { count, eur, pct, plural, pts } from '@/lib/format'
+import { count, pct, plural, pts } from '@/lib/format'
+import { useMoney } from '@/components/currency'
+import { money as fmtMoney } from '@/lib/format'
+import { formatDate } from '@/lib/periods'
 import { cn } from '@/lib/utils'
 
 type Prev = { totals: Totals; credits: CreditTotals; afterCreditsCents: number } | null
@@ -11,11 +14,12 @@ type Kind = 'money' | 'count'
 type Polarity = 'up-good' | 'neutral'
 
 function Delta({ current, previous, kind, polarity = 'up-good', className }: { current: number; previous: number; kind: Kind; polarity?: Polarity; className?: string }) {
+  const { money } = useMoney()
   const c = change(current, previous)
   const dir = c.delta > 0 ? 'up' : c.delta < 0 ? 'down' : 'flat'
   const Icon = dir === 'up' ? ArrowUpRight : dir === 'down' ? ArrowDownRight : Minus
   const tone = polarity === 'neutral' || dir === 'flat' ? 'text-ink-2' : dir === 'up' ? 'text-gain' : 'text-loss'
-  const abs = kind === 'money' ? eur(c.delta, { sign: true }) : count(c.delta, { sign: true })
+  const abs = kind === 'money' ? money(c.delta, { sign: true }) : count(c.delta, { sign: true })
   return (
     <span className={cn('inline-flex items-center gap-0.5 text-[12px] font-medium', tone, className)}>
       <Icon className="h-3.5 w-3.5" aria-hidden />
@@ -54,6 +58,35 @@ function Stat({ label, value, sub, delta, hint }: { label: string; value: React.
   )
 }
 
+function NetRow({ net }: { net: NetProfit | { status: 'filtered' } }) {
+  const { currency } = useMoney()
+  const wrap = 'flex flex-wrap items-baseline gap-x-2 gap-y-0.5 border-t border-dashed border-line px-5 py-2.5 text-[12px] text-ink-3'
+  if (net.status !== 'ok') {
+    const why =
+      net.status === 'filtered' ? 'Not shown for one customer: overheads belong to the whole business.'
+      : net.status === 'not-entered' ? 'Not shown yet: enter business overhead amounts and start dates below.'
+      : net.status === 'incomplete' ? `Not shown yet: enter the amount and start date for ${net.missing.join(', ')}.`
+      : 'Not shown: overheads are in GBP and no exchange rate is available to combine them with EUR profit.'
+    return <div className={wrap}><span className="font-medium text-ink-2">Net business profit</span><span>{why}</span></div>
+  }
+  const primary = currency === 'GBP' ? fmtMoney(net.netGbpCents, 'GBP') : fmtMoney(net.netEurCents, 'EUR')
+  const other = currency === 'GBP' ? fmtMoney(net.netEurCents, 'EUR') : fmtMoney(net.netGbpCents, 'GBP')
+  const negative = (currency === 'GBP' ? net.netGbpCents : net.netEurCents) < 0
+  return (
+    <div className={wrap}>
+      <span className="font-medium text-ink-2">Net business profit</span>
+      <span className={cn('text-[14px] font-semibold', negative ? 'text-loss' : 'text-ink')}>{primary}</span>
+      <span>({other})</span>
+      <span className="basis-full">
+        Gross after credit notes, less business overheads taken up to {formatDate(net.chargedTo)}
+        {net.businessOverheads.GBP ? ` (${fmtMoney(net.businessOverheads.GBP, 'GBP')}` : ' ('}
+        {net.businessOverheads.EUR ? `${net.businessOverheads.GBP ? ' + ' : ''}${fmtMoney(net.businessOverheads.EUR, 'EUR')}` : ''}
+        {!net.businessOverheads.GBP && !net.businessOverheads.EUR ? 'none in this period' : ''}). Converted at the ECB rate. Excludes your own shipping, bank and FX fees, which are not recorded.
+      </span>
+    </div>
+  )
+}
+
 export function Kpis({
   totals: t,
   credits,
@@ -61,6 +94,7 @@ export function Kpis({
   previous,
   comparison,
   previousLabel,
+  net,
 }: {
   totals: Totals
   credits: CreditTotals
@@ -68,7 +102,9 @@ export function Kpis({
   previous: Prev
   comparison: Comparison
   previousLabel: string | null
+  net: NetProfit | { status: 'filtered' }
 }) {
+  const { money } = useMoney()
   const p = previous?.totals
   const band = marginBand(t.marginRatio)
   const goodsShare = t.grossProfitCents > 0 ? t.goodsMarginCents / t.grossProfitCents : null
@@ -89,7 +125,7 @@ export function Kpis({
             <div className="px-5 pt-4 pb-3">
               <div className="text-[12.5px] font-medium text-ink-2">Gross profit</div>
               <div className={cn('mt-1 text-[30px] font-semibold leading-none tracking-[-0.02em]', t.grossProfitCents < 0 ? 'text-loss' : 'text-ink')}>
-                {empty ? '€0.00' : eur(t.grossProfitCents)}
+                {empty ? '€0.00' : money(t.grossProfitCents)}
               </div>
               <div className="mt-2 min-h-[18px]">{p && <Delta current={t.grossProfitCents} previous={p.grossProfitCents} kind="money" />}</div>
             </div>
@@ -116,32 +152,29 @@ export function Kpis({
             <dl className="mt-2 grid grid-cols-2 gap-2 text-[12.5px]">
               <div>
                 <dt className="flex items-center gap-1.5 text-ink-2"><span className="h-2 w-2 rounded-sm bg-accent" aria-hidden />Goods margin</dt>
-                <dd className="mt-0.5 font-semibold text-ink">{eur(t.goodsMarginCents)}</dd>
+                <dd className="mt-0.5 font-semibold text-ink">{money(t.goodsMarginCents)}</dd>
               </div>
               <div>
                 <dt className="flex items-center gap-1.5 text-ink-2"><span className="h-2 w-2 rounded-sm bg-accent/35" aria-hidden />Shipping &amp; other margin</dt>
-                <dd className={cn('mt-0.5 font-semibold', t.shippingMarginCents < 0 ? 'text-loss' : 'text-ink')}>{eur(t.shippingMarginCents)}</dd>
+                <dd className={cn('mt-0.5 font-semibold', t.shippingMarginCents < 0 ? 'text-loss' : 'text-ink')}>{money(t.shippingMarginCents)}</dd>
               </div>
             </dl>
           </div>
 
-          <div className="flex items-start gap-2 border-t border-dashed border-line px-5 py-2.5 text-[12px] text-ink-3">
-            <span className="font-medium text-ink-2">Net profit</span>
-            <span>Not yet available: own shipping, fees and overheads not recorded.</span>
-          </div>
+          <NetRow net={net} />
         </div>
 
         {/* Secondary figures */}
         <div className="rounded-lg border border-line bg-surface lg:col-span-7">
           <div className="grid grid-cols-2 gap-px overflow-hidden rounded-t-lg bg-line sm:grid-cols-3">
-            <Stat label="Sales" value={eur(t.salesCents)} sub="Client invoices" delta={p && <Delta current={t.salesCents} previous={p.salesCents} kind="money" />} />
-            <Stat label="Cost of goods" value={eur(t.costCents)} sub="Supplier invoices" delta={p && <Delta current={t.costCents} previous={p.costCents} kind="money" polarity="neutral" />} />
+            <Stat label="Sales" value={money(t.salesCents)} sub="Client invoices" delta={p && <Delta current={t.salesCents} previous={p.salesCents} kind="money" />} />
+            <Stat label="Cost of goods" value={money(t.costCents)} sub="Supplier invoices" delta={p && <Delta current={t.costCents} previous={p.costCents} kind="money" polarity="neutral" />} />
             <Stat label="Orders" value={count(t.orderCount)} sub={t.lossMakingCount || t.thinMarginCount ? `${plural(t.lossMakingCount, 'loss-maker')}, ${count(t.thinMarginCount)} under 0.5%` : 'None loss-making'} delta={p && <Delta current={t.orderCount} previous={p.orderCount} kind="count" />} />
             <Stat label="Units sold" value={count(t.units)} sub="Goods lines only" delta={p && <Delta current={t.units} previous={p.units} kind="count" />} />
-            <Stat label="Avg profit per order" value={t.avgProfitPerOrderCents === null ? 'n/a' : eur(t.avgProfitPerOrderCents)} sub="Gross, before credits" delta={p && p.avgProfitPerOrderCents !== null && t.avgProfitPerOrderCents !== null && <Delta current={t.avgProfitPerOrderCents} previous={p.avgProfitPerOrderCents} kind="money" />} />
+            <Stat label="Avg profit per order" value={t.avgProfitPerOrderCents === null ? 'n/a' : money(t.avgProfitPerOrderCents)} sub="Gross, before credits" delta={p && p.avgProfitPerOrderCents !== null && t.avgProfitPerOrderCents !== null && <Delta current={t.avgProfitPerOrderCents} previous={p.avgProfitPerOrderCents} kind="money" />} />
             <Stat
               label="Gross profit after credits"
-              value={<span className={afterCreditsCents < 0 ? 'text-loss' : undefined}>{eur(afterCreditsCents)}</span>}
+              value={<span className={afterCreditsCents < 0 ? 'text-loss' : undefined}>{money(afterCreditsCents)}</span>}
               sub={`${pct(t.salesCents ? afterCreditsCents / t.salesCents : null)} of sales`}
               hint="Gross profit + supplier credits received − client credits issued, for credit notes dated in the period"
               delta={previous && <Delta current={afterCreditsCents} previous={previous.afterCreditsCents} kind="money" />}
@@ -152,15 +185,15 @@ export function Kpis({
           <div className="grid grid-cols-1 gap-x-6 gap-y-1.5 border-t border-line bg-subtle/60 px-4 py-3 text-[12.5px] sm:grid-cols-3">
             <div className="flex justify-between gap-2 sm:block">
               <div className="text-ink-3">Client credits issued</div>
-              <div className="font-semibold text-ink">{eur(credits.clientCreditsCents)} <span className="font-normal text-ink-3">· {credits.notes.filter((n) => n.side === 'client').length}</span></div>
+              <div className="font-semibold text-ink">{money(credits.clientCreditsCents)} <span className="font-normal text-ink-3">· {credits.notes.filter((n) => n.side === 'client').length}</span></div>
             </div>
             <div className="flex justify-between gap-2 sm:block">
               <div className="text-ink-3">Supplier credits received</div>
-              <div className="font-semibold text-ink">{eur(credits.supplierCreditsCents)} <span className="font-normal text-ink-3">· {credits.notes.filter((n) => n.side === 'supplier').length}</span></div>
+              <div className="font-semibold text-ink">{money(credits.supplierCreditsCents)} <span className="font-normal text-ink-3">· {credits.notes.filter((n) => n.side === 'supplier').length}</span></div>
             </div>
             <div className="flex justify-between gap-2 sm:block">
               <div className="text-ink-3">Net effect on profit</div>
-              <div className={cn('font-semibold', credits.netEffectCents < 0 ? 'text-loss' : credits.netEffectCents > 0 ? 'text-gain' : 'text-ink')}>{eur(credits.netEffectCents, { sign: true })}</div>
+              <div className={cn('font-semibold', credits.netEffectCents < 0 ? 'text-loss' : credits.netEffectCents > 0 ? 'text-gain' : 'text-ink')}>{money(credits.netEffectCents, { sign: true })}</div>
             </div>
             <p className="text-[11.5px] text-ink-3 sm:col-span-3">
               Credit notes count in the period of their own date.

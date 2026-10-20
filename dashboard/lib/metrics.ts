@@ -3,8 +3,8 @@
  * Components format numbers; they never add them up.
  */
 import { ratio, sumCents } from './money'
-import { bucketKey, buckets, inRange, type DateRange, type Granularity } from './periods'
-import type { Cents, CreditNote, Ledger, Order, OrderLine } from './types'
+import { addDays, bucketKey, buckets, inRange, monthEnd, monthStart, type DateRange, type Granularity } from './periods'
+import type { Cents, CreditNote, FxRate, InvoiceStatus, IsoDate, Ledger, LiveOrderStatus, Order, OrderLine, Overhead, XeroBankBalance, XeroInvoice } from './types'
 
 // ---------------------------------------------------------------------------
 // Filters
@@ -318,6 +318,289 @@ export function cashPosition(orders: readonly Order[]): CashPosition {
     open,
     unknownClientBalances: orders.filter((o) => o.clientOwesCents === null).length,
   }
+}
+
+// ---------------------------------------------------------------------------
+// Currency conversion (display only; booked figures stay in their own currency)
+// ---------------------------------------------------------------------------
+
+export type Currency = 'EUR' | 'GBP'
+
+/**
+ * Convert one figure at the reference rate, rounding once to the cent. Convert each figure you
+ * show from its own booked total; never add converted figures to unconverted ones. Returns null
+ * when a conversion is needed and no rate is available, so the caller cannot fall back to a guess.
+ */
+export function convertCents(cents: Cents, from: Currency, to: Currency, fx: FxRate | null): Cents | null {
+  if (from === to) return cents
+  if (!fx || !(fx.rate > 0)) return null
+  const v = from === 'EUR' ? Math.round(cents * fx.rate) : Math.round(cents / fx.rate)
+  return v === 0 ? 0 : v
+}
+
+// ---------------------------------------------------------------------------
+// Overheads and net profit
+// ---------------------------------------------------------------------------
+
+export interface OverheadCharge {
+  date: IsoDate
+  overhead: Overhead
+  amountCents: Cents
+}
+
+/** An overhead counts only once its amount and start date are entered. */
+export function overheadReady(o: Overhead): boolean {
+  return o.amountCents !== null && o.startDate !== null
+}
+
+/** Every date an overhead is taken inside the range. Day 31 lands on 30 Apr, 28 Feb, and so on. */
+export function overheadCharges(overheads: readonly Overhead[], range: DateRange): OverheadCharge[] {
+  const out: OverheadCharge[] = []
+  for (const o of overheads) {
+    if (!overheadReady(o)) continue
+    let m = monthStart(range.start)
+    while (m <= range.end) {
+      const end = monthEnd(m)
+      const day = Math.min(Math.max(1, Math.trunc(o.dayOfMonth)), Number(end.slice(8)))
+      const date = `${m.slice(0, 8)}${String(day).padStart(2, '0')}`
+      if (inRange(date, range) && date >= o.startDate! && (!o.endDate || date <= o.endDate)) {
+        out.push({ date, overhead: o, amountCents: o.amountCents! })
+      }
+      m = addDays(end, 1)
+    }
+  }
+  return out.sort((a, b) => a.date.localeCompare(b.date) || a.overhead.name.localeCompare(b.overhead.name))
+}
+
+export type ByCurrency = Record<Currency, Cents>
+
+export function sumByCurrency(charges: readonly { amountCents: Cents; overhead: Overhead }[]): ByCurrency {
+  const out: ByCurrency = { EUR: 0, GBP: 0 }
+  for (const c of charges) out[c.overhead.currency] += c.amountCents
+  return out
+}
+
+/** Monthly cost of overheads active on `onDate`, per currency. Never mixed. */
+export function monthlyOverheads(overheads: readonly Overhead[], onDate: IsoDate, category?: Overhead['category']): ByCurrency {
+  const out: ByCurrency = { EUR: 0, GBP: 0 }
+  for (const o of overheads) {
+    if (!overheadReady(o) || (category && o.category !== category)) continue
+    if (o.startDate! > onDate || (o.endDate && o.endDate < onDate)) continue
+    out[o.currency] += o.amountCents!
+  }
+  return out
+}
+
+export type NetProfit =
+  | { status: 'not-entered' }
+  | { status: 'incomplete'; missing: string[] }
+  | { status: 'needs-rate' }
+  | {
+      status: 'ok'
+      /** Overheads taken from the period start up to this date (today, or the period end if earlier). */
+      chargedTo: IsoDate
+      charges: OverheadCharge[]
+      businessOverheads: ByCurrency
+      /** Net business profit, in each currency. Each is converted once from its booked figures. */
+      netEurCents: Cents
+      netGbpCents: Cents
+    }
+
+/**
+ * Net business profit = gross profit after credit notes - business overheads taken in the period.
+ * Personal items never come off business profit. Overheads count up to today, not future dates.
+ */
+export function netBusinessProfit(args: {
+  grossAfterCreditsEurCents: Cents
+  overheads: readonly Overhead[]
+  range: DateRange
+  today: IsoDate
+  fx: FxRate | null
+}): NetProfit {
+  const business = args.overheads.filter((o) => o.category === 'business')
+  if (business.length === 0 || business.every((o) => !overheadReady(o))) return { status: 'not-entered' }
+  const missing = business.filter((o) => !overheadReady(o)).map((o) => o.name)
+  if (missing.length) return { status: 'incomplete', missing }
+
+  const chargedTo = args.range.end < args.today ? args.range.end : args.today
+  const charges = args.range.start > chargedTo ? [] : overheadCharges(business, { start: args.range.start, end: chargedTo })
+  const sums = sumByCurrency(charges)
+  const needsRate = sums.GBP !== 0 || sums.EUR !== 0
+  const gbpAsEur = convertCents(sums.GBP, 'GBP', 'EUR', args.fx)
+  const eurAsGbp = convertCents(sums.EUR, 'EUR', 'GBP', args.fx)
+  const grossGbp = convertCents(args.grossAfterCreditsEurCents, 'EUR', 'GBP', args.fx)
+  if (needsRate && (gbpAsEur === null || eurAsGbp === null || grossGbp === null)) return { status: 'needs-rate' }
+  if (grossGbp === null) return { status: 'needs-rate' }
+  return {
+    status: 'ok',
+    chargedTo,
+    charges,
+    businessOverheads: sums,
+    netEurCents: args.grossAfterCreditsEurCents - sums.EUR - (gbpAsEur ?? 0),
+    netGbpCents: grossGbp - sums.GBP - (eurAsGbp ?? 0),
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Live statuses from Xero, laid over the ledger's snapshot
+// ---------------------------------------------------------------------------
+
+export interface LiveSummary {
+  orders: number
+  clientMatched: number
+  billMatched: number
+  /** Orders where one or both invoices were not found in Xero, or not in EUR. */
+  gaps: { orderId: string; problem: string }[]
+}
+
+function liveStatus(i: XeroInvoice): InvoiceStatus {
+  if (i.status === 'PAID') return 'PAID'
+  if (i.status === 'AUTHORISED' || i.status === 'SUBMITTED') return 'AUTHORISED'
+  return 'UNKNOWN'
+}
+
+/**
+ * Replace each order's status and balances with Xero's current figures where its invoice was
+ * found. Only EUR documents are used, since the ledger is EUR. Sales and costs stay as the
+ * ledger states them, so the 25 reconciliation checks still run against the untouched ledger.
+ */
+export function applyLiveStatus(orders: readonly Order[], live: Map<string, LiveOrderStatus>): { orders: Order[]; summary: LiveSummary } {
+  const gaps: LiveSummary['gaps'] = []
+  let clientMatched = 0
+  let billMatched = 0
+  const out = orders.map((o) => {
+    const m = live.get(o.id)
+    const client = m?.client && m.client.currency === 'EUR' ? m.client : null
+    const bill = m?.bill && m.bill.currency === 'EUR' ? m.bill : null
+    const problems: string[] = []
+    if (!m?.client) problems.push('client invoice not found in Xero')
+    else if (!client) problems.push(`client invoice in Xero is ${m.client.currency}, not EUR`)
+    if (!m?.bill) problems.push('supplier bill not found in Xero')
+    else if (!bill) problems.push(`supplier bill in Xero is ${m.bill.currency}, not EUR`)
+    if (problems.length) gaps.push({ orderId: o.id, problem: problems.join('; ') })
+    if (client) clientMatched++
+    if (bill) billMatched++
+    if (!client && !bill) return o
+    const clientOwes = client ? client.amountDueCents : o.clientOwesCents
+    const weOwe = bill ? bill.amountDueCents : o.weOweSupplierCents
+    return {
+      ...o,
+      clientStatus: client ? liveStatus(client) : o.clientStatus,
+      clientOwesCents: clientOwes,
+      supplierStatus: bill ? liveStatus(bill) : o.supplierStatus,
+      weOweSupplierCents: weOwe,
+      clientOwesMinusWeOweCents: (clientOwes ?? 0) - (weOwe ?? 0),
+      live: {
+        clientDueDate: client?.dueDate ?? null,
+        billDueDate: bill?.dueDate ?? null,
+        clientPayments: client?.payments ?? [],
+        billPayments: bill?.payments ?? [],
+      },
+    }
+  })
+  return { orders: out, summary: { orders: orders.length, clientMatched, billMatched, gaps } }
+}
+
+// ---------------------------------------------------------------------------
+// Cash calendar
+// ---------------------------------------------------------------------------
+
+export interface CashEntry {
+  date: IsoDate | null
+  kind: 'in' | 'out' | 'overhead'
+  label: string
+  orderId: string | null
+  currency: Currency
+  /** Signed: money in is positive, money out negative. */
+  amountCents: Cents
+  category: Overhead['category'] | null
+  /** A supplier payment due while the client for the same order has not paid. */
+  fundingGap: boolean
+}
+
+export interface CashDay {
+  date: IsoDate
+  entries: CashEntry[]
+  /** Running bank balance after this day, in the bank's base currency. Null when not computable. */
+  balanceCents: Cents | null
+  belowZero: boolean
+  fundingGap: boolean
+}
+
+export interface CashCalendar {
+  start: { balanceCents: Cents; currency: Currency; accounts: XeroBankBalance[] } | null
+  /** Why there is no running balance, in plain words. */
+  noBalanceReason: string | null
+  overdue: CashEntry[]
+  days: CashDay[]
+  /** Open balances with no due date yet (the ledger has none; Xero supplies them). */
+  undated: CashEntry[]
+  laterCount: number
+}
+
+/**
+ * Money in and out by date, from open order balances and overheads. The running balance starts
+ * from Xero's bank balances (base currency). It counts overdue supplier bills as due today, but
+ * not overdue client payments: money owed to you is not counted until it arrives.
+ */
+export function cashCalendar(args: {
+  orders: readonly Order[]
+  overheads: readonly Overhead[]
+  today: IsoDate
+  days: number
+  fx: FxRate | null
+  bank: { balances: XeroBankBalance[] | null; currency: string } | null
+}): CashCalendar {
+  const end = addDays(args.today, args.days - 1)
+  const entries: CashEntry[] = []
+  for (const o of args.orders) {
+    const clientOpen = o.clientOwesCents === null || o.clientOwesCents > 0
+    const clientDue = o.live?.clientDueDate ?? null
+    if (o.clientOwesCents && o.clientOwesCents > 0) {
+      entries.push({ date: clientDue, kind: 'in', label: `${o.customerName} pays ${o.clientInvoiceNo}`, orderId: o.id, currency: 'EUR', amountCents: o.clientOwesCents, category: null, fundingGap: false })
+    }
+    const weOwe = o.weOweSupplierCents ?? 0
+    if (weOwe > 0) {
+      const billDue = o.live?.billDueDate ?? null
+      const gap = clientOpen && (!clientDue || !billDue || clientDue > billDue || clientDue < args.today)
+      entries.push({ date: billDue, kind: 'out', label: `Pay ${o.supplierName} ${o.supplierInvoiceNo}`, orderId: o.id, currency: 'EUR', amountCents: -weOwe, category: null, fundingGap: gap })
+    }
+  }
+  for (const c of overheadCharges(args.overheads, { start: args.today, end })) {
+    entries.push({ date: c.date, kind: 'overhead', label: c.overhead.name, orderId: null, currency: c.overhead.currency, amountCents: -c.amountCents, category: c.overhead.category, fundingGap: false })
+  }
+
+  const overdue = entries.filter((e) => e.date !== null && e.date < args.today).sort((a, b) => a.date!.localeCompare(b.date!) || a.amountCents - b.amountCents)
+  const undated = entries.filter((e) => e.date === null)
+  const inWindow = entries.filter((e) => e.date !== null && e.date >= args.today && e.date <= end)
+  const laterCount = entries.filter((e) => e.date !== null && e.date > end).length
+
+  // Opening balance, in the bank's base currency. Every flow is converted into it once.
+  let start: CashCalendar['start'] = null
+  let noBalanceReason: string | null = null
+  const base = args.bank?.currency
+  if (!args.bank || !args.bank.balances) noBalanceReason = 'Bank balances come from Xero, which is not connected or did not return them'
+  else if (base !== 'GBP' && base !== 'EUR') noBalanceReason = `Xero reports bank balances in ${base}, which this dashboard does not convert`
+  else start = { balanceCents: args.bank.balances.reduce((n, b) => n + b.closingCents, 0), currency: base, accounts: args.bank.balances }
+
+  const toBase = (e: CashEntry): Cents | null => (start ? convertCents(e.amountCents, e.currency, start.currency, args.fx) : null)
+  if (start && [...inWindow, ...overdue].some((e) => e.currency !== start!.currency) && !args.fx) {
+    noBalanceReason = 'A running balance needs the exchange rate to combine EUR and GBP, and none is available'
+    start = null
+  }
+
+  const byDay = new Map<IsoDate, CashEntry[]>()
+  for (const e of inWindow) byDay.set(e.date!, [...(byDay.get(e.date!) ?? []), e])
+  let balance: Cents | null = start ? start.balanceCents : null
+  if (balance !== null) for (const e of overdue) if (e.amountCents < 0) balance += toBase(e) ?? 0
+
+  const days: CashDay[] = []
+  for (const date of [...byDay.keys()].sort()) {
+    const es = byDay.get(date)!.sort((a, b) => b.amountCents - a.amountCents)
+    if (balance !== null) for (const e of es) balance += toBase(e) ?? 0
+    days.push({ date, entries: es, balanceCents: balance, belowZero: balance !== null && balance < 0, fundingGap: es.some((e) => e.fundingGap) })
+  }
+  return { start, noBalanceReason, overdue, days, undated, laterCount }
 }
 
 // ---------------------------------------------------------------------------

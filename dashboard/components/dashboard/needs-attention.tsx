@@ -5,7 +5,7 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { attentionItems } from '@/lib/attention'
 import type { CreditAllocation } from '@/lib/metrics'
-import { eur } from '@/lib/format'
+import { useMoney } from '@/components/currency'
 import type { Ledger, Priority } from '@/lib/types'
 import { cn } from '@/lib/utils'
 
@@ -28,6 +28,7 @@ export function NeedsAttention({
   snapshot: string
   onOpenOrder: (id: string) => void
 }) {
+  const { money } = useMoney()
   const [showAll, setShowAll] = useState(false)
   const all = useMemo(() => attentionItems(ledger, allocation), [ledger, allocation])
   const items = useMemo(() => {
@@ -74,7 +75,7 @@ export function NeedsAttention({
               <div className="md:text-right">
                 <div className="text-[11px] text-ink-3">{i.impactLabel}</div>
                 <div className={cn('text-[13.5px] font-semibold', i.impactCents < 0 ? 'text-loss' : 'text-ink')}>
-                  {i.impactCents === 0 ? <span className="font-normal text-ink-3">No direct amount</span> : eur(i.impactCents)}
+                  {i.impactCents === 0 ? <span className="font-normal text-ink-3">No direct amount</span> : money(i.impactCents)}
                 </div>
               </div>
             </li>

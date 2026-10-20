@@ -4,7 +4,8 @@ import { ArrowDown, ArrowUp, ArrowUpDown, Search, X } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { Select } from '@/components/ui/select'
 import { marginBand, orderMargin } from '@/lib/metrics'
-import { count, eur, pct } from '@/lib/format'
+import { count, pct } from '@/lib/format'
+import { useMoney } from '@/components/currency'
 import { formatDate } from '@/lib/periods'
 import type { Customer, InvoiceStatus, LedgerException, Order } from '@/lib/types'
 import { cn } from '@/lib/utils'
@@ -75,6 +76,7 @@ export function OrdersTable({
   onOpenOrder: (id: string) => void
   periodEmpty: boolean
 }) {
+  const { money } = useMoney()
   const [q, setQ] = useState('')
   const [quick, setQuick] = useState<Set<QuickFilter>>(new Set())
   const [sort, setSort] = useState<Sort>({ key: 'date', dir: 'desc' })
@@ -194,7 +196,7 @@ export function OrdersTable({
                   tabIndex={0}
                   onClick={() => onOpenOrder(o.id)}
                   onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onOpenOrder(o.id) } }}
-                  aria-label={`${o.id}, ${o.customerName}, gross profit ${eur(o.grossMarginCents)}. Open details`}
+                  aria-label={`${o.id}, ${o.customerName}, gross profit ${money(o.grossMarginCents)}. Open details`}
                   className={cn(
                     'group cursor-pointer border-t border-line outline-none hover:bg-subtle focus-visible:bg-accent-soft',
                     band === 'loss' && 'bg-loss-soft/50 hover:bg-loss-soft',
@@ -209,9 +211,9 @@ export function OrdersTable({
                   <td className="whitespace-nowrap px-3 py-2 text-ink-2">{o.clientInvoiceNo}</td>
                   <td className="whitespace-nowrap px-3 py-2 text-ink-2">{o.supplierInvoiceNo}</td>
                   <td className="num px-3 py-2">{count(units.get(o.id) ?? 0)}</td>
-                  <td className="num px-3 py-2">{eur(o.clientTotalCents)}</td>
-                  <td className="num px-3 py-2 text-ink-2">{eur(o.supplierTotalCents)}</td>
-                  <td className={cn('num px-3 py-2 font-semibold', o.grossMarginCents < 0 ? 'text-loss' : 'text-ink')}>{eur(o.grossMarginCents)}</td>
+                  <td className="num px-3 py-2">{money(o.clientTotalCents)}</td>
+                  <td className="num px-3 py-2 text-ink-2">{money(o.supplierTotalCents)}</td>
+                  <td className={cn('num px-3 py-2 font-semibold', o.grossMarginCents < 0 ? 'text-loss' : 'text-ink')}>{money(o.grossMarginCents)}</td>
                   <td className="num px-3 py-2">
                     <span className={cn('font-medium', band === 'loss' ? 'text-loss' : band === 'thin' ? 'text-warn' : 'text-ink')}>{pct(m)}</span>
                     {band === 'loss' && <span className="sr-only"> (loss)</span>}
