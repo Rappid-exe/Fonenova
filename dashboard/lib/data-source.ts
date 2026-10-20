@@ -9,7 +9,10 @@ import 'server-only'
 import fs from 'node:fs/promises'
 import zlib from 'node:zlib'
 import path from 'node:path'
-import type { Ledger } from './types'
+import { parseFxResponse } from './fx'
+import { STARTER_OVERHEADS, validateOverheads } from './overheads'
+import { loadSnapshot, xeroAvailable, xeroConfig, xeroConnected } from './xero/client'
+import type { FxResult, Ledger, Overhead, XeroSnapshot } from './types'
 
 export type LoadResult =
   | { ok: true; ledger: Ledger }
@@ -112,4 +115,74 @@ export function toClientLedger(ledger: Ledger): Ledger {
       supplierPdf: { fileName: o.supplierPdf.fileName },
     })),
   }
+}
+
+// ---------------------------------------------------------------------------
+// Exchange rate: European Central Bank daily reference rate, via Frankfurter (no key).
+// ---------------------------------------------------------------------------
+
+const FX_URL = 'https://api.frankfurter.dev/v1/latest?base=EUR&symbols=GBP'
+const FX_TTL_MS = 60 * 60 * 1000
+let fxCache: { at: number; result: FxResult } | null = null
+
+export async function loadFxRate(fetchImpl: typeof fetch = fetch): Promise<FxResult> {
+  if (fxCache && Date.now() - fxCache.at < FX_TTL_MS && fxCache.result.ok) return fxCache.result
+  let result: FxResult
+  try {
+    const res = await fetchImpl(process.env.FN_FX_URL ?? FX_URL, { cache: 'no-store', signal: AbortSignal.timeout(5000) })
+    result = res.ok ? parseFxResponse(await res.json(), new Date().toISOString()) : { ok: false, reason: `The rate service answered ${res.status}` }
+  } catch {
+    result = { ok: false, reason: 'The rate service could not be reached' }
+  }
+  fxCache = { at: Date.now(), result }
+  return result
+}
+
+// ---------------------------------------------------------------------------
+// Overheads: a local JSON file in data/ (git-ignored), edited from the dashboard.
+// ---------------------------------------------------------------------------
+
+function dataDir(): string {
+  return process.env.FN_DATA_DIR ?? path.join(process.cwd(), 'data')
+}
+
+/** Hosted (Vercel) disks are read-only and reset on deploy, so saving needs online storage first. */
+export function overheadsWritable(): boolean {
+  return !process.env.VERCEL
+}
+
+export async function loadOverheads(): Promise<{ overheads: Overhead[]; saved: boolean; error?: string }> {
+  const file = path.join(dataDir(), 'overheads.json')
+  const read = await readJson(file)
+  if (read.kind === 'missing') return { overheads: STARTER_OVERHEADS, saved: false }
+  if (read.kind === 'invalid') return { overheads: STARTER_OVERHEADS, saved: false, error: `overheads.json is not valid JSON (${read.message})` }
+  const v = validateOverheads(read.value)
+  return v.ok ? { overheads: v.overheads, saved: true } : { overheads: STARTER_OVERHEADS, saved: false, error: `overheads.json: ${v.error}` }
+}
+
+export async function saveOverheads(overheads: Overhead[]): Promise<void> {
+  const file = path.join(dataDir(), 'overheads.json')
+  await fs.mkdir(path.dirname(file), { recursive: true })
+  const tmp = `${file}.tmp`
+  await fs.writeFile(tmp, JSON.stringify(overheads, null, 2) + '\n')
+  await fs.rename(tmp, file)
+}
+
+// ---------------------------------------------------------------------------
+// Live Xero status (read-only). The snapshot is refreshed by POST /xero/refresh.
+// ---------------------------------------------------------------------------
+
+export interface XeroState {
+  /** XERO_CLIENT_ID is set and this machine can store tokens. */
+  configured: boolean
+  connected: boolean
+  tenantName: string | null
+  snapshot: XeroSnapshot | null
+}
+
+export async function loadXeroState(): Promise<XeroState> {
+  const configured = !!xeroConfig() && xeroAvailable()
+  if (!configured) return { configured, connected: false, tenantName: null, snapshot: null }
+  const { connected, tenantName } = await xeroConnected()
+  return { configured, connected, tenantName, snapshot: connected ? await loadSnapshot() : null }
 }

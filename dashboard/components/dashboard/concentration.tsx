@@ -1,12 +1,14 @@
 'use client'
 import { AlertTriangle } from 'lucide-react'
 import type { CustomerShare } from '@/lib/metrics'
-import { eur, pct, plural } from '@/lib/format'
+import { pct, plural } from '@/lib/format'
+import { useMoney } from '@/components/currency'
 import { cn } from '@/lib/utils'
 
 const COLORS = ['var(--color-cat-1)', 'var(--color-cat-2)', 'var(--color-cat-3)']
 
 export function ConcentrationPanel({ shares, highlightId, customerOrder }: { shares: CustomerShare[]; highlightId: string | null; customerOrder: string[] }) {
+  const { money } = useMoney()
   const top = shares[0]
   // Colour follows the customer (its position in the ledger), never its rank in this period.
   const colorOf = (id: string) => COLORS[Math.max(0, customerOrder.indexOf(id)) % COLORS.length]
@@ -46,10 +48,10 @@ export function ConcentrationPanel({ shares, highlightId, customerOrder }: { sha
                 <div className="mt-1.5 grid grid-cols-[44px_1fr_auto] items-center gap-x-2 gap-y-1 text-[12px]">
                   <span className="text-ink-3">Sales</span>
                   <div className="h-2 rounded-full bg-subtle"><div className="h-2 rounded-full" style={{ width: `${(s.salesShare ?? 0) * 100}%`, background: colorOf(s.customerId) }} /></div>
-                  <span className="num min-w-[88px] text-ink sm:min-w-[150px]"><span className="font-semibold">{pct(s.salesShare, 1)}</span> <span className="hidden text-ink-3 sm:inline">{eur(s.salesCents, { whole: true })}</span></span>
+                  <span className="num min-w-[88px] text-ink sm:min-w-[150px]"><span className="font-semibold">{pct(s.salesShare, 1)}</span> <span className="hidden text-ink-3 sm:inline">{money(s.salesCents, { whole: true })}</span></span>
                   <span className="text-ink-3">Profit</span>
                   <div className="h-2 rounded-full bg-subtle"><div className="h-2 rounded-full opacity-60" style={{ width: `${Math.max(0, s.profitShare ?? 0) * 100}%`, background: colorOf(s.customerId) }} /></div>
-                  <span className="num min-w-[88px] text-ink sm:min-w-[150px]"><span className="font-semibold">{pct(s.profitShare, 1)}</span> <span className={cn('hidden sm:inline', s.grossProfitCents < 0 ? 'text-loss' : 'text-ink-3')}>{eur(s.grossProfitCents, { whole: true })}</span></span>
+                  <span className="num min-w-[88px] text-ink sm:min-w-[150px]"><span className="font-semibold">{pct(s.profitShare, 1)}</span> <span className={cn('hidden sm:inline', s.grossProfitCents < 0 ? 'text-loss' : 'text-ink-3')}>{money(s.grossProfitCents, { whole: true })}</span></span>
                 </div>
               </li>
             ))}

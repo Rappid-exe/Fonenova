@@ -10,22 +10,33 @@ const eur2 = new Intl.NumberFormat('en-IE', { minimumFractionDigits: 2, maximumF
 const eur0 = new Intl.NumberFormat('en-IE', { maximumFractionDigits: 0 })
 const int = new Intl.NumberFormat('en-IE')
 
-export function eur(cents: Cents, opts: { sign?: boolean; whole?: boolean } = {}): string {
+export type CurrencyCode = 'EUR' | 'GBP'
+
+const SYMBOL: Record<CurrencyCode, string> = { EUR: '€', GBP: '£' }
+
+export function money(cents: Cents, currency: CurrencyCode, opts: { sign?: boolean; whole?: boolean } = {}): string {
   const abs = Math.abs(cents) / 100
-  const body = `€${(opts.whole ? eur0 : eur2).format(abs)}`
+  const body = `${SYMBOL[currency]}${(opts.whole ? eur0 : eur2).format(abs)}`
   if (cents < 0) return `${MINUS}${body}`
   if (opts.sign && cents > 0) return `+${body}`
   return body
 }
 
-/** Axis labels: €1.2m, €350k. */
-export function eurCompact(cents: Cents): string {
+export function eur(cents: Cents, opts: { sign?: boolean; whole?: boolean } = {}): string {
+  return money(cents, 'EUR', opts)
+}
+
+/** Axis labels: €1.2m, £350k. */
+export function moneyCompact(cents: Cents, currency: CurrencyCode = 'EUR'): string {
   const v = Math.abs(cents) / 100
   const sign = cents < 0 ? MINUS : ''
-  if (v >= 1_000_000) return `${sign}€${(v / 1_000_000).toFixed(v >= 10_000_000 ? 0 : 1)}m`
-  if (v >= 1_000) return `${sign}€${(v / 1_000).toFixed(v >= 100_000 ? 0 : v >= 10_000 ? 0 : 1)}k`
-  return `${sign}€${v.toFixed(0)}`
+  const sym = SYMBOL[currency]
+  if (v >= 1_000_000) return `${sign}${sym}${(v / 1_000_000).toFixed(v >= 10_000_000 ? 0 : 1)}m`
+  if (v >= 1_000) return `${sign}${sym}${(v / 1_000).toFixed(v >= 10_000 ? 0 : 1)}k`
+  return `${sign}${sym}${v.toFixed(0)}`
 }
+
+export const eurCompact = (cents: Cents) => moneyCompact(cents, 'EUR')
 
 export function pct(r: number | null, digits = 2, opts: { sign?: boolean } = {}): string {
   if (r === null || !Number.isFinite(r)) return 'n/a'

@@ -83,3 +83,34 @@ configuration in production locks everyone out; it never opens up.
 ledger never enters git. Without `FN_LEDGER_BR` the hosted app shows the fake sample with its banner.
 
 Local `npm run dev` skips sign-in when `GOOGLE_CLIENT_ID` is unset. Production builds never do.
+
+## Live data from Xero (read-only, local)
+
+The dashboard can read invoice statuses, balances still owed, due dates, each payment and bank
+balances from Xero. Sales, costs and the pairing of client and supplier invoices still come from
+the ledger, and the 25 reconciliation checks always run against the untouched ledger.
+
+1. At https://developer.xero.com/app/manage create a new app of type **Mobile or desktop app**
+   (PKCE, so no client secret). Redirect URI: `http://localhost:3100/xero/callback`.
+2. Put its client ID in `dashboard/.env.local` (git-ignored): `XERO_CLIENT_ID=...`
+3. Restart the dashboard, click **Connect Xero (read-only)**, sign in and pick the organisation.
+4. Use **Refresh** whenever you want the latest figures. The bar shows when it last refreshed and
+   which orders could not be matched.
+
+Scopes requested: `offline_access accounting.invoices.read accounting.payments.read
+accounting.reports.banksummary.read`. If Xero's app settings name them differently, set
+`XERO_SCOPES`. Bank balances are taken as Xero reports them, in the organisation's base currency
+(`XERO_BASE_CURRENCY`, default GBP). Tokens and the last snapshot live in `data/xero/` (git-ignored).
+
+## Currency, overheads and the cash calendar
+
+- **EUR / GBP switch:** GBP uses the European Central Bank daily reference rate (via Frankfurter,
+  no key), shown with its date and source. Without a rate the switch is disabled; nothing is guessed.
+- **Overheads:** entered on the dashboard and saved to `data/overheads.json` (git-ignored). Net
+  business profit = gross profit after credit notes minus business overheads taken in the period,
+  up to today. Personal items only appear in the cash calendar.
+- **Cash calendar:** open balances by due date (from Xero) plus overheads, with a running balance
+  from Xero's bank balances. Overdue bills count from today; overdue client payments are not
+  counted until they arrive.
+- Saving overheads and the Xero connection need a writable disk, so both are local-only until the
+  hosted version gets online storage.

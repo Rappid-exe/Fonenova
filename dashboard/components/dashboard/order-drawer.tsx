@@ -4,7 +4,8 @@ import { Badge } from '@/components/ui/badge'
 import { Sheet } from '@/components/ui/sheet'
 import { linesFor, marginBand, orderMargin, type CreditAllocation } from '@/lib/metrics'
 import { sumCents } from '@/lib/money'
-import { count, eur, pct } from '@/lib/format'
+import { count, pct } from '@/lib/format'
+import { useMoney } from '@/components/currency'
 import { formatDate } from '@/lib/periods'
 import type { CreditNote, Ledger, Order } from '@/lib/types'
 import { cn } from '@/lib/utils'
@@ -13,6 +14,7 @@ import { flagTone, statusLabel } from './orders-table'
 function InvoiceCard({ side, title, party, number, totalCents, status, owedLabel, owedCents, file }: {
   side: string; title: string; party: string; number: string; totalCents: number; status: Order['clientStatus']; owedLabel: string; owedCents: number | null; file: string | null
 }) {
+  const { money } = useMoney()
   const st = statusLabel(status)
   return (
     <div className="rounded-lg border border-line bg-surface p-4">
@@ -23,9 +25,9 @@ function InvoiceCard({ side, title, party, number, totalCents, status, owedLabel
       <div className="mt-1 text-[14px] font-semibold text-ink">{title} {number}</div>
       <div className="text-[12.5px] text-ink-2">{party}</div>
       <dl className="mt-3 grid grid-cols-[1fr_auto] gap-y-1 text-[12.5px]">
-        <dt className="text-ink-3">Invoice total</dt><dd className="num font-semibold text-ink">{eur(totalCents)}</dd>
+        <dt className="text-ink-3">Invoice total</dt><dd className="num font-semibold text-ink">{money(totalCents)}</dd>
         <dt className="text-ink-3">{owedLabel}</dt>
-        <dd className="num text-ink">{owedCents === null ? <span className="text-warn">Unknown (not in Xero)</span> : owedCents === 0 ? <span className="text-ink-3">Nothing</span> : eur(owedCents)}</dd>
+        <dd className="num text-ink">{owedCents === null ? <span className="text-warn">Unknown (not in Xero)</span> : owedCents === 0 ? <span className="text-ink-3">Nothing</span> : money(owedCents)}</dd>
       </dl>
       {file && (
         <div className="mt-3 flex items-center gap-1.5 truncate text-[12px] text-ink-3" title={file}>
@@ -37,6 +39,7 @@ function InvoiceCard({ side, title, party, number, totalCents, status, owedLabel
 }
 
 function CreditRow({ n }: { n: CreditNote }) {
+  const { money } = useMoney()
   return (
     <li className="px-4 py-2.5">
       <div className="flex flex-wrap items-baseline justify-between gap-2 text-[13px]">
@@ -45,7 +48,7 @@ function CreditRow({ n }: { n: CreditNote }) {
           <span className="ml-2 font-normal text-ink-3">{formatDate(n.date)}</span>
         </span>
         <span className={cn('num font-semibold', n.side === 'client' ? 'text-loss' : 'text-gain')}>
-          {n.side === 'client' ? eur(-n.amountCents) : eur(n.amountCents, { sign: true })}
+          {n.side === 'client' ? money(-n.amountCents) : money(n.amountCents, { sign: true })}
         </span>
       </div>
       <p className="mt-0.5 text-[12px] leading-relaxed text-ink-3">{n.covers}</p>
@@ -54,12 +57,13 @@ function CreditRow({ n }: { n: CreditNote }) {
   )
 }
 
-export function OrderDrawer({ order, ledger, units, allocation, snapshot, onClose }: {
+export function OrderDrawer({ order, ledger, units, allocation, snapshot, ledgerSnapshot, onClose }: {
   order: Order | null
   ledger: Ledger
   units: Map<string, number>
   allocation: CreditAllocation
   snapshot: string
+  ledgerSnapshot: string
   onClose: () => void
 }) {
   return (
@@ -70,12 +74,13 @@ export function OrderDrawer({ order, ledger, units, allocation, snapshot, onClos
       description={order ? `Ordered ${formatDate(order.date)}. Xero status as of ${snapshot}.` : undefined}
       className="max-w-[920px]"
     >
-      {order && <DrawerBody order={order} ledger={ledger} units={units} allocation={allocation} snapshot={snapshot} />}
+      {order && <DrawerBody order={order} ledger={ledger} units={units} allocation={allocation} snapshot={snapshot} ledgerSnapshot={ledgerSnapshot} />}
     </Sheet>
   )
 }
 
-function DrawerBody({ order: o, ledger, units, allocation, snapshot }: { order: Order; ledger: Ledger; units: Map<string, number>; allocation: CreditAllocation; snapshot: string }) {
+function DrawerBody({ order: o, ledger, units, allocation, snapshot, ledgerSnapshot }: { order: Order; ledger: Ledger; units: Map<string, number>; allocation: CreditAllocation; snapshot: string; ledgerSnapshot: string }) {
+  const { money } = useMoney()
   const lines = linesFor(ledger.lines, o.id)
   const goods = lines.filter((l) => l.type === 'goods')
   const ship = lines.filter((l) => l.type === 'shipping')
@@ -91,9 +96,9 @@ function DrawerBody({ order: o, ledger, units, allocation, snapshot }: { order: 
     <div className="space-y-4 p-4 sm:p-5">
       <dl className="grid grid-cols-2 gap-px overflow-hidden rounded-lg border border-line bg-line sm:grid-cols-5">
         {[
-          ['Sales', eur(o.clientTotalCents), ''],
-          ['Cost', eur(o.supplierTotalCents), ''],
-          ['Gross profit', eur(o.grossMarginCents), o.grossMarginCents < 0 ? 'text-loss' : ''],
+          ['Sales', money(o.clientTotalCents), ''],
+          ['Cost', money(o.supplierTotalCents), ''],
+          ['Gross profit', money(o.grossMarginCents), o.grossMarginCents < 0 ? 'text-loss' : ''],
           ['Margin', pct(m), band === 'loss' ? 'text-loss' : band === 'thin' ? 'text-warn' : ''],
           ['Units', count(units.get(o.id) ?? 0), ''],
         ].map(([k, v, c]) => (
@@ -144,12 +149,12 @@ function DrawerBody({ order: o, ledger, units, allocation, snapshot }: { order: 
                     {l.note && <div className="mt-0.5 text-[11.5px] text-ink-3">{l.note}</div>}
                   </td>
                   <td className="num px-2 py-2">{count(l.qty)}</td>
-                  <td className="num border-l border-line px-2 py-2 text-ink-2">{eur(l.supplierUnitCents)}</td>
-                  <td className="num px-2 py-2 text-ink-2">{eur(l.supplierAmountCents)}</td>
-                  <td className="num border-l border-line px-2 py-2">{eur(l.clientUnitCents)}</td>
-                  <td className="num px-2 py-2">{eur(l.clientAmountCents)}</td>
-                  <td className={cn('num border-l border-line px-2 py-2', l.marginPerUnitCents < 0 && 'text-loss')}>{eur(l.marginPerUnitCents)}</td>
-                  <td className={cn('num px-4 py-2 font-medium', l.marginCents < 0 ? 'text-loss' : 'text-ink')}>{eur(l.marginCents)}</td>
+                  <td className="num border-l border-line px-2 py-2 text-ink-2">{money(l.supplierUnitCents)}</td>
+                  <td className="num px-2 py-2 text-ink-2">{money(l.supplierAmountCents)}</td>
+                  <td className="num border-l border-line px-2 py-2">{money(l.clientUnitCents)}</td>
+                  <td className="num px-2 py-2">{money(l.clientAmountCents)}</td>
+                  <td className={cn('num border-l border-line px-2 py-2', l.marginPerUnitCents < 0 && 'text-loss')}>{money(l.marginPerUnitCents)}</td>
+                  <td className={cn('num px-4 py-2 font-medium', l.marginCents < 0 ? 'text-loss' : 'text-ink')}>{money(l.marginCents)}</td>
                 </tr>
               ))}
               {ship.map((l) => (
@@ -160,22 +165,22 @@ function DrawerBody({ order: o, ledger, units, allocation, snapshot }: { order: 
                   </td>
                   <td className="num px-2 py-2 text-ink-3" />
                   <td className="border-l border-line px-2 py-2" />
-                  <td className="num px-2 py-2 text-ink-2">{eur(l.supplierAmountCents)}</td>
+                  <td className="num px-2 py-2 text-ink-2">{money(l.supplierAmountCents)}</td>
                   <td className="border-l border-line px-2 py-2" />
-                  <td className="num px-2 py-2">{eur(l.clientAmountCents)}</td>
+                  <td className="num px-2 py-2">{money(l.clientAmountCents)}</td>
                   <td className="border-l border-line px-2 py-2" />
-                  <td className={cn('num px-4 py-2 font-medium', l.marginCents < 0 ? 'text-loss' : 'text-ink')}>{eur(l.marginCents)}</td>
+                  <td className={cn('num px-4 py-2 font-medium', l.marginCents < 0 ? 'text-loss' : 'text-ink')}>{money(l.marginCents)}</td>
                 </tr>
               ))}
               <tr className="border-t-2 border-line-strong font-semibold">
                 <td className="px-4 py-2 text-ink">Invoice totals</td>
                 <td className="num px-2 py-2">{count(units.get(o.id) ?? 0)}</td>
                 <td className="border-l border-line" />
-                <td className="num px-2 py-2">{eur(sumCents(lines, (l) => l.supplierAmountCents))}</td>
+                <td className="num px-2 py-2">{money(sumCents(lines, (l) => l.supplierAmountCents))}</td>
                 <td className="border-l border-line" />
-                <td className="num px-2 py-2">{eur(sumCents(lines, (l) => l.clientAmountCents))}</td>
+                <td className="num px-2 py-2">{money(sumCents(lines, (l) => l.clientAmountCents))}</td>
                 <td className="border-l border-line" />
-                <td className={cn('num px-4 py-2', o.grossMarginCents < 0 && 'text-loss')}>{eur(sumCents(lines, (l) => l.marginCents))}</td>
+                <td className={cn('num px-4 py-2', o.grossMarginCents < 0 && 'text-loss')}>{money(sumCents(lines, (l) => l.marginCents))}</td>
               </tr>
             </tbody>
           </table>
@@ -193,24 +198,45 @@ function DrawerBody({ order: o, ledger, units, allocation, snapshot }: { order: 
         )}
         {credits.length > 0 && (
           <dl className="grid grid-cols-[1fr_auto] gap-y-1 border-t border-line bg-subtle/60 px-4 py-2.5 text-[12.5px]">
-            <dt className="text-ink-2">Gross profit before credits</dt><dd className="num">{eur(o.grossMarginCents)}</dd>
-            <dt className="text-ink-2">+ Supplier credits received</dt><dd className="num">{eur(supplierCr)}</dd>
-            <dt className="text-ink-2">− Client credits issued</dt><dd className="num">{eur(-clientCr)}</dd>
+            <dt className="text-ink-2">Gross profit before credits</dt><dd className="num">{money(o.grossMarginCents)}</dd>
+            <dt className="text-ink-2">+ Supplier credits received</dt><dd className="num">{money(supplierCr)}</dd>
+            <dt className="text-ink-2">− Client credits issued</dt><dd className="num">{money(-clientCr)}</dd>
             <dt className="font-semibold text-ink">Gross profit after credits</dt>
-            <dd className={cn('num font-semibold', o.grossMarginCents + supplierCr - clientCr < 0 ? 'text-loss' : 'text-ink')}>{eur(o.grossMarginCents + supplierCr - clientCr)}</dd>
+            <dd className={cn('num font-semibold', o.grossMarginCents + supplierCr - clientCr < 0 ? 'text-loss' : 'text-ink')}>{money(o.grossMarginCents + supplierCr - clientCr)}</dd>
           </dl>
         )}
         {shared.length > 0 && (
           <div className="border-t border-line px-4 py-2.5">
             <div className="text-[12px] font-medium text-ink-2">Also referenced by multi-order credits (not allocated to this order)</div>
             <ul className="mt-1 space-y-0.5 text-[12px] text-ink-3">
-              {shared.map((n) => <li key={n.number}>{n.side === 'client' ? 'Client' : 'Supplier'} credit note {n.number}, {formatDate(n.date)}: {eur(n.amountCents)} across {n.orderIds.join(', ')}</li>)}
+              {shared.map((n) => <li key={n.number}>{n.side === 'client' ? 'Client' : 'Supplier'} credit note {n.number}, {formatDate(n.date)}: {money(n.amountCents)} across {n.orderIds.join(', ')}</li>)}
             </ul>
           </div>
         )}
-        <p className="border-t border-line px-4 py-2.5 text-[12px] text-ink-3">
-          Individual payment records are not in the ledger. Only the outstanding balance as of {snapshot} is known; each payment will show as its own line once Xero is connected.
-        </p>
+        {o.live ? (
+          <div className="border-t border-line px-4 py-2.5 text-[12.5px]">
+            <div className="text-[12px] font-medium text-ink-2">Payments recorded in Xero, each as its own line</div>
+            <div className="mt-1 text-[12px] text-ink-3">
+              Client invoice due {o.live.clientDueDate ? formatDate(o.live.clientDueDate) : 'date not in Xero'} · Supplier bill due {o.live.billDueDate ? formatDate(o.live.billDueDate) : 'date not in Xero'}
+            </div>
+            {o.live.clientPayments.length + o.live.billPayments.length === 0 ? (
+              <p className="mt-1 text-ink-3">No payments recorded yet.</p>
+            ) : (
+              <ul className="mt-1 divide-y divide-line">
+                {o.live.clientPayments.map((p) => (
+                  <li key={p.id} className="flex justify-between gap-3 py-1"><span className="text-ink-2">Received from {o.customerName}{p.date ? `, ${formatDate(p.date)}` : ''}</span><span className="num text-gain">{money(p.amountCents, { sign: true })}</span></li>
+                ))}
+                {o.live.billPayments.map((p) => (
+                  <li key={p.id} className="flex justify-between gap-3 py-1"><span className="text-ink-2">Paid to {o.supplierName}{p.date ? `, ${formatDate(p.date)}` : ''}</span><span className="num text-ink">{money(-p.amountCents)}</span></li>
+                ))}
+              </ul>
+            )}
+          </div>
+        ) : (
+          <p className="border-t border-line px-4 py-2.5 text-[12px] text-ink-3">
+            Individual payment records are not in the ledger. Only the outstanding balance as of {snapshot} is known; each payment will show as its own line once Xero is connected.
+          </p>
+        )}
       </section>
 
       {(o.flags.length > 0 || exceptions.length > 0) && (
@@ -232,7 +258,7 @@ function DrawerBody({ order: o, ledger, units, allocation, snapshot }: { order: 
               ))}
             </ul>
           )}
-          <p className="border-t border-line px-4 py-2 text-[11.5px] text-ink-3">Overdue days are as recorded on {snapshot} and are not recalculated.</p>
+          <p className="border-t border-line px-4 py-2 text-[11.5px] text-ink-3">Flags and overdue days are as recorded in the ledger on {ledgerSnapshot} and are not recalculated.</p>
         </section>
       )}
     </div>
