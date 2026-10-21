@@ -3,6 +3,7 @@
  * dashboard's automatic sync. Never adjusts figures; the caller runs the reconciliation.
  */
 import ExcelJS from 'exceljs'
+import { loadWorkbook, type XlsxInput } from './xlsx'
 import path from 'node:path'
 import { toCents } from '../money'
 import type {
@@ -181,11 +182,13 @@ function parseSummary(wb: ExcelJS.Workbook): { summary: LedgerSummary; snapshotT
   }
 }
 
-export async function importLedger(inputPath: string): Promise<Ledger> {
+/** Reads a file path, or a file already downloaded (e.g. from OneDrive) as `{ name, data }`. */
+export async function importLedger(input: XlsxInput): Promise<Ledger> {
+  const inputPath = typeof input === 'string' ? input : input.name
   warnings.length = 0
   formulasWithoutResult = 0
   const wb = new ExcelJS.Workbook()
-  await wb.xlsx.readFile(inputPath)
+  await loadWorkbook(wb, input)
 
   const { summary, snapshotText } = parseSummary(wb)
 

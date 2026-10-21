@@ -76,15 +76,35 @@ configuration in production locks everyone out; it never opens up.
 | `AUTH_URL` | `https://dashboard.fonenova.com` (fixed OAuth redirect origin) |
 | `AUTH_SECRET` | 32+ random characters; signs cookies. Changing it signs everyone out |
 | `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET` | Google OAuth web client, redirect URI `https://dashboard.fonenova.com/auth/callback` |
-| `FN_LEDGER_BR` | The ledger, from `npm run pack-ledger` (brotli + base64, file paths stripped) |
+| `KV_REST_API_URL`, `KV_REST_API_TOKEN` | Online storage. Set automatically when you connect **Upstash Redis** (Vercel → Storage) to the project |
+| `FN_STORE_KEY` | 32+ random characters. Everything saved online is compressed and AES-256-GCM encrypted with it, so Upstash only holds ciphertext. Changing it means connecting OneDrive and Xero again |
+| `CRON_SECRET` | 16+ random characters. Vercel sends it to the hourly sync; without it the sync route refuses everyone |
+| `MS_CLIENT_ID`, `MS_CLIENT_SECRET` | Microsoft app for OneDrive (below) |
+| `FN_ONEDRIVE_LEDGER` | The ledger's place in OneDrive, e.g. `Desktop/FoneNova_Order_Ledger.xlsx`. A Windows path pasted as is (`C:\Users\...\OneDrive\Desktop\...`) works too |
+| `FN_ONEDRIVE_EXPENSES_DIR` | The VAT returns folder in OneDrive, e.g. `Desktop/VAT RETURNS` |
+| `XERO_CLIENT_ID` | Optional. Add `https://dashboard.fonenova.com/xero/callback` to the Xero app's redirect URIs |
 
-**Updating the figures.** `npm run import && npm run pack-ledger`, paste
-`data/generated/ledger.br.b64` into `FN_LEDGER_BR` on Vercel (Production), redeploy. The real
-ledger never enters git. Without `FN_LEDGER_BR` the hosted app shows the fake sample with its banner.
+**Live data on the web.** The hosted dashboard reads the same two spreadsheets from OneDrive,
+read-only, and keeps everything it saves (imports, overheads, row decisions, Xero and OneDrive
+tokens) in Upstash, encrypted. It checks for new saves on each visit (at most every 30 seconds)
+and every hour from a scheduled job (`vercel.json`, `/api/cron/sync`; hourly needs Vercel Pro).
+The same rules as on your PC apply: newest tracker, `_backups` skipped, and a save that cannot be
+read leaves the last good import on screen with the reason in the status bar.
+
+**OneDrive app (once, free).** Azure portal → App registrations → New registration:
+*Personal Microsoft accounts only*; redirect URI (Web) `https://dashboard.fonenova.com/onedrive/callback`.
+Then Certificates & secrets → New client secret (copy the *Value*), and API permissions →
+Microsoft Graph → Delegated → `Files.Read` and `offline_access`. Put the IDs in Vercel, redeploy,
+sign in and click **Connect OneDrive (read-only)**. Microsoft can't limit a personal account to one
+folder, so the dashboard asks for read access to files and opens only the two paths above.
+The secret expires (Azure lets you pick up to 24 months); renew it before then.
+
+`FN_LEDGER_BR` (from `npm run pack-ledger`) still works as a fallback, without live sync: if set,
+it replaces everything above for the ledger.
 
 Local `npm run dev` skips sign-in when `GOOGLE_CLIENT_ID` is unset. Production builds never do.
 
-## Live data from Xero (read-only, local)
+## Live data from Xero (read-only)
 
 The dashboard can read invoice statuses, balances still owed, due dates, each payment and bank
 balances from Xero. Sales, costs and the pairing of client and supplier invoices still come from
@@ -100,7 +120,9 @@ the ledger, and the 25 reconciliation checks always run against the untouched le
 Scopes requested: `offline_access accounting.invoices.read accounting.payments.read
 accounting.reports.banksummary.read`. If Xero's app settings name them differently, set
 `XERO_SCOPES`. Bank balances are taken as Xero reports them, in the organisation's base currency
-(`XERO_BASE_CURRENCY`, default GBP). Tokens and the last snapshot live in `data/xero/` (git-ignored).
+(`XERO_BASE_CURRENCY`, default GBP). Tokens and the last snapshot live in `data/xero/` on your PC
+(git-ignored), or encrypted in online storage when hosted. Hosted, Xero's redirect URI is
+`https://dashboard.fonenova.com/xero/callback` (derived from `AUTH_URL`; override with `XERO_REDIRECT_URI`).
 
 ## Currency, overheads and the cash calendar
 

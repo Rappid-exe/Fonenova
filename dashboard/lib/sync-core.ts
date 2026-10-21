@@ -1,10 +1,12 @@
 /**
  * The decisions behind automatic sync, kept free of Next.js so they are unit-tested:
  * which tracker file to read, whether a source changed, and how to re-import without ever
- * replacing good data with a failed or half-written import.
+ * replacing good data with a failed or half-written import. The same rules apply whether
+ * the file is on this PC or in OneDrive.
  */
 import fs from 'node:fs/promises'
 import path from 'node:path'
+import { getJson, type Store, type StoreKey } from './store'
 
 export interface SourceStatus {
   source: 'ledger' | 'expenses' | 'xero'
@@ -16,6 +18,8 @@ export interface SourceStatus {
   fileSavedAt: string | null
   /** When the data now in use was imported. */
   importedAt: string | null
+  /** When this source was last checked for changes. */
+  checkedAt: string
   /** True when this sync run re-imported. */
   changed: boolean
   ok: boolean
@@ -23,6 +27,16 @@ export interface SourceStatus {
 }
 
 const TRACKER = /^vat return from.*\.xlsx$/i
+
+/** The VAT return tracker's file name, excluding Excel's own `~$` lock files. */
+export function isTrackerName(name: string): boolean {
+  return TRACKER.test(name) && !name.startsWith('~$')
+}
+
+/** Folders never searched for the tracker: copies in `_backups` would look newer than the real one. */
+export function skipFolder(name: string): boolean {
+  return /backup/i.test(name)
+}
 
 /**
  * Newest VAT return tracker under `dir`, by last-saved time. Skips any `_backups` folder,
@@ -40,9 +54,9 @@ export async function newestTracker(dir: string, depth = 3): Promise<{ file: str
     for (const e of entries) {
       const full = path.join(d, e.name)
       if (e.isDirectory()) {
-        if (/backup/i.test(e.name) || level >= depth) continue
+        if (skipFolder(e.name) || level >= depth) continue
         await walk(full, level + 1)
-      } else if (TRACKER.test(e.name) && !e.name.startsWith('~$')) {
+      } else if (isTrackerName(e.name)) {
         const st = await fs.stat(full).catch(() => null)
         if (st && (!best || st.mtimeMs > best.mtimeMs)) best = { file: full, mtimeMs: st.mtimeMs }
       }
@@ -59,57 +73,69 @@ export function needsImport(sourceMtimeMs: number, imported: { sourceModifiedAt?
   return Math.floor(sourceMtimeMs) > Date.parse(imported.sourceModifiedAt)
 }
 
-async function readMeta(outFile: string): Promise<{ sourceModifiedAt?: string; importedAt?: string } | null> {
-  try {
-    return (JSON.parse(await fs.readFile(outFile, 'utf8')) as { meta?: { sourceModifiedAt?: string; importedAt?: string } }).meta ?? null
-  } catch {
-    return null
+/** A spreadsheet to sync from: a file on this PC, or one in OneDrive. */
+export interface FileSource {
+  /** File name only (never the full path, which stays on the server). */
+  fileName: string
+  /** Last-saved time in ms, or null when the file is not there. */
+  savedAt(): Promise<number | null>
+  read(): Promise<Buffer>
+}
+
+export function localFile(file: string): FileSource {
+  return {
+    fileName: path.basename(file),
+    savedAt: async () => (await fs.stat(file).catch(() => null))?.mtimeMs ?? null,
+    read: () => fs.readFile(file),
   }
 }
 
 /**
- * Sync one file-based source. On any failure the existing output file is left exactly as it
+ * Sync one file-based source. On any failure the data in the store is left exactly as it
  * was, so the dashboard keeps showing the last good import and says what went wrong.
  */
 export async function syncFile<T extends { meta: { sourceModifiedAt?: string; importedAt: string } }>(opts: {
   source: 'ledger' | 'expenses'
   label: string
-  file: string | null
-  outFile: string
+  file: FileSource | null
+  store: Store
+  key: StoreKey
   notConfigured: string
-  run: (file: string) => Promise<T>
+  run: (input: { name: string; data: Buffer }) => Promise<T>
   /** Plain-words result for a successful import, e.g. "reconciled 25/25". */
   describe: (data: T) => { ok: boolean; message: string }
-  /** Plain-words summary of the data already in use, when nothing changed. */
-  describeExisting?: () => Promise<string>
 }): Promise<SourceStatus> {
-  const prev = await readMeta(opts.outFile)
-  const base = { source: opts.source, label: opts.label, importedAt: prev?.importedAt ?? null }
+  const prev = (await getJson<{ meta?: { sourceModifiedAt?: string; importedAt?: string } }>(opts.store, opts.key))?.meta ?? null
+  const base = { source: opts.source, label: opts.label, importedAt: prev?.importedAt ?? null, checkedAt: new Date().toISOString() }
   if (!opts.file) return { ...base, configured: false, fileName: null, fileSavedAt: null, changed: false, ok: !!prev, message: opts.notConfigured }
 
-  const fileName = path.basename(opts.file)
-  const st = await fs.stat(opts.file).catch(() => null)
-  if (!st) {
+  const { fileName } = opts.file
+  const fail = (raw: string, fileSavedAt: string | null): SourceStatus => {
+    const why = /central directory|zip|EBUSY|EPERM|locked/i.test(raw) ? 'the file is not a readable .xlsx yet; it may still be saving or syncing' : raw
+    return { ...base, configured: true, fileName, fileSavedAt, changed: false, ok: false, message: `Could not read the latest save (${why.slice(0, 160)}). ${prev ? 'Showing the last good import.' : 'Nothing imported yet.'}` }
+  }
+
+  let mtime: number | null
+  try {
+    mtime = await opts.file.savedAt()
+  } catch (e) {
+    return fail(e instanceof Error ? e.message : String(e), null)
+  }
+  if (mtime === null) {
     return { ...base, configured: true, fileName, fileSavedAt: null, changed: false, ok: false, message: `File not found. ${prev ? 'Showing the last import.' : 'Nothing imported yet.'}` }
   }
-  const fileSavedAt = new Date(st.mtimeMs).toISOString()
-  if (!needsImport(st.mtimeMs, prev)) {
-    return { ...base, configured: true, fileName, fileSavedAt, changed: false, ok: true, message: opts.describeExisting ? await opts.describeExisting() : 'Up to date' }
+  const fileSavedAt = new Date(Math.floor(mtime)).toISOString()
+  if (!needsImport(mtime, prev)) {
+    return { ...base, configured: true, fileName, fileSavedAt, changed: false, ok: true, message: 'Up to date' }
   }
 
   let data: T
   try {
-    data = await opts.run(opts.file)
+    data = await opts.run({ name: fileName, data: await opts.file.read() })
   } catch (e) {
-    const raw = e instanceof Error ? e.message : String(e)
-    const why = /central directory|zip|EBUSY|EPERM/i.test(raw) ? 'the file is not a readable .xlsx yet; it may still be saving or syncing' : raw
-    return { ...base, configured: true, fileName, fileSavedAt, changed: false, ok: false, message: `Could not read the latest save (${why.slice(0, 160)}). ${prev ? 'Showing the last good import.' : 'Nothing imported yet.'}` }
+    return fail(e instanceof Error ? e.message : String(e), fileSavedAt)
   }
   data.meta.sourceModifiedAt = fileSavedAt
-  await fs.mkdir(path.dirname(opts.outFile), { recursive: true })
-  const tmp = `${opts.outFile}.tmp`
-  await fs.writeFile(tmp, JSON.stringify(data, null, 2) + '\n')
-  await fs.rename(tmp, opts.outFile) // atomic: readers see the old file or the new one, never half of it
-  const d = opts.describe(data)
-  return { ...base, importedAt: data.meta.importedAt, configured: true, fileName, fileSavedAt, changed: true, ...d }
+  await opts.store.set(opts.key, data)
+  return { ...base, importedAt: data.meta.importedAt, configured: true, fileName, fileSavedAt, changed: true, ...opts.describe(data) }
 }

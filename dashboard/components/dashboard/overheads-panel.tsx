@@ -99,7 +99,7 @@ export function OverheadsPanel({
       </div>
 
       {loadError && <p role="alert" className="border-b border-line bg-loss-soft px-4 py-2 text-[12.5px] text-loss">{loadError}. Showing the starting list instead.</p>}
-      {!writable && <p className="border-b border-line bg-warn-soft px-4 py-2 text-[12.5px] text-warn">Saving overheads is not available on the hosted version yet.</p>}
+      {!writable && <p className="border-b border-line bg-warn-soft px-4 py-2 text-[12.5px] text-warn">Saving overheads needs online storage: connect Upstash Redis and set FN_STORE_KEY in the Vercel project.</p>}
 
       <div className="relative overflow-x-auto">
         <table className="w-full min-w-[860px] text-[12.5px]">

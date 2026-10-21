@@ -110,7 +110,7 @@ export function ExpensesPanel({ log, overrides, overheads, range, error, writabl
           </p>
         )}
         {saveError && <p role="alert" className="text-loss">{saveError}</p>}
-        {!writable && <p className="text-warn">Changing rows is not available on the hosted version yet.</p>}
+        {!writable && <p className="text-warn">Changing rows needs online storage: connect Upstash Redis and set FN_STORE_KEY in the Vercel project.</p>}
       </div>
 
       <div className="flex flex-wrap items-center gap-2 border-t border-line px-4 py-2.5">

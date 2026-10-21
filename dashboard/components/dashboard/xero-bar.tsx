@@ -4,7 +4,7 @@ import { useRouter } from 'next/navigation'
 import { ChevronDown, Link2, RefreshCw, Unlink } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
-import type { XeroState } from '@/lib/data-source'
+import type { OneDriveState, XeroState } from '@/lib/data-source'
 import type { LiveSummary } from '@/lib/metrics'
 import type { SourceStatus } from '@/lib/sync-core'
 import { formatDate } from '@/lib/periods'
@@ -18,8 +18,19 @@ const NOTICE: Record<string, string> = {
   'not-configured': 'Xero is not set up on this computer yet.',
 }
 
-export function XeroBar({ xero, summary, ledgerImported, ledgerSnapshot, notice, sources }: {
+const ONEDRIVE_NOTICE: Record<string, string> = {
+  connected: 'OneDrive connected and synced.',
+  declined: 'OneDrive sign-in was cancelled.',
+  state: 'The OneDrive sign-in expired or was opened in another browser. Try again.',
+  failed: 'OneDrive sign-in failed. Check the Microsoft app\'s client ID, secret and redirect address.',
+  'not-configured': 'OneDrive is not set up yet: add MS_CLIENT_ID and MS_CLIENT_SECRET, and online storage when hosted.',
+}
+
+export function XeroBar({ xero, summary, ledgerImported, ledgerSnapshot, notice, sources, oneDrive, oneDriveNotice, hosted }: {
   sources: SourceStatus[]
+  oneDrive: OneDriveState
+  oneDriveNotice: string | null
+  hosted: boolean
   xero: XeroState
   summary: LiveSummary | null
   ledgerImported: string
@@ -27,11 +38,11 @@ export function XeroBar({ xero, summary, ledgerImported, ledgerSnapshot, notice,
   notice: string | null
 }) {
   const router = useRouter()
-  const [busy, setBusy] = useState<'refresh' | 'disconnect' | null>(null)
+  const [busy, setBusy] = useState<'refresh' | 'disconnect' | 'onedrive-disconnect' | null>(null)
   const [error, setError] = useState<string | null>(null)
   const snap = xero.snapshot
 
-  async function post(path: string, kind: 'refresh' | 'disconnect') {
+  async function post(path: string, kind: NonNullable<typeof busy>) {
     setBusy(kind)
     setError(null)
     try {
@@ -53,12 +64,36 @@ export function XeroBar({ xero, summary, ledgerImported, ledgerSnapshot, notice,
     <div className="mb-3 rounded-lg border border-line bg-surface text-[12.5px]" role="status">
       <ul className="divide-y divide-line">
         {(sources.length ? sources.filter((x) => x.source !== 'xero') : []).map((x) => <SourceLine key={x.source} s={x} />)}
-        {sources.length === 0 && <li className="px-3 py-1.5 text-ink-3">Ledger imported {ledgerImported} (snapshot {ledgerSnapshot}). Automatic file sync is off on the hosted version.</li>}
+        {sources.length === 0 && <li className="px-3 py-1.5 text-ink-3">Ledger imported {ledgerImported} (snapshot {ledgerSnapshot}), from the FN_LEDGER_BR setting. Automatic sync is off.</li>}
       </ul>
+      {oneDrive.relevant && (
+        <div className="flex flex-wrap items-center gap-x-3 gap-y-2 border-t border-line px-3 py-2">
+          <span className="font-medium text-ink-2">OneDrive</span>
+          {!oneDrive.configured ? (
+            <span className="text-ink-3">Not set up: add <code>MS_CLIENT_ID</code>, <code>MS_CLIENT_SECRET</code>{hosted && ' and online storage'} in the {hosted ? 'Vercel project settings' : <code>.env.local</code>}.</span>
+          ) : !oneDrive.connected ? (
+            <>
+              <span className="text-ink-2">Not connected, so the ledger and tracker are not read from OneDrive.</span>
+              <a href="/onedrive/connect" className="inline-flex h-8 items-center gap-1.5 rounded-md bg-navy px-2.5 font-medium text-white hover:bg-navy-2">
+                <Link2 className="h-4 w-4" aria-hidden />Connect OneDrive (read-only)
+              </a>
+            </>
+          ) : (
+            <>
+              <span className="font-medium text-gain">Connected{oneDrive.accountName ? ` (${oneDrive.accountName})` : ''}</span>
+              {hosted && <span className="text-ink-3">checked on each visit and every hour</span>}
+              <Button size="sm" variant="ghost" onClick={() => post('/onedrive/disconnect', 'onedrive-disconnect')} disabled={busy !== null}>
+                <Unlink className="h-3.5 w-3.5" aria-hidden />Disconnect
+              </Button>
+            </>
+          )}
+          {oneDriveNotice && ONEDRIVE_NOTICE[oneDriveNotice] && <span className={cn(oneDriveNotice === 'connected' ? 'text-gain' : 'text-loss')}>{ONEDRIVE_NOTICE[oneDriveNotice]}</span>}
+        </div>
+      )}
       <div className="flex flex-wrap items-center gap-x-3 gap-y-2 border-t border-line px-3 py-2">
       <span className="font-medium text-ink-2">Xero</span>
       {!xero.configured ? (
-        <span className="text-ink-3">Not set up: add <code>XERO_CLIENT_ID</code> to <code>.env.local</code>. Statuses come from the ledger snapshot.</span>
+        <span className="text-ink-3">Not set up: add <code>XERO_CLIENT_ID</code>{hosted ? ' (and online storage) in the Vercel project settings' : <> to <code>.env.local</code></>}. Statuses come from the ledger snapshot.</span>
       ) : !xero.connected ? (
         <>
           <span className="text-ink-2">Not connected. Statuses come from the ledger snapshot.</span>
@@ -122,6 +157,7 @@ function SourceLine({ s }: { s: SourceStatus }) {
       {s.fileName && <span className="text-ink-3" title={s.fileName}>{s.fileName}</span>}
       {s.fileSavedAt && <span className="text-ink-3">saved {time(s.fileSavedAt)}</span>}
       {s.importedAt && <span className="text-ink-3">imported {time(s.importedAt)}</span>}
+      {s.checkedAt && <span className="text-ink-3">checked {time(s.checkedAt)}</span>}
       <span className={cn(s.ok ? 'text-ink-2' : s.configured ? 'text-loss' : 'text-ink-3')}>{s.changed ? 'Just synced: ' : ''}{s.message}</span>
     </li>
   )

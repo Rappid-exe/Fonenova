@@ -1,14 +1,14 @@
 /**
- * Read-only Xero connection for the local dashboard.
+ * Read-only Xero connection.
  *
  * Uses Xero's OAuth 2.0 flow with PKCE, so only a client ID is needed (no client secret
- * stored anywhere). Tokens and the last fetched snapshot live in data/xero/, which git
- * ignores. Refresh tokens rotate, so every refresh saves the new pair at once.
+ * stored anywhere). Tokens and the last fetched snapshot live in the store: data/xero/ on
+ * your PC (git-ignored), encrypted online storage when hosted. Refresh tokens rotate, so
+ * every refresh saves the new pair at once, under a lock.
  */
 import 'server-only'
 import crypto from 'node:crypto'
-import fs from 'node:fs/promises'
-import path from 'node:path'
+import { getJson, getStore, storeWritable } from '../store'
 import { mapBankSummary, mapInvoice } from './map'
 import type { XeroInvoice, XeroSnapshot } from '../types'
 
@@ -33,20 +33,16 @@ export function xeroConfig(): XeroConfig | null {
   if (!clientId) return null
   return {
     clientId,
-    redirectUri: process.env.XERO_REDIRECT_URI ?? 'http://localhost:3100/xero/callback',
+    redirectUri: process.env.XERO_REDIRECT_URI ?? `${process.env.AUTH_URL?.replace(/\/$/, '') ?? 'http://localhost:3100'}/xero/callback`,
     scopes: process.env.XERO_SCOPES ?? DEFAULT_SCOPES,
     // Fone Nova keeps its books in GBP. Xero's Bank Summary reports in this base currency.
     baseCurrency: process.env.XERO_BASE_CURRENCY ?? 'GBP',
   }
 }
 
-/** Token and snapshot files need a writable disk, so the connection is local-only for now. */
+/** Tokens must survive a restart: always true on your PC, and hosted once online storage is set up. */
 export function xeroAvailable(): boolean {
-  return !process.env.VERCEL
-}
-
-function dir(): string {
-  return path.join(process.env.FN_DATA_DIR ?? path.join(process.cwd(), 'data'), 'xero')
+  return storeWritable()
 }
 
 interface Tokens {
@@ -57,33 +53,19 @@ interface Tokens {
   tenantName: string
 }
 
-async function readFile<T>(name: string): Promise<T | null> {
-  try {
-    return JSON.parse(await fs.readFile(path.join(dir(), name), 'utf8')) as T
-  } catch {
-    return null
-  }
-}
-
-async function writeFile(name: string, value: unknown): Promise<void> {
-  await fs.mkdir(dir(), { recursive: true, mode: 0o700 })
-  const file = path.join(dir(), name)
-  await fs.writeFile(`${file}.tmp`, JSON.stringify(value, null, 2), { mode: 0o600 })
-  await fs.rename(`${file}.tmp`, file)
-}
-
 export async function xeroConnected(): Promise<{ connected: boolean; tenantName: string | null }> {
-  const t = await readFile<Tokens>('tokens.json')
+  const t = await getJson<Tokens>(getStore(), 'xero:tokens')
   return { connected: !!t, tenantName: t?.tenantName ?? null }
 }
 
 export async function loadSnapshot(): Promise<XeroSnapshot | null> {
-  return readFile<XeroSnapshot>('snapshot.json')
+  return getJson<XeroSnapshot>(getStore(), 'xero:snapshot')
 }
 
 export async function disconnect(): Promise<void> {
-  await fs.rm(path.join(dir(), 'tokens.json'), { force: true })
-  await fs.rm(path.join(dir(), 'snapshot.json'), { force: true })
+  const store = getStore()
+  await store.del('xero:tokens')
+  await store.del('xero:snapshot')
 }
 
 // ---------------------------------------------------------------------------
@@ -126,7 +108,7 @@ export async function finishAuth(c: XeroConfig, code: string, verifier: string):
   const list = (await conns.json()) as { tenantId: string; tenantName: string; tenantType: string }[]
   const org = list.find((x) => x.tenantType === 'ORGANISATION') ?? list[0]
   if (!org) throw new Error('This Xero login has no organisation connected')
-  await writeFile('tokens.json', {
+  await getStore().set('xero:tokens', {
     accessToken: t.access_token,
     refreshToken: t.refresh_token,
     expiresAt: Date.now() + t.expires_in * 1000,
@@ -137,13 +119,18 @@ export async function finishAuth(c: XeroConfig, code: string, verifier: string):
 }
 
 async function validTokens(c: XeroConfig): Promise<Tokens> {
-  const t = await readFile<Tokens>('tokens.json')
-  if (!t) throw new Error('Xero is not connected')
-  if (t.expiresAt - 60_000 > Date.now()) return t
-  const r = await tokenRequest({ grant_type: 'refresh_token', client_id: c.clientId, refresh_token: t.refreshToken })
-  const next: Tokens = { ...t, accessToken: r.access_token, refreshToken: r.refresh_token, expiresAt: Date.now() + r.expires_in * 1000 }
-  await writeFile('tokens.json', next) // refresh tokens are single-use: save the new one immediately
-  return next
+  const store = getStore()
+  // Locked and re-read inside the lock: a page load and the hourly run must not both spend
+  // the same single-use refresh token.
+  return store.withLock('xero:tokens', async () => {
+    const t = await getJson<Tokens>(store, 'xero:tokens')
+    if (!t) throw new Error('Xero is not connected')
+    if (t.expiresAt - 60_000 > Date.now()) return t
+    const r = await tokenRequest({ grant_type: 'refresh_token', client_id: c.clientId, refresh_token: t.refreshToken })
+    const next: Tokens = { ...t, accessToken: r.access_token, refreshToken: r.refresh_token, expiresAt: Date.now() + r.expires_in * 1000 }
+    await store.set('xero:tokens', next) // refresh tokens are single-use: save the new one immediately
+    return next
+  })
 }
 
 // ---------------------------------------------------------------------------
@@ -194,6 +181,6 @@ export async function refreshSnapshot(c: XeroConfig, sinceIso = '2026-01-01'): P
   }
 
   const snapshot: XeroSnapshot = { fetchedAt: new Date().toISOString(), tenantName: t.tenantName, baseCurrency: c.baseCurrency, invoices, bankBalances, problems }
-  await writeFile('snapshot.json', snapshot)
+  await getStore().set('xero:snapshot', snapshot)
   return snapshot
 }
