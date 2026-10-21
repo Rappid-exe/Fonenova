@@ -208,7 +208,7 @@ export async function loadXeroState(): Promise<XeroState> {
 export interface OneDriveState {
   /** Shown at all: hosted, or MS_CLIENT_ID is set on this PC. */
   relevant: boolean
-  /** MS_CLIENT_ID and MS_CLIENT_SECRET are set and tokens can be stored. */
+  /** MS_CLIENT_ID is set and tokens can be stored. */
   configured: boolean
   connected: boolean
   accountName: string | null

@@ -2,8 +2,9 @@
  * Read-only OneDrive connection for the hosted dashboard, so it reads the same ledger and
  * VAT tracker you save on your PC.
  *
- * Microsoft sign-in for personal accounts (the "consumers" endpoint), auth code with PKCE
- * and a client secret, scope Files.Read only. Tokens live in the store (encrypted online
+ * Microsoft sign-in for personal accounts (the "consumers" endpoint), auth code with PKCE,
+ * scope Files.Read only. Registered as a public client (no secret to store or renew);
+ * MS_CLIENT_SECRET is used too if you set one. Tokens live in the store (encrypted online
  * when hosted). Refresh tokens rotate, so every refresh saves the new pair at once, under
  * a lock. Only the two configured paths are ever opened.
  */
@@ -17,7 +18,7 @@ const SCOPES = 'Files.Read offline_access'
 
 export interface OneDriveConfig {
   clientId: string
-  clientSecret: string
+  clientSecret: string | null
   redirectUri: string
   /** OneDrive-relative paths, e.g. "Desktop/Ledger/FoneNova_Order_Ledger.xlsx". */
   ledgerPath: string | null
@@ -39,11 +40,10 @@ export function normalisePath(p: string | undefined): string | null {
 
 export function oneDriveConfig(): OneDriveConfig | null {
   const clientId = process.env.MS_CLIENT_ID
-  const clientSecret = process.env.MS_CLIENT_SECRET
-  if (!clientId || !clientSecret) return null
+  if (!clientId) return null
   return {
     clientId,
-    clientSecret,
+    clientSecret: process.env.MS_CLIENT_SECRET || null,
     redirectUri: process.env.MS_REDIRECT_URI ?? `${process.env.AUTH_URL?.replace(/\/$/, '') ?? 'http://localhost:3100'}/onedrive/callback`,
     ledgerPath: normalisePath(process.env.FN_ONEDRIVE_LEDGER),
     expensesPath: normalisePath(process.env.FN_ONEDRIVE_EXPENSES),
@@ -94,7 +94,7 @@ async function tokenRequest(c: OneDriveConfig, body: Record<string, string>): Pr
   const res = await fetch(`${LOGIN()}/token`, {
     method: 'POST',
     headers: { 'content-type': 'application/x-www-form-urlencoded' },
-    body: new URLSearchParams({ client_id: c.clientId, client_secret: c.clientSecret, scope: SCOPES, ...body }),
+    body: new URLSearchParams({ client_id: c.clientId, ...(c.clientSecret ? { client_secret: c.clientSecret } : {}), scope: SCOPES, ...body }),
     cache: 'no-store',
   })
   if (!res.ok) throw new Error(`Microsoft refused the sign-in (${res.status}): ${(await res.text()).slice(0, 200)}`)

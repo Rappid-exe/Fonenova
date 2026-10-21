@@ -22,8 +22,8 @@ const ONEDRIVE_NOTICE: Record<string, string> = {
   connected: 'OneDrive connected and synced.',
   declined: 'OneDrive sign-in was cancelled.',
   state: 'The OneDrive sign-in expired or was opened in another browser. Try again.',
-  failed: 'OneDrive sign-in failed. Check the Microsoft app\'s client ID, secret and redirect address.',
-  'not-configured': 'OneDrive is not set up yet: add MS_CLIENT_ID and MS_CLIENT_SECRET, and online storage when hosted.',
+  failed: 'OneDrive sign-in failed. Check the Microsoft app\'s client ID and redirect address.',
+  'not-configured': 'OneDrive is not set up yet: add MS_CLIENT_ID, and online storage when hosted.',
 }
 
 export function XeroBar({ xero, summary, ledgerImported, ledgerSnapshot, notice, sources, oneDrive, oneDriveNotice, hosted }: {
@@ -70,7 +70,7 @@ export function XeroBar({ xero, summary, ledgerImported, ledgerSnapshot, notice,
         <div className="flex flex-wrap items-center gap-x-3 gap-y-2 border-t border-line px-3 py-2">
           <span className="font-medium text-ink-2">OneDrive</span>
           {!oneDrive.configured ? (
-            <span className="text-ink-3">Not set up: add <code>MS_CLIENT_ID</code>, <code>MS_CLIENT_SECRET</code>{hosted && ' and online storage'} in the {hosted ? 'Vercel project settings' : <code>.env.local</code>}.</span>
+            <span className="text-ink-3">Not set up: add <code>MS_CLIENT_ID</code>{hosted && ' and online storage'} in the {hosted ? 'Vercel project settings' : <code>.env.local</code>}.</span>
           ) : !oneDrive.connected ? (
             <>
               <span className="text-ink-2">Not connected, so the ledger and tracker are not read from OneDrive.</span>

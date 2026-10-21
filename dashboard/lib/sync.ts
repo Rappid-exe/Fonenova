@@ -93,7 +93,7 @@ async function fileSources(store: Store): Promise<{ ledger: FileSource | null; e
   const c = oneDriveConfig()
   if (!c) {
     const note = process.env.VERCEL
-      ? 'OneDrive is not set up: add MS_CLIENT_ID and MS_CLIENT_SECRET. Showing the last import.'
+      ? 'OneDrive is not set up: add MS_CLIENT_ID. Showing the last import.'
       : 'Automatic sync is off: set FN_LEDGER_PATH in .env.local. Showing the last manual import.'
     return { ledger: null, expenses: null, ledgerNote: note, expensesNote: note.replace('FN_LEDGER_PATH', 'FN_EXPENSES_DIR') }
   }
