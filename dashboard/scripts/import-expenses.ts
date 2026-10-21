@@ -3,7 +3,8 @@
  *
  *   npm run import-expenses -- "C:\path\VAT Return From Sept-Dec, 2026.xlsx"
  *
- * With no path it reads FN_EXPENSES_PATH, then data/expenses.xlsx. Reads Sheet2 (the expense
+ * With no path it reads FN_EXPENSES_PATH, then data/expenses.xlsx. The May to Aug tracker
+ * (VATReturn_Automated_….xlsx) goes to expenses-archive.json; the dashboard joins the two. Reads Sheet2 (the expense
  * log) and, if present, the "FX Exchanges (Reference)" sheet. Amounts are GBP. Nothing is
  * adjusted: the script prints its totals so they can be checked against the tracker's summary.
  */
@@ -11,6 +12,7 @@ import fs from 'node:fs'
 import path from 'node:path'
 import { loadEnvConfig } from '@next/env'
 import { importExpenses } from '../lib/importers/expenses'
+import { isArchiveName } from '../lib/sync-core'
 
 loadEnvConfig(process.cwd())
 
@@ -21,8 +23,9 @@ async function main() {
     console.error(`Expense tracker not found: ${input}\nPass its path, set FN_EXPENSES_PATH, or save it as dashboard/data/expenses.xlsx.`)
     process.exit(2)
   }
-  const { log, skipped } = await importExpenses(input)
-  const out = path.join('data', 'generated', 'expenses.json')
+  const { log, skipped, check } = await importExpenses(input)
+  // The May to Aug tracker is kept beside the current one; the dashboard joins them.
+  const out = path.join('data', 'generated', isArchiveName(path.basename(input)) ? 'expenses-archive.json' : 'expenses.json')
   fs.mkdirSync(path.dirname(out), { recursive: true })
   fs.writeFileSync(out, JSON.stringify(log, null, 2) + '\n')
   const total = log.expenses.reduce((n, e) => n + e.amountCents, 0)
@@ -33,6 +36,9 @@ async function main() {
   console.log(`  ${log.expenses.length} expense rows, ${dates[0]} to ${dates.at(-1)}`)
   console.log(`  Total ${gbp(total)}, VAT reclaimed ${gbp(vat)}  (compare with the tracker's Sheet1 TOTAL row)`)
   console.log(`  ${log.fxConversions.length} EUR to GBP conversions`)
+  if (!check.found) console.log("  The tracker's TOTAL row has no saved figure, so the total could not be checked")
+  else if (check.matches) console.log(`  Matches the tracker's TOTAL row (${gbp(check.sheet!.amountCents)})`)
+  else console.warn(`  MISMATCH: the tracker's TOTAL row says ${gbp(check.sheet!.amountCents)}`)
   for (const s of skipped) console.warn(`  SKIPPED ${s}`)
   console.log(`Wrote ${out}`)
 }

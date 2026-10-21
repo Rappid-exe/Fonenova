@@ -9,7 +9,7 @@ import path from 'node:path'
 import { getJson, type Store, type StoreKey } from './store'
 
 export interface SourceStatus {
-  source: 'ledger' | 'expenses' | 'xero'
+  source: 'ledger' | 'expenses' | 'expenses-archive' | 'xero'
   label: string
   /** The setting is filled in, so this source can sync at all. */
   configured: boolean
@@ -27,10 +27,17 @@ export interface SourceStatus {
 }
 
 const TRACKER = /^vat return from.*\.xlsx$/i
+/** The May to Aug 2026 tracker, kept read-only: "VATReturn_Automated_v18_delivered_1.xlsx". */
+const ARCHIVE = /^vatreturn_automated.*\.xlsx$/i
 
 /** The VAT return tracker's file name, excluding Excel's own `~$` lock files. */
 export function isTrackerName(name: string): boolean {
   return TRACKER.test(name) && !name.startsWith('~$')
+}
+
+/** The earlier (May to Aug) tracker's file name. The newest saved copy wins. */
+export function isArchiveName(name: string): boolean {
+  return ARCHIVE.test(name) && !name.startsWith('~$')
 }
 
 /** Folders never searched for the tracker: copies in `_backups` would look newer than the real one. */
@@ -42,7 +49,7 @@ export function skipFolder(name: string): boolean {
  * Newest VAT return tracker under `dir`, by last-saved time. Skips any `_backups` folder,
  * Excel's own `~$` lock files and anything not named like the tracker. Looks 3 folders deep.
  */
-export async function newestTracker(dir: string, depth = 3): Promise<{ file: string; mtimeMs: number } | null> {
+export async function newestTracker(dir: string, depth = 3, matches: (name: string) => boolean = isTrackerName): Promise<{ file: string; mtimeMs: number } | null> {
   let best: { file: string; mtimeMs: number } | null = null
   async function walk(d: string, level: number) {
     let entries: import('node:fs').Dirent[]
@@ -56,7 +63,7 @@ export async function newestTracker(dir: string, depth = 3): Promise<{ file: str
       if (e.isDirectory()) {
         if (skipFolder(e.name) || level >= depth) continue
         await walk(full, level + 1)
-      } else if (isTrackerName(e.name)) {
+      } else if (matches(e.name)) {
         const st = await fs.stat(full).catch(() => null)
         if (st && (!best || st.mtimeMs > best.mtimeMs)) best = { file: full, mtimeMs: st.mtimeMs }
       }
@@ -95,7 +102,7 @@ export function localFile(file: string): FileSource {
  * was, so the dashboard keeps showing the last good import and says what went wrong.
  */
 export async function syncFile<T extends { meta: { sourceModifiedAt?: string; importedAt: string } }>(opts: {
-  source: 'ledger' | 'expenses'
+  source: SourceStatus['source']
   label: string
   file: FileSource | null
   store: Store

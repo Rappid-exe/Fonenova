@@ -19,6 +19,7 @@ import zlib from 'node:zlib'
 export type StoreKey =
   | 'ledger'
   | 'expenses'
+  | 'expenses-archive'
   | 'overheads'
   | 'expense-overrides'
   | 'xero:tokens'
@@ -49,6 +50,7 @@ export async function getJson<T>(store: Store, key: StoreKey): Promise<T | null>
 const FILES: Record<StoreKey, string> = {
   ledger: 'generated/ledger.json',
   expenses: 'generated/expenses.json',
+  'expenses-archive': 'generated/expenses-archive.json',
   overheads: 'overheads.json',
   'expense-overrides': 'expense-overrides.json',
   'xero:tokens': 'xero/tokens.json',

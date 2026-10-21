@@ -428,7 +428,10 @@ export function expenseSummary(log: ExpenseLog | null, overrides: ExpenseOverrid
     .map((e) => {
       const auto = classifyExpense(e)
       const cls = overrides[e.id] ?? auto.cls
-      const linked = auto.overheadId ? overheads.find((o) => o.id === auto.overheadId && overheadReady(o)) : undefined
+      // Covered only while the overhead runs: rent paid before its start date is still a real cost here.
+      const linked = auto.overheadId
+        ? overheads.find((o) => o.id === auto.overheadId && overheadReady(o) && e.date >= o.startDate! && (!o.endDate || e.date <= o.endDate))
+        : undefined
       return { expense: e, auto, cls, overridden: overrides[e.id] !== undefined && overrides[e.id] !== auto.cls, coveredBy: linked ? linked.name : null }
     })
     .sort((a, b) => b.expense.date.localeCompare(a.expense.date) || b.expense.amountCents - a.expense.amountCents)
