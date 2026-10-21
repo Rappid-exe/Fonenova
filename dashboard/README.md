@@ -79,7 +79,7 @@ configuration in production locks everyone out; it never opens up.
 | `KV_REST_API_URL`, `KV_REST_API_TOKEN` | Online storage. Set automatically when you connect **Upstash Redis** (Vercel → Storage) to the project |
 | `FN_STORE_KEY` | 32+ random characters. Everything saved online is compressed and AES-256-GCM encrypted with it, so Upstash only holds ciphertext. Changing it means connecting OneDrive and Xero again |
 | `CRON_SECRET` | 16+ random characters. Vercel sends it to the hourly sync; without it the sync route refuses everyone |
-| `MS_CLIENT_ID`, `MS_CLIENT_SECRET` | Microsoft app for OneDrive (below) |
+| `MS_CLIENT_ID` | Microsoft app for OneDrive (below). `MS_CLIENT_SECRET` is optional |
 | `FN_ONEDRIVE_LEDGER` | The ledger's place in OneDrive, e.g. `Desktop/FoneNova_Order_Ledger.xlsx`. A Windows path pasted as is (`C:\Users\...\OneDrive\Desktop\...`) works too |
 | `FN_ONEDRIVE_EXPENSES_DIR` | The VAT returns folder in OneDrive, e.g. `Desktop/VAT RETURNS` |
 | `XERO_CLIENT_ID` | Optional. Add `https://dashboard.fonenova.com/xero/callback` to the Xero app's redirect URIs |
@@ -92,12 +92,13 @@ The same rules as on your PC apply: newest tracker, `_backups` skipped, and a sa
 read leaves the last good import on screen with the reason in the status bar.
 
 **OneDrive app (once, free).** Azure portal → App registrations → New registration:
-*Personal Microsoft accounts only*; redirect URI (Web) `https://dashboard.fonenova.com/onedrive/callback`.
-Then Certificates & secrets → New client secret (copy the *Value*), and API permissions →
-Microsoft Graph → Delegated → `Files.Read` and `offline_access`. Put the IDs in Vercel, redeploy,
-sign in and click **Connect OneDrive (read-only)**. Microsoft can't limit a personal account to one
-folder, so the dashboard asks for read access to files and opens only the two paths above.
-The secret expires (Azure lets you pick up to 24 months); renew it before then.
+*Personal Microsoft accounts only*; redirect URI platform **Public client/native (mobile & desktop)**,
+`https://dashboard.fonenova.com/onedrive/callback`. That is a public client signing in with PKCE,
+so there is no secret to store or renew. Copy the *Application (client) ID* into `MS_CLIENT_ID`,
+redeploy, sign in and click **Connect OneDrive (read-only)**; Microsoft asks you to approve
+`Files.Read` there. Microsoft can't limit a personal account to one folder, so the dashboard asks
+for read access to files and opens only the two paths above. (A Web-platform app with a client
+secret in `MS_CLIENT_SECRET` works too, but that secret expires.)
 
 `FN_LEDGER_BR` (from `npm run pack-ledger`) still works as a fallback, without live sync: if set,
 it replaces everything above for the ledger.
