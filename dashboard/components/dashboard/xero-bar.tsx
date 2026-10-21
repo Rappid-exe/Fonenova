@@ -115,7 +115,7 @@ export function XeroBar({ xero, summary, ledgerImported, ledgerSnapshot, notice,
                 <ChevronDown className="h-3.5 w-3.5" aria-hidden />
               </PopoverTrigger>
               <PopoverContent className="w-[min(460px,calc(100vw-24px))] p-0">
-                <div className="border-b border-line px-3 py-2 text-[12px] text-ink-3">
+                <div className="border-b border-line px-3 py-2 text-[12.5px] text-ink-2">
                   Orders whose invoices were found in Xero use Xero&apos;s live status, balance, due date and payments. The rest keep the ledger snapshot. Sales and costs always come from the ledger.
                 </div>
                 {problems.length > 0 && (

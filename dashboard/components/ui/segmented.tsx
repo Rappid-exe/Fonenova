@@ -16,7 +16,7 @@ export function Segmented<T extends string>({
   className?: string
 }) {
   return (
-    <div role="radiogroup" aria-label={label} className={cn('inline-flex rounded-md border border-line bg-subtle p-0.5', className)}>
+    <div role="radiogroup" aria-label={label} className={cn('inline-flex max-w-full overflow-x-auto rounded-md border border-line bg-subtle p-0.5', className)}>
       {options.map((o, i) => {
         const selected = o.value === value
         return (
@@ -36,7 +36,7 @@ export function Segmented<T extends string>({
               requestAnimationFrame(() => (parent?.querySelector('[aria-checked="true"]') as HTMLElement | null)?.focus())
             }}
             className={cn(
-              'h-7 rounded-[5px] px-2.5 text-[12.5px] font-medium transition-colors',
+              'h-7 shrink-0 whitespace-nowrap rounded-[5px] px-2.5 text-[12.5px] font-medium transition-colors',
               selected ? 'bg-surface text-ink shadow-[0_1px_2px_rgba(16,24,40,0.08)] ring-1 ring-line' : 'text-ink-3 hover:text-ink',
             )}
           >

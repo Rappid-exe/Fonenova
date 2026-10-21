@@ -87,8 +87,8 @@ export function TrendChart({
     <section aria-labelledby="trend-title" className="rounded-lg border border-line bg-surface">
       <div className="flex flex-wrap items-center justify-between gap-3 border-b border-line px-4 py-3">
         <div>
-          <h2 id="trend-title" className="text-[14px] font-semibold text-ink">Sales and gross profit over time</h2>
-          <p className="text-[12px] text-ink-3">Separate scales: profit is about 1% of sales and would be invisible on the sales axis.</p>
+          <h2 id="trend-title" className="text-[15px] font-semibold text-ink">Sales and gross profit over time</h2>
+          <p className="mt-0.5 text-[13px] leading-snug text-ink-2">Separate scales: profit is about 1% of sales and would be invisible on the sales axis.</p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
           <Segmented label="Lower panel" value={lower} onChange={setLower} options={[{ value: 'profit', label: 'Gross profit' }, { value: 'margin', label: 'Margin %' }]} />
@@ -139,7 +139,7 @@ export function TrendChart({
           <div className="flex items-center gap-2 px-2 text-[12px] font-medium text-ink-2">
             <span className="h-2.5 w-2.5 rounded-sm" style={{ background: C.sales }} aria-hidden />Sales
           </div>
-          <div className="h-[190px]">
+          <div className="h-[160px]">
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={rows} syncId="trend" margin={{ top: 8, right: 8, bottom: 0, left: 0 }} barCategoryGap={dense ? '18%' : '28%'}>
                 <CartesianGrid vertical={false} stroke={C.grid} />
@@ -164,7 +164,7 @@ export function TrendChart({
               </>
             )}
           </div>
-          <div className="h-[150px]">
+          <div className="h-[130px]">
             <ResponsiveContainer width="100%" height="100%">
               {lower === 'profit' ? (
                 <BarChart data={rows} syncId="trend" margin={{ top: 8, right: 8, bottom: 0, left: 0 }} barCategoryGap={dense ? '18%' : '28%'}>
@@ -189,7 +189,7 @@ export function TrendChart({
               )}
             </ResponsiveContainer>
           </div>
-          {lower === 'margin' && <p className="px-2 pt-1 text-[11.5px] text-ink-3">Periods without orders have no margin and are left as gaps.</p>}
+          {lower === 'margin' && <p className="px-2 pt-1 text-[12px] text-ink-3">Periods without orders have no margin and are left as gaps.</p>}
         </div>
       )}
     </section>

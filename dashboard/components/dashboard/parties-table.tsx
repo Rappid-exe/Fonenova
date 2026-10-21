@@ -21,8 +21,8 @@ export function PartiesTable({ kind, rows, periodLabel, onPick }: {
   return (
     <section aria-labelledby={`${kind}-title`} className="rounded-lg border border-line bg-surface">
       <div className="border-b border-line px-4 py-3">
-        <h2 id={`${kind}-title`} className="text-[14px] font-semibold text-ink">{customer ? 'Customers' : 'Suppliers'} <span className="ml-1 text-ink-3">{rows.length}</span></h2>
-        <p className="text-[12px] text-ink-3">
+        <h2 id={`${kind}-title`} className="text-[15px] font-semibold text-ink">{customer ? 'Customers' : 'Suppliers'} <span className="ml-1 text-ink-3">{rows.length}</span></h2>
+        <p className="mt-0.5 text-[13px] leading-snug text-ink-2">
           {periodLabel}. Credits are this {kind}&apos;s own credit notes dated in the period (credits shared with another {kind} are left out).{' '}
           {customer ? 'Still owed is what clients have not paid yet, as Xero shows it.' : 'We owe is what Fone Nova has not paid yet, as Xero shows it.'}
           {customer && ' Select a customer to see their orders.'}

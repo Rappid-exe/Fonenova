@@ -6,6 +6,8 @@ import { currentUser } from '@/lib/session'
 import { syncSources } from '@/lib/sync'
 import { getDataSource, isHosted, loadExpenses, loadFxRate, loadOneDriveState, loadOverheads, loadXeroState, overheadsWritable, toClientLedger } from '@/lib/data-source'
 import { todayIso } from '@/lib/periods'
+import { attentionItems } from '@/lib/attention'
+import { allocateCredits, expenseSummary } from '@/lib/metrics'
 
 // Read the ledger on every request so a fresh import shows without a rebuild.
 export const dynamic = 'force-dynamic'
@@ -47,8 +49,15 @@ export default async function Page({ searchParams }: { searchParams: Promise<Rec
   }
 
   const { ledger } = result
+  // Work waiting, for the sidebar. Recomputed on every load, so a decided row drops off at once.
+  const high = attentionItems(ledger, allocateCredits(ledger.creditNotes)).filter((i) => i.priority === 'HIGH').length
+  const toReview = exp.log ? expenseSummary(exp.log, exp.overrides, oh.overheads, null).rows.filter((r) => r.cls === 'review').length : 0
+  const badges = {
+    exceptions: { count: high, title: 'high priority', tone: 'loss' as const },
+    expenses: { count: toReview, title: 'to review', tone: 'warn' as const },
+  }
   return (
-    <Shell email={email} footer={<>Source: {ledger.meta.sourceFile}<br />Imported {ledger.meta.importedAt.slice(0, 10)}</>}>
+    <Shell email={email} badges={badges}>
       <Dashboard ledger={toClientLedger(ledger)} today={todayIso()} fx={fx} overheads={oh.overheads} overheadsSaved={oh.saved} overheadsError={oh.error ?? null} overheadsWritable={overheadsWritable()} xero={xero} notice={notice} expenses={exp.log} expenseOverrides={exp.overrides} expensesError={exp.error ?? null} sources={sources} oneDrive={oneDrive} oneDriveNotice={oneDriveNotice} hosted={isHosted()} />
     </Shell>
   )

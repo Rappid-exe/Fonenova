@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { customerRows, supplierRows } from '@/lib/metrics'
+import { customerRows, overdueClients, supplierRows } from '@/lib/metrics'
 import type { CreditNote, Order } from '@/lib/types'
 
 const order = (id: string, customerId: string, supplierId: string, sales: number, cost: number, date: string, owes: number | null, weOwe: number | null): Order => ({
@@ -34,5 +34,21 @@ describe('supplier rows', () => {
     const rows = supplierRows(orders, units, [note('supplier', ['o2'], 3_00)], null)
     expect(rows).toHaveLength(1)
     expect(rows[0]).toMatchObject({ id: 's1', orderCount: 3, costCents: 345_00, openCents: 48_00, unknownCount: 1, creditsCents: 3_00 })
+  })
+})
+
+describe('overdue client invoices', () => {
+  const base = orders[0]
+  const o = (id: string, owes: number | null, flags: string[], due?: string): Order => ({ ...base, id, customerName: id.toUpperCase(), clientOwesCents: owes, flags, ...(due ? { live: { clientDueDate: due, billDueDate: null, clientPayments: [], billPayments: [] } } : {}) })
+  it('adds up what is owed and past due, from the flag or the live due date', () => {
+    const r = overdueClients([
+      o('x1', 55_290_00, ['Client overdue 97 days']),
+      o('x2', 24_280_00, ['Client overdue 81 days', 'Supplier overdue 102 days']),
+      o('x3', 54_660_00, []), // owed, not overdue
+      o('x4', 0, ['Client overdue 5 days']), // paid since
+      o('x5', 100_00, [], '2026-10-01'), // live: 20 days overdue on 21 Oct
+      o('x6', 100_00, ['Client overdue 300 days'], '2026-11-01'), // live due date wins: not yet due
+    ], '2026-10-21')
+    expect(r).toEqual({ totalCents: 55_290_00 + 24_280_00 + 100_00, count: 3, oldest: { orderId: 'x1', customerName: 'X1', days: 97 } })
   })
 })
