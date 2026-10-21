@@ -1,17 +1,19 @@
 'use client'
 import { useState } from 'react'
-import { AlertTriangle, BarChart3, Building2, FileMinus2, LayoutDashboard, LogOut, Menu, Package, Settings, Users } from 'lucide-react'
+import { AlertTriangle, BarChart3, Building2, FileMinus2, LayoutDashboard, LogOut, Menu, Package, Receipt, Settings, Users } from 'lucide-react'
 import { Sheet } from '@/components/ui/sheet'
+import { useSection, type Section } from '@/lib/sections'
 import { cn } from '@/lib/utils'
 
-const NAV = [
-  { label: 'Overview', icon: LayoutDashboard, active: true },
-  { label: 'Orders', icon: Package },
-  { label: 'Customers', icon: Users },
-  { label: 'Suppliers', icon: Building2 },
-  { label: 'Credit Notes', icon: FileMinus2 },
-  { label: 'Exceptions', icon: AlertTriangle },
-  { label: 'Settings', icon: Settings },
+const NAV: { id: Section; label: string; icon: typeof LayoutDashboard }[] = [
+  { id: 'overview', label: 'Overview', icon: LayoutDashboard },
+  { id: 'orders', label: 'Orders', icon: Package },
+  { id: 'customers', label: 'Customers', icon: Users },
+  { id: 'suppliers', label: 'Suppliers', icon: Building2 },
+  { id: 'credit-notes', label: 'Credit Notes', icon: FileMinus2 },
+  { id: 'exceptions', label: 'Exceptions', icon: AlertTriangle },
+  { id: 'expenses', label: 'Expenses', icon: Receipt },
+  { id: 'settings', label: 'Settings', icon: Settings },
 ]
 
 function Wordmark() {
@@ -28,23 +30,25 @@ function Wordmark() {
   )
 }
 
-function Nav() {
+function Nav({ onPick }: { onPick?: () => void }) {
+  const [section, go] = useSection()
   return (
     <nav aria-label="Main" className="mt-6 space-y-0.5">
-      {NAV.map(({ label, icon: Icon, active }) =>
-        active ? (
-          <a key={label} href="#" aria-current="page" className="flex h-9 items-center gap-2.5 rounded-md bg-white/[0.09] px-2.5 text-[13.5px] font-medium text-white">
+      {NAV.map(({ id, label, icon: Icon }) => {
+        const active = id === section
+        return (
+          <a
+            key={id}
+            href={id === 'overview' ? '#' : `#${id}`}
+            onClick={(e) => { e.preventDefault(); go(id); onPick?.() }}
+            aria-current={active ? 'page' : undefined}
+            className={cn('flex h-9 items-center gap-2.5 rounded-md px-2.5 text-[13.5px]', active ? 'bg-white/[0.09] font-medium text-white' : 'text-navy-ink/80 hover:bg-white/[0.05] hover:text-white')}
+          >
             <Icon className="h-4 w-4" aria-hidden />
             {label}
           </a>
-        ) : (
-          <div key={label} aria-disabled="true" className="flex h-9 cursor-default items-center gap-2.5 rounded-md px-2.5 text-[13.5px] text-navy-ink/60">
-            <Icon className="h-4 w-4" aria-hidden />
-            <span className="flex-1">{label}</span>
-            <span className="rounded border border-white/10 px-1.5 py-px text-[10px] uppercase tracking-wide text-navy-ink/50">Soon</span>
-          </div>
-        ),
-      )}
+        )
+      })}
     </nav>
   )
 }
@@ -86,7 +90,7 @@ export function Shell({ children, footer, email = null }: { children: React.Reac
       </div>
       <Sheet open={open} onOpenChange={setOpen} side="left" title="Navigation" className={cn('max-w-[280px] bg-navy [&>div:first-child]:bg-navy [&>div:first-child]:border-white/10 [&_h2]:text-white')}>
         <div className="px-4 pb-6">
-          <Nav />
+          <Nav onPick={() => setOpen(false)} />
           <div className="mt-6">
             <Account email={email} />
             <div className="text-[11.5px] leading-relaxed text-navy-ink/60">{footer}</div>

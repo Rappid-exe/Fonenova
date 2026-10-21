@@ -791,3 +791,76 @@ export function reconcileLedger(ledger: Ledger): Check[] {
   })
   return checks
 }
+
+// ---------------------------------------------------------------------------
+// Per customer and per supplier (Customers and Suppliers pages)
+// ---------------------------------------------------------------------------
+
+export interface PartyRow {
+  id: string
+  name: string
+  orderCount: number
+  units: number
+  salesCents: Cents
+  costCents: Cents
+  grossProfitCents: Cents
+  marginRatio: number | null
+  /** Credit notes on this party's side whose orders all belong to it, dated in the period. */
+  creditsCents: Cents
+  creditCount: number
+  /** What is still open: clients owe us (customers) or we owe them (suppliers). Known balances only. */
+  openCents: Cents
+  /** Orders whose balance is unknown (client invoice not in Xero, or bill not in Xero). */
+  unknownCount: number
+  lossCount: number
+  lastOrder: IsoDate | null
+}
+
+function partyRows(
+  orders: readonly Order[],
+  units: Map<string, number>,
+  notes: readonly CreditNote[],
+  range: DateRange | null,
+  side: CreditNote['side'],
+  key: (o: Order) => { id: string; name: string },
+): PartyRow[] {
+  const partyOf = new Map(orders.map((o) => [o.id, key(o).id]))
+  const groups = new Map<string, { name: string; orders: Order[] }>()
+  for (const o of orders) {
+    const k = key(o)
+    const g = groups.get(k.id) ?? { name: k.name, orders: [] }
+    g.orders.push(o)
+    groups.set(k.id, g)
+  }
+  return [...groups.entries()].map(([id, g]) => {
+    const t = totals(g.orders, units)
+    const own = notes.filter((n) => n.side === side && (!range || inRange(n.date, range)) && n.orderIds.length > 0 && n.orderIds.every((oid) => partyOf.get(oid) === id))
+    const open = g.orders.map((o) => (side === 'client' ? o.clientOwesCents : o.weOweSupplierCents))
+    return {
+      id,
+      name: g.name,
+      orderCount: t.orderCount,
+      units: t.units,
+      salesCents: t.salesCents,
+      costCents: t.costCents,
+      grossProfitCents: t.grossProfitCents,
+      marginRatio: t.marginRatio,
+      creditsCents: sumCents(own, (n) => n.amountCents),
+      creditCount: own.length,
+      openCents: open.reduce<number>((n, v) => n + (v ?? 0), 0),
+      unknownCount: open.filter((v) => v === null).length,
+      lossCount: t.lossMakingCount,
+      lastOrder: g.orders.map((o) => o.date).sort().at(-1) ?? null,
+    }
+  }).sort((a, b) => b.salesCents - a.salesCents)
+}
+
+/** One row per customer for the given (already filtered) orders. */
+export function customerRows(orders: readonly Order[], units: Map<string, number>, notes: readonly CreditNote[], range: DateRange | null): PartyRow[] {
+  return partyRows(orders, units, notes, range, 'client', (o) => ({ id: o.customerId, name: o.customerName }))
+}
+
+/** One row per supplier for the given (already filtered) orders. */
+export function supplierRows(orders: readonly Order[], units: Map<string, number>, notes: readonly CreditNote[], range: DateRange | null): PartyRow[] {
+  return partyRows(orders, units, notes, range, 'supplier', (o) => ({ id: o.supplierId, name: o.supplierName }))
+}

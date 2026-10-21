@@ -64,7 +64,7 @@ function NetRow({ net }: { net: NetProfit | { status: 'filtered' } }) {
   if (net.status !== 'ok') {
     const why =
       net.status === 'filtered' ? 'Not shown for one customer: overheads and expenses belong to the whole business.'
-      : net.status === 'not-entered' ? 'Not shown yet: enter business overheads below or import the expense log.'
+      : net.status === 'not-entered' ? 'Not shown yet: enter business overheads in Settings, or import the expense log.'
       : 'Not shown: costs are in GBP and no exchange rate is available to combine them with EUR profit.'
     return <div className={wrap}><span className="font-medium text-ink-2">Net business profit</span><span>{why}</span></div>
   }
