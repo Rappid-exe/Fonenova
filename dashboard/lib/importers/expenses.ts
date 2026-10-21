@@ -23,11 +23,14 @@ function plain(v: ExcelJS.CellValue): unknown {
 
 const str = (v: unknown) => (v === null || v === undefined ? '' : String(v).trim())
 
-/** The tracker writes dates as text, "02.09.26". */
-function parseDate(v: unknown): string | null {
+/** The tracker writes dates as text, "02.09.26" (older rows also "16.5.26"). */
+export function parseDate(v: unknown): string | null {
   if (v instanceof Date) return v.toISOString().slice(0, 10)
-  const m = /^(\d{2})\.(\d{2})\.(\d{2})$/.exec(str(v))
-  return m ? `20${m[3]}-${m[2]}-${m[1]}` : null
+  const m = /^(\d{1,2})\.(\d{1,2})\.(\d{2})$/.exec(str(v))
+  if (!m) return null
+  const [d, mo] = [Number(m[1]), Number(m[2])]
+  if (d < 1 || d > 31 || mo < 1 || mo > 12) return null
+  return `20${m[3]}-${String(mo).padStart(2, '0')}-${String(d).padStart(2, '0')}`
 }
 
 function headerColumns(ws: ExcelJS.Worksheet, row: number, wanted: Record<string, RegExp>): Record<string, number> {
@@ -42,7 +45,7 @@ function headerColumns(ws: ExcelJS.Worksheet, row: number, wanted: Record<string
 }
 
 /** Reads a file path, or a file already downloaded (e.g. from OneDrive) as `{ name, data }`. */
-export async function importExpenses(input: XlsxInput): Promise<{ log: ExpenseLog; skipped: string[] }> {
+export async function importExpenses(input: XlsxInput): Promise<{ log: ExpenseLog; skipped: string[]; check: TotalCheck }> {
   const file = typeof input === 'string' ? input : input.name
   const wb = new ExcelJS.Workbook()
   await loadWorkbook(wb, input)
@@ -63,13 +66,20 @@ export async function importExpenses(input: XlsxInput): Promise<{ log: ExpenseLo
   const expenses: Expense[] = []
   const skipped: string[] = []
   const seen = new Map<string, number>()
+  let sheetTotal: { amountCents: number; vatCents: number } | null = null
   for (let r = headerRow + 1; r <= ws.rowCount; r++) {
     const row = ws.getRow(r)
     const rawDate = plain(row.getCell(dateCol).value)
     const payee = str(plain(row.getCell(col.payee).value))
     const amount = plain(row.getCell(col.amount).value)
+    if (/^net total/i.test(str(rawDate))) continue
+    if (/^total/i.test(str(rawDate))) {
+      // The tracker's own TOTAL row: kept only to check the import against it.
+      const vatT = plain(row.getCell(col.vat).value)
+      if (typeof amount === 'number') sheetTotal = { amountCents: toCents(amount), vatCents: typeof vatT === 'number' ? toCents(vatT) : 0 }
+      continue
+    }
     if (!payee && (amount === null || amount === '')) continue
-    if (/^total|^net total/i.test(str(rawDate))) continue
     const date = parseDate(rawDate)
     if (!date || typeof amount !== 'number') {
       skipped.push(`row ${r}: ${str(rawDate)} ${payee} ${str(amount)}`)
@@ -114,8 +124,21 @@ export async function importExpenses(input: XlsxInput): Promise<{ log: ExpenseLo
     }
   }
 
+  const sum = { amountCents: expenses.reduce((n, e) => n + e.amountCents, 0), vatCents: expenses.reduce((n, e) => n + e.vatCents, 0) }
+  const check: TotalCheck = sheetTotal
+    ? { found: true, sheet: sheetTotal, imported: sum, matches: sheetTotal.amountCents === sum.amountCents }
+    : { found: false, sheet: null, imported: sum, matches: false }
   return {
-    log: { meta: { sourceFile: path.basename(file), importedAt: new Date().toISOString(), currency: 'GBP' }, expenses, fxConversions },
+    log: { meta: { sourceFile: path.basename(file), importedAt: new Date().toISOString(), currency: 'GBP', totalCheck: check }, expenses, fxConversions },
     skipped,
+    check,
   }
+}
+
+/** The import's total against the tracker's own TOTAL row (gross £). VAT is compared for information. */
+export interface TotalCheck {
+  found: boolean
+  sheet: { amountCents: number; vatCents: number } | null
+  imported: { amountCents: number; vatCents: number }
+  matches: boolean
 }

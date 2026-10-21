@@ -73,7 +73,7 @@ export function ExpensesPanel({ log, overrides, overheads, range, error, writabl
         <div>
           <h2 id="exp-title" className="flex items-center gap-1.5 text-[14px] font-semibold text-ink"><Receipt className="h-4 w-4 text-ink-3" aria-hidden />Expenses</h2>
           <p className="text-[12px] text-ink-3">
-            From {log.meta.sourceFile}{s.coverage ? `, ${formatDate(s.coverage.start)} to ${formatDate(s.coverage.end)}` : ''}, imported {formatDate(log.meta.importedAt.slice(0, 10))}. Only Business rows come off net profit. Change any row with its dropdown.
+            From {log.meta.parts ? log.meta.parts.map((p) => p.sourceFile).join(' and ') : log.meta.sourceFile}{s.coverage ? `, ${formatDate(s.coverage.start)} to ${formatDate(s.coverage.end)}` : ''}, imported {formatDate(log.meta.importedAt.slice(0, 10))}.{log.meta.overlapDropped ? ` ${log.meta.overlapDropped} row${log.meta.overlapDropped > 1 ? 's' : ''} in both files counted once, from the newer tracker.` : ''} Only Business rows come off net profit. Change any row with its dropdown.
           </p>
         </div>
       </div>

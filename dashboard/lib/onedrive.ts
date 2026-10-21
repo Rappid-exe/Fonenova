@@ -10,7 +10,7 @@
  */
 import crypto from 'node:crypto'
 import { getJson, getStore, type Store } from './store'
-import { isTrackerName, skipFolder, type FileSource } from './sync-core'
+import { isArchiveName, isTrackerName, skipFolder, type FileSource } from './sync-core'
 
 const LOGIN = () => (process.env.FN_MS_LOGIN_URL ?? 'https://login.microsoftonline.com/consumers/oauth2/v2.0').replace(/\/$/, '')
 const GRAPH = () => (process.env.FN_GRAPH_URL ?? 'https://graph.microsoft.com/v1.0').replace(/\/$/, '')
@@ -163,13 +163,13 @@ async function children(g: Graph, id: string): Promise<DriveItem[]> {
 }
 
 /** Newest tracker in a folder tree, by the same rules as on your PC (backups and lock files skipped). */
-export async function newestDriveTracker(list: (id: string) => Promise<DriveItem[]>, rootId: string, depth = 3): Promise<DriveItem | null> {
+export async function newestDriveTracker(list: (id: string) => Promise<DriveItem[]>, rootId: string, depth = 3, matches: (name: string) => boolean = isTrackerName): Promise<DriveItem | null> {
   let best: DriveItem | null = null
   async function walk(id: string, level: number) {
     for (const item of await list(id)) {
       if (item.folder) {
         if (!skipFolder(item.name) && level < depth) await walk(item.id, level + 1)
-      } else if (item.file && isTrackerName(item.name)) {
+      } else if (item.file && matches(item.name)) {
         if (!best || Date.parse(item.lastModifiedDateTime) > Date.parse(best.lastModifiedDateTime)) best = item
       }
     }
@@ -200,16 +200,18 @@ function driveFile(g: Graph, fileName: string, find: () => Promise<DriveItem | n
  * The ledger and tracker as sync sources, or null for each that is not configured.
  * The tracker's file name is only known after a look in the folder, so it is resolved here.
  */
-export async function oneDriveSources(c: OneDriveConfig, store: Store = getStore()): Promise<{ ledger: FileSource | null; expenses: FileSource | null; expensesNote: string | null }> {
+export async function oneDriveSources(c: OneDriveConfig, store: Store = getStore()): Promise<{ ledger: FileSource | null; expenses: FileSource | null; expensesNote: string | null; archive: FileSource | null }> {
   let token: Promise<string> | null = null // one token lookup per sync, not one per request
   const g = graph(() => (token ??= accessToken(c, store)))
   const ledger = c.ledgerPath ? driveFile(g, c.ledgerPath.split('/').pop()!, () => itemByPath(g, c.ledgerPath!)) : null
 
-  if (c.expensesPath) return { ledger, expenses: driveFile(g, c.expensesPath.split('/').pop()!, () => itemByPath(g, c.expensesPath!)), expensesNote: null }
-  if (!c.expensesDir) return { ledger, expenses: null, expensesNote: null }
+  if (c.expensesPath) return { ledger, expenses: driveFile(g, c.expensesPath.split('/').pop()!, () => itemByPath(g, c.expensesPath!)), expensesNote: null, archive: null }
+  if (!c.expensesDir) return { ledger, expenses: null, expensesNote: null, archive: null }
   const folder = await itemByPath(g, c.expensesDir)
-  if (!folder?.folder) return { ledger, expenses: null, expensesNote: 'The VAT returns folder was not found in OneDrive.' }
-  const found = await newestDriveTracker((id) => children(g, id), folder.id)
-  if (!found) return { ledger, expenses: null, expensesNote: 'No "VAT Return From…xlsx" found in that OneDrive folder (backups are skipped).' }
-  return { ledger, expenses: driveFile(g, found.name, async () => found), expensesNote: null }
+  if (!folder?.folder) return { ledger, expenses: null, expensesNote: 'The VAT returns folder was not found in OneDrive.', archive: null }
+  const list = (id: string) => children(g, id)
+  const [found, old] = await Promise.all([newestDriveTracker(list, folder.id), newestDriveTracker(list, folder.id, 3, isArchiveName)])
+  const archive = old ? driveFile(g, old.name, async () => old) : null
+  if (!found) return { ledger, expenses: null, expensesNote: 'No "VAT Return From…xlsx" found in that OneDrive folder (backups are skipped).', archive }
+  return { ledger, expenses: driveFile(g, found.name, async () => found), expensesNote: null, archive }
 }

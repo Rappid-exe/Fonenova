@@ -271,7 +271,17 @@ export interface FxConversion {
 }
 
 export interface ExpenseLog {
-  meta: { sourceFile: string; importedAt: string; currency: 'GBP'; sourceModifiedAt?: string }
+  meta: {
+    sourceFile: string
+    importedAt: string
+    currency: 'GBP'
+    sourceModifiedAt?: string
+    /** The import against the tracker's own TOTAL row. */
+    totalCheck?: { found: boolean; sheet: { amountCents: Cents; vatCents: Cents } | null; imported: { amountCents: Cents; vatCents: Cents }; matches: boolean }
+    /** Set on a merged log: the files it came from and rows dropped because the newer tracker has them. */
+    parts?: { sourceFile: string; rows: number; from: IsoDate | null; to: IsoDate | null }[]
+    overlapDropped?: number
+  }
   expenses: Expense[]
   fxConversions: FxConversion[]
 }

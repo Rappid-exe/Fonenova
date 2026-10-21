@@ -12,7 +12,7 @@ import { importLedger } from './importers/ledger'
 import { reconcileLedger } from './metrics'
 import { oneDriveConfig, oneDriveConnected, oneDriveSources } from './onedrive'
 import { getStore, type Store } from './store'
-import { localFile, newestTracker, syncFile, type FileSource, type SourceStatus } from './sync-core'
+import { isArchiveName, localFile, newestTracker, syncFile, type FileSource, type SourceStatus } from './sync-core'
 import { loadSnapshot, refreshSnapshot, xeroAvailable, xeroConfig, xeroConnected } from './xero/client'
 import type { ExpenseLog, Ledger } from './types'
 
@@ -68,21 +68,48 @@ async function run(): Promise<SourceStatus[]> {
     key: 'expenses',
     notConfigured: files.expensesNote,
     run: async (f) => (await importExpenses(f)).log,
-    describe: (l) => ({ ok: true, message: `Imported ${l.expenses.length} rows` }),
+    describe: describeExpenses,
   })
-  return [ledger, expenses, await syncXero()]
+  const sources = [ledger, expenses]
+  // The May to Aug tracker: shown only once it is found, so a missing old file is not an error.
+  if (files.archive) {
+    sources.push(await syncFile<ExpenseLog>({
+      source: 'expenses-archive',
+      label: 'VAT tracker (May to Aug)',
+      file: files.archive,
+      store,
+      key: 'expenses-archive',
+      notConfigured: '',
+      run: async (f) => (await importExpenses(f)).log,
+      describe: describeExpenses,
+    }))
+  }
+  return [...sources, await syncXero()]
+}
+
+const gbp = (c: number) => `£${(c / 100).toLocaleString('en-GB', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+
+/** Row count plus the check against the tracker's own TOTAL row. A mismatch is a red line, not a silent pass. */
+function describeExpenses(l: ExpenseLog): { ok: boolean; message: string } {
+  const c = l.meta.totalCheck
+  const base = `Imported ${l.expenses.length} rows, ${gbp(c?.imported.amountCents ?? l.expenses.reduce((n, e) => n + e.amountCents, 0))}`
+  if (!c?.found) return { ok: true, message: `${base} (the tracker's TOTAL row has no saved figure to check against)` }
+  if (c.matches) return { ok: true, message: `${base}, matches the tracker's TOTAL row` }
+  return { ok: false, message: `${base}, but the tracker's TOTAL row says ${gbp(c.sheet!.amountCents)}. Check for rows the import skipped` }
 }
 
 /** Pick where the two spreadsheets come from: this PC's OneDrive folder first, then OneDrive online. */
-async function fileSources(store: Store): Promise<{ ledger: FileSource | null; expenses: FileSource | null; ledgerNote: string; expensesNote: string }> {
+async function fileSources(store: Store): Promise<{ ledger: FileSource | null; expenses: FileSource | null; archive: FileSource | null; ledgerNote: string; expensesNote: string }> {
   const ledgerPath = process.env.FN_LEDGER_PATH
   const trackerDir = process.env.FN_EXPENSES_DIR
   const trackerPath = process.env.FN_EXPENSES_PATH
   if (!process.env.VERCEL && (ledgerPath || trackerDir || trackerPath)) {
     const tracker = trackerPath ?? (trackerDir ? (await newestTracker(trackerDir))?.file ?? null : null)
+    const archive = process.env.FN_EXPENSES_ARCHIVE ?? (trackerDir ? (await newestTracker(trackerDir, 3, isArchiveName))?.file ?? null : null)
     return {
       ledger: ledgerPath ? localFile(ledgerPath) : null,
       expenses: tracker ? localFile(tracker) : null,
+      archive: archive ? localFile(archive) : null,
       ledgerNote: 'Automatic sync is off: set FN_LEDGER_PATH in .env.local. Showing the last manual import.',
       expensesNote: trackerDir
         ? 'No "VAT Return From…xlsx" found in that folder (backups are skipped).'
@@ -95,23 +122,24 @@ async function fileSources(store: Store): Promise<{ ledger: FileSource | null; e
     const note = process.env.VERCEL
       ? 'OneDrive is not set up: add MS_CLIENT_ID. Showing the last import.'
       : 'Automatic sync is off: set FN_LEDGER_PATH in .env.local. Showing the last manual import.'
-    return { ledger: null, expenses: null, ledgerNote: note, expensesNote: note.replace('FN_LEDGER_PATH', 'FN_EXPENSES_DIR') }
+    return { ledger: null, expenses: null, archive: null, ledgerNote: note, expensesNote: note.replace('FN_LEDGER_PATH', 'FN_EXPENSES_DIR') }
   }
   if (!(await oneDriveConnected(store)).connected) {
     const note = 'OneDrive is not connected yet. Showing the last import.'
-    return { ledger: null, expenses: null, ledgerNote: note, expensesNote: note }
+    return { ledger: null, expenses: null, archive: null, ledgerNote: note, expensesNote: note }
   }
   try {
     const s = await oneDriveSources(c, store)
     return {
       ledger: s.ledger,
       expenses: s.expenses,
+      archive: s.archive,
       ledgerNote: 'Set FN_ONEDRIVE_LEDGER to the ledger\'s place in OneDrive. Showing the last import.',
       expensesNote: s.expensesNote ?? 'Set FN_ONEDRIVE_EXPENSES_DIR to the VAT returns folder in OneDrive. Showing the last import.',
     }
   } catch (e) {
     const note = `OneDrive could not be read (${e instanceof Error ? e.message.slice(0, 140) : 'unknown'}). Showing the last import.`
-    return { ledger: null, expenses: null, ledgerNote: note, expensesNote: note }
+    return { ledger: null, expenses: null, archive: null, ledgerNote: note, expensesNote: note }
   }
 }
 

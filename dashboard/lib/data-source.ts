@@ -10,6 +10,7 @@ import fs from 'node:fs/promises'
 import zlib from 'node:zlib'
 import path from 'node:path'
 import { parseFxResponse } from './fx'
+import { mergeExpenseLogs } from './expenses'
 import { STARTER_OVERHEADS, validateOverheads } from './overheads'
 import { dataDir, getStore, storeWritable, type ReadResult, type Store } from './store'
 import { oneDriveConfig, oneDriveConnected } from './onedrive'
@@ -236,13 +237,20 @@ export function isHosted(): boolean {
 // ---------------------------------------------------------------------------
 
 export async function loadExpenses(): Promise<{ log: ExpenseLog | null; overrides: ExpenseOverrides; error?: string }> {
-  const [r, ov] = await Promise.all([read('expenses'), read('expense-overrides')])
+  const [r, old, ov] = await Promise.all([read('expenses'), read('expenses-archive'), read('expense-overrides')])
   const overrides = ov.kind === 'ok' ? validateOverrides(ov.value) ?? {} : {}
-  if (r.kind === 'missing') return { log: null, overrides }
-  if (r.kind === 'invalid') return { log: null, overrides, error: `The imported expenses could not be read (${r.message})` }
+  const current = asLog(r, 'The imported expenses')
+  const archive = asLog(old, 'The May to Aug expenses')
+  const error = [current.error, archive.error].filter(Boolean).join('. ') || undefined
+  return { log: mergeExpenseLogs(current.log, archive.log), overrides, ...(error ? { error } : {}) }
+}
+
+function asLog(r: ReadResult, what: string): { log: ExpenseLog | null; error?: string } {
+  if (r.kind === 'missing') return { log: null }
+  if (r.kind === 'invalid') return { log: null, error: `${what} could not be read (${r.message})` }
   const v = r.value as Partial<ExpenseLog>
-  if (!Array.isArray(v?.expenses)) return { log: null, overrides, error: 'expenses.json has no expense list. Run "npm run import-expenses" again.' }
-  return { log: { meta: v.meta!, expenses: v.expenses, fxConversions: v.fxConversions ?? [] }, overrides }
+  if (!Array.isArray(v?.expenses)) return { log: null, error: `${what} have no expense list. Sync or run "npm run import-expenses" again.` }
+  return { log: { meta: v.meta!, expenses: v.expenses, fxConversions: v.fxConversions ?? [] } }
 }
 
 const CLASSES: ExpenseClass[] = ['business', 'review', 'personal']

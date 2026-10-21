@@ -169,6 +169,10 @@ Then start the dashboard with **`Start dashboard.cmd`** (double-click; put a sho
 `shell:startup` to run it at login). From then on there is nothing to run: when you save either
 file, the dashboard re-imports it on its next refresh (an open page refreshes itself every
 minute). The newest `VAT Return From….xlsx` in the folder is used; `_backups` folders are skipped.
+The May to Aug tracker (`VATReturn_Automated_….xlsx`, newest copy) in the same folder is read
+too and joined on: the current tracker wins from its first date, so a row in both is counted once.
+Each import is checked against the tracker's own TOTAL row and the status bar says if they differ.
+Both trackers are only ever opened for reading.
 If a save cannot be read (still syncing, or the layout changed), the last good import stays on
 screen and the status bar says why. Xero, once connected, refreshes itself when its data is more
 than 30 minutes old. The manual `npm run import` commands still work and read `.env.local` too.
