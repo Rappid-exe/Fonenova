@@ -21,15 +21,18 @@ export function NeedsAttention({
   allocation,
   snapshot,
   onOpenOrder,
+  expanded = false,
 }: {
   ledger: Ledger
   customerId: string | null
   allocation: CreditAllocation
   snapshot: string
   onOpenOrder: (id: string) => void
+  /** Show every item from the start (the Exceptions page). */
+  expanded?: boolean
 }) {
   const { money } = useMoney()
-  const [showAll, setShowAll] = useState(false)
+  const [showAll, setShowAll] = useState(expanded)
   const all = useMemo(() => attentionItems(ledger, allocation), [ledger, allocation])
   const items = useMemo(() => {
     if (!customerId) return all

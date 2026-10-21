@@ -3,9 +3,13 @@ import { useMemo, useState } from 'react'
 import { FlaskConical } from 'lucide-react'
 import { Select } from '@/components/ui/select'
 import {
-  allocateCredits, applyLiveStatus, cashPosition, concentration, creditTotals, filterOrders, netBusinessProfit, profitAfterCredits,
-  reconcileLedger, timeSeries, totals, unitsByOrder,
+  allocateCredits, applyLiveStatus, cashPosition, concentration, creditTotals, customerRows, filterOrders, netBusinessProfit, profitAfterCredits,
+  reconcileLedger, supplierRows, timeSeries, totals, unitsByOrder,
 } from '@/lib/metrics'
+import { useSection, type Section } from '@/lib/sections'
+import { PartiesTable } from './parties-table'
+import { CreditNotesTable } from './credit-notes'
+import { ChecksList } from './reconcile-badge'
 import {
   comparisonFor, coverageFor, formatDate, formatRange, presetRange, PRESETS, type DateRange, type Granularity, type PresetId,
 } from '@/lib/periods'
@@ -57,8 +61,20 @@ export function Dashboard(props: Props) {
   )
 }
 
+const TITLES: Record<Section, string> = {
+  overview: 'Profit overview',
+  orders: 'Orders',
+  customers: 'Customers',
+  suppliers: 'Suppliers',
+  'credit-notes': 'Credit notes',
+  exceptions: 'Exceptions',
+  expenses: 'Expenses',
+  settings: 'Settings',
+}
+
 function DashboardBody({ ledger: rawLedger, today, overheads, overheadsSaved, overheadsError, overheadsWritable, xero, notice, expenses, expenseOverrides, expensesError, sources, oneDrive, oneDriveNotice, hosted }: Props) {
   const { fx } = useMoney()
+  const [section, go] = useSection()
   // Reconcile against the untouched ledger; everything else uses Xero's live statuses where found.
   const checks = useMemo(() => reconcileLedger(rawLedger), [rawLedger])
   const live = useMemo(() => {
@@ -104,6 +120,9 @@ function DashboardBody({ ledger: rawLedger, today, overheads, overheadsSaved, ov
       // Concentration ignores the customer filter: shares only mean something against all customers.
       shares: concentration(filterOrders(ledger.orders, { range })),
       cash: cashPosition(current),
+      // Customers ignores the customer filter (it lists them all); suppliers respect it.
+      customerRows: customerRows(filterOrders(ledger.orders, { range }), units, ledger.creditNotes, range),
+      supplierRows: supplierRows(current, units, ledger.creditNotes, range),
     }
   }, [ledger, units, range, comparison, customer, granularity])
 
@@ -131,20 +150,24 @@ function DashboardBody({ ledger: rawLedger, today, overheads, overheadsSaved, ov
 
       <div className="pt-5">
         <AutoRefresh />
-        <XeroBar sources={sources} xero={xero} summary={live?.summary ?? null} ledgerImported={formatDate(ledger.meta.importedAt.slice(0, 10))} ledgerSnapshot={formatDate(ledger.meta.snapshotDate)} notice={notice} oneDrive={oneDrive} oneDriveNotice={oneDriveNotice} hosted={hosted} />
+        {(section === 'overview' || section === 'settings' || sources.some((x) => x.configured && !x.ok)) && <XeroBar sources={sources} xero={xero} summary={live?.summary ?? null} ledgerImported={formatDate(ledger.meta.importedAt.slice(0, 10))} ledgerSnapshot={formatDate(ledger.meta.snapshotDate)} notice={notice} oneDrive={oneDrive} oneDriveNotice={oneDriveNotice} hosted={hosted} />}
       </div>
 
       <header className="flex flex-col gap-4 pt-2 pb-5 md:flex-row md:items-end md:justify-between">
         <div className="min-w-0">
-          <h1 className="text-[22px] font-semibold tracking-[-0.015em] text-ink">Profit overview</h1>
+          <h1 className="text-[22px] font-semibold tracking-[-0.015em] text-ink">{TITLES[section]}</h1>
+          {section === 'settings' ? (
+            <p className="mt-1 text-[13px] leading-relaxed text-ink-2">Where the data comes from, your monthly overheads, and the checks every import must pass.</p>
+          ) : (
           <p className="mt-1 text-[13px] leading-relaxed text-ink-2">
             <span className="font-medium text-ink">{presetLabel}</span>
             {', '}{formatRange(range)}{customerName ? `, ${customerName} only` : ', all customers'}.{' '}
             Xero status as of {snapshot}.{' '}
             <CurrencyNote />
           </p>
+          )}
         </div>
-        <div className="grid grid-cols-[auto_1fr] items-center gap-2 sm:flex sm:flex-wrap">
+        {section !== 'settings' && <div className="grid grid-cols-[auto_1fr] items-center gap-2 sm:flex sm:flex-wrap">
           <ReconcileBadge checks={checks} />
           <CurrencySwitch />
           <label className="sr-only" htmlFor="customer-filter">Customer</label>
@@ -159,9 +182,11 @@ function DashboardBody({ ledger: rawLedger, today, overheads, overheadsSaved, ov
             onPreset={setPreset}
             onCustom={(r) => { setCustom(r); setPreset('custom') }}
           />
-        </div>
+        </div>}
       </header>
 
+      {section === 'overview' && (
+        <>
       <Kpis
         totals={view.totals}
         credits={view.credits}
@@ -201,15 +226,11 @@ function DashboardBody({ ledger: rawLedger, today, overheads, overheadsSaved, ov
         <CashCalendarPanel orders={ledger.orders} overheads={overheads} today={today} snapshot={xero.snapshot} onOpenOrder={setOpenOrderId} />
       </div>
 
-      <div className="mt-4">
-        <OverheadsPanel overheads={overheads} saved={overheadsSaved} loadError={overheadsError} writable={overheadsWritable} today={today} />
-      </div>
 
-      <div className="mt-4">
-        <ExpensesPanel log={expenses} overrides={expenseOverrides} overheads={overheads} range={range} error={expensesError} writable={overheadsWritable} />
-      </div>
+        </>
+      )}
 
-      <div className="mt-4">
+      {section === 'orders' && (
         <OrdersTable
           orders={view.orders}
           totalInLedger={ledger.orders.length}
@@ -221,7 +242,34 @@ function DashboardBody({ ledger: rawLedger, today, overheads, overheadsSaved, ov
           onOpenOrder={setOpenOrderId}
           periodEmpty={view.orders.length === 0}
         />
-      </div>
+      )}
+
+      {section === 'customers' && (
+        <PartiesTable kind="customer" rows={view.customerRows} periodLabel={`${presetLabel}, ${formatRange(range)}`} onPick={(id) => { setCustomerId(id); go('orders') }} />
+      )}
+
+      {section === 'suppliers' && (
+        <PartiesTable kind="supplier" rows={view.supplierRows} periodLabel={`${presetLabel}, ${formatRange(range)}${customerName ? `, ${customerName} orders only` : ''}`} />
+      )}
+
+      {section === 'credit-notes' && (
+        <CreditNotesTable notes={view.credits.notes} periodLabel={`${presetLabel}, ${formatRange(range)}${customerName ? `, ${customerName} only` : ''}`} onOpenOrder={setOpenOrderId} />
+      )}
+
+      {section === 'exceptions' && (
+        <NeedsAttention ledger={ledger} customerId={customer} allocation={allocation} snapshot={formatDate(ledger.meta.snapshotDate)} onOpenOrder={setOpenOrderId} expanded />
+      )}
+
+      {section === 'expenses' && (
+        <ExpensesPanel log={expenses} overrides={expenseOverrides} overheads={overheads} range={range} error={expensesError} writable={overheadsWritable} />
+      )}
+
+      {section === 'settings' && (
+        <div className="space-y-4">
+          <OverheadsPanel overheads={overheads} saved={overheadsSaved} loadError={overheadsError} writable={overheadsWritable} today={today} />
+          <ChecksList checks={checks} />
+        </div>
+      )}
 
       <footer className="mt-8 space-y-1 border-t border-line pt-4 text-[12px] leading-relaxed text-ink-3">
         <p>All trade in this ledger is in EUR. Fone Nova&apos;s books are kept in GBP, so exchange-rate movement between invoice and payment is a real risk that is not measured here.</p>

@@ -36,3 +36,25 @@ export function ReconcileBadge({ checks }: { checks: Check[] }) {
     </Popover>
   )
 }
+
+/** The same checks as a full list, for the Settings page. */
+export function ChecksList({ checks }: { checks: Check[] }) {
+  const failed = checks.filter((c) => !c.ok).length
+  return (
+    <section aria-labelledby="checks-title" className="rounded-lg border border-line bg-surface">
+      <div className="border-b border-line px-4 py-3">
+        <h2 id="checks-title" className="text-[14px] font-semibold text-ink">Data checks <span className={cn('ml-1', failed ? 'text-loss' : 'text-gain')}>{failed ? `${failed} failing` : `${checks.length}/${checks.length} pass`}</span></h2>
+        <p className="text-[12px] text-ink-3">All-time figures recalculated from the order rows and checked to the cent against the ledger&apos;s Summary tab, Orders TOTAL row and Lines tab.</p>
+      </div>
+      <ul className="divide-y divide-line">
+        {checks.map((c) => (
+          <li key={c.label} className="flex items-start gap-2 px-4 py-2 text-[12.5px]">
+            <span className={cn('mt-0.5 font-semibold', c.ok ? 'text-gain' : 'text-loss')} aria-label={c.ok ? 'Pass' : 'Fail'}>{c.ok ? '✓' : '✕'}</span>
+            <span className="flex-1 text-ink-2">{c.label}</span>
+            <span className="num max-w-[50%] text-ink">{c.detail}</span>
+          </li>
+        ))}
+      </ul>
+    </section>
+  )
+}
