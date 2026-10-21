@@ -23,7 +23,8 @@ export async function proxy(req: NextRequest) {
 }
 
 export const config = {
-  // Everything except the sign-in flow itself, robots.txt and Next's static build assets
-  // (hashed JS/CSS with no data in them).
-  matcher: ['/((?!login|auth/|robots\\.txt|_next/static|_next/image|favicon\\.ico).*)'],
+  // Everything except the sign-in flow itself, robots.txt, Next's static build assets
+  // (hashed JS/CSS with no data in them) and the scheduled sync, which checks its own
+  // CRON_SECRET bearer token instead and returns no figures.
+  matcher: ['/((?!login|auth/|api/cron/|robots\\.txt|_next/static|_next/image|favicon\\.ico).*)'],
 }

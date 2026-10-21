@@ -4,23 +4,26 @@ import { Dashboard } from '@/components/dashboard/dashboard'
 import { Shell } from '@/components/shell'
 import { currentUser } from '@/lib/session'
 import { syncSources } from '@/lib/sync'
-import { getDataSource, loadExpenses, loadFxRate, loadOverheads, loadXeroState, overheadsWritable, toClientLedger } from '@/lib/data-source'
+import { getDataSource, isHosted, loadExpenses, loadFxRate, loadOneDriveState, loadOverheads, loadXeroState, overheadsWritable, toClientLedger } from '@/lib/data-source'
 import { todayIso } from '@/lib/periods'
 
 // Read the ledger on every request so a fresh import shows without a rebuild.
 export const dynamic = 'force-dynamic'
 
 export default async function Page({ searchParams }: { searchParams: Promise<Record<string, string | undefined>> }) {
-  const notice = (await searchParams).xero ?? null
+  const params = await searchParams
+  const notice = params.xero ?? null
+  const oneDriveNotice = params.onedrive ?? null
   // Second lock: proxy.ts already gates this route, but the data never loads without a session here either.
   const user = await currentUser()
   if (user === false) redirect('/login')
   const email = user
 
   // Pick up any ledger or tracker saved since the last visit, before reading the data.
-  const sources = await syncSources()
+  // Straight after connecting Xero or OneDrive, skip the 30s throttle so the page shows the new state.
+  const sources = await syncSources({ force: !!(notice || oneDriveNotice) })
   const source = getDataSource()
-  const [result, fx, oh, xero, exp] = await Promise.all([source.load(), loadFxRate(), loadOverheads(), loadXeroState(), loadExpenses()])
+  const [result, fx, oh, xero, exp, oneDrive] = await Promise.all([source.load(), loadFxRate(), loadOverheads(), loadXeroState(), loadExpenses(), loadOneDriveState()])
 
   if (!result.ok) {
     return (
@@ -31,6 +34,12 @@ export default async function Page({ searchParams }: { searchParams: Promise<Rec
             <h1 className="text-[15px] font-semibold">{result.title}</h1>
           </div>
           <p className="mt-2 text-sm leading-relaxed text-ink-2">{result.detail}</p>
+          {sources.some((x) => !x.ok && x.configured) && (
+            <ul className="mt-3 space-y-1 text-[13px] text-loss">{sources.filter((x) => !x.ok && x.configured).map((x) => <li key={x.source}>{x.label}: {x.message}</li>)}</ul>
+          )}
+          {oneDrive.configured && !oneDrive.connected && (
+            <a href="/onedrive/connect" className="mt-4 inline-flex h-9 items-center rounded-md bg-navy px-3 text-sm font-medium text-white hover:bg-navy-2">Connect OneDrive (read-only)</a>
+          )}
           <p className="mt-4 text-[13px] text-ink-3">Data source: {source.name}. No figures are shown until the data loads, so nothing on screen is a guess.</p>
         </div>
       </Shell>
@@ -40,7 +49,7 @@ export default async function Page({ searchParams }: { searchParams: Promise<Rec
   const { ledger } = result
   return (
     <Shell email={email} footer={<>Source: {ledger.meta.sourceFile}<br />Imported {ledger.meta.importedAt.slice(0, 10)}</>}>
-      <Dashboard ledger={toClientLedger(ledger)} today={todayIso()} fx={fx} overheads={oh.overheads} overheadsSaved={oh.saved} overheadsError={oh.error ?? null} overheadsWritable={overheadsWritable()} xero={xero} notice={notice} expenses={exp.log} expenseOverrides={exp.overrides} expensesError={exp.error ?? null} sources={sources} />
+      <Dashboard ledger={toClientLedger(ledger)} today={todayIso()} fx={fx} overheads={oh.overheads} overheadsSaved={oh.saved} overheadsError={oh.error ?? null} overheadsWritable={overheadsWritable()} xero={xero} notice={notice} expenses={exp.log} expenseOverrides={exp.overrides} expensesError={exp.error ?? null} sources={sources} oneDrive={oneDrive} oneDriveNotice={oneDriveNotice} hosted={isHosted()} />
     </Shell>
   )
 }

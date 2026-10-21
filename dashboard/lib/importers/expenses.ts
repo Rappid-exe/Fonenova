@@ -4,6 +4,7 @@
  */
 import crypto from 'node:crypto'
 import ExcelJS from 'exceljs'
+import { loadWorkbook, type XlsxInput } from './xlsx'
 import path from 'node:path'
 import { toCents } from '../money'
 import type { Expense, ExpenseLog, FxConversion } from '../types'
@@ -40,9 +41,11 @@ function headerColumns(ws: ExcelJS.Worksheet, row: number, wanted: Record<string
   return found
 }
 
-export async function importExpenses(file: string): Promise<{ log: ExpenseLog; skipped: string[] }> {
+/** Reads a file path, or a file already downloaded (e.g. from OneDrive) as `{ name, data }`. */
+export async function importExpenses(input: XlsxInput): Promise<{ log: ExpenseLog; skipped: string[] }> {
+  const file = typeof input === 'string' ? input : input.name
   const wb = new ExcelJS.Workbook()
-  await wb.xlsx.readFile(file)
+  await loadWorkbook(wb, input)
   const ws = wb.getWorksheet('Sheet2')
   if (!ws) throw new Error(`No "Sheet2" (expense log) in ${path.basename(file)}`)
 
