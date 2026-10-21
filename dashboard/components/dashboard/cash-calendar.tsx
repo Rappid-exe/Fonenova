@@ -54,8 +54,8 @@ export function CashCalendarPanel({ orders, overheads, today, snapshot, onOpenOr
     <section aria-labelledby="cal-title" className="rounded-lg border border-line bg-surface">
       <div className="flex flex-wrap items-start justify-between gap-3 border-b border-line px-4 py-3">
         <div>
-          <h2 id="cal-title" className="flex items-center gap-1.5 text-[14px] font-semibold text-ink"><CalendarClock className="h-4 w-4 text-ink-3" aria-hidden />Cash calendar</h2>
-          <p className="text-[12px] text-ink-3">Open client and supplier balances by due date, plus overheads, from today. Whole business, not filtered.</p>
+          <h2 id="cal-title" className="flex items-center gap-1.5 text-[15px] font-semibold text-ink"><CalendarClock className="h-4 w-4 text-ink-3" aria-hidden />Cash calendar</h2>
+          <p className="mt-0.5 text-[13px] leading-snug text-ink-2">Open client and supplier balances by due date, plus overheads, from today. Whole business, not filtered.</p>
         </div>
         <Segmented label="Days ahead" value={win} onChange={setWin} options={[{ value: '30', label: '30 days' }, { value: '60', label: '60 days' }, { value: '90', label: '90 days' }]} />
       </div>
@@ -74,10 +74,10 @@ export function CashCalendarPanel({ orders, overheads, today, snapshot, onOpenOr
       {cal.overdue.length > 0 && (
         <div className="border-b border-line px-4 py-2.5">
           <h3 className="text-[12.5px] font-semibold text-loss">Overdue ({cal.overdue.length})</h3>
-          <p className="text-[11.5px] text-ink-3">Overdue bills count against the balance from today. Overdue client payments are not counted until they arrive.</p>
+          <p className="text-[12px] text-ink-3">Overdue bills count against the balance from today. Overdue client payments are not counted until they arrive.</p>
           <ul className="mt-1 divide-y divide-line text-[12.5px]">
             {cal.overdue.map((e, i) => (
-              <li key={i} className="flex items-center gap-3"><span className="w-16 shrink-0 text-[12px] text-ink-3">{formatDate(e.date!).replace(/ \d{4}$/, '')}</span><ul className="min-w-0 flex-1"><Entry e={e} /></ul></li>
+              <li key={i} className="flex items-center gap-3"><span className="w-16 shrink-0 text-[12.5px] text-ink-2">{formatDate(e.date!).replace(/ \d{4}$/, '')}</span><ul className="min-w-0 flex-1"><Entry e={e} /></ul></li>
             ))}
           </ul>
         </div>

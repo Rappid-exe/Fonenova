@@ -32,7 +32,7 @@ function Delta({ current, previous, kind, polarity = 'up-good', className }: { c
 
 function PtsDelta({ current, previous }: { current: number | null; previous: number | null }) {
   const d = marginChangePts(current, previous)
-  if (d === null) return <span className="text-[12px] text-ink-3">No margin in previous period</span>
+  if (d === null) return <span className="text-[12.5px] text-ink-2">No margin in previous period</span>
   const dir = d > 0.0001 ? 'up' : d < -0.0001 ? 'down' : 'flat'
   const Icon = dir === 'up' ? ArrowUpRight : dir === 'down' ? ArrowDownRight : Minus
   return (
@@ -52,7 +52,7 @@ function Stat({ label, value, sub, delta, hint }: { label: string; value: React.
         {hint && <Info className="h-3 w-3" aria-label={hint} />}
       </div>
       <div className="mt-1 truncate text-[17px] font-semibold tracking-[-0.01em] text-ink">{value}</div>
-      {sub && <div className="mt-0.5 text-[12px] text-ink-3">{sub}</div>}
+      {sub && <div className="mt-0.5 text-[12.5px] text-ink-2">{sub}</div>}
       {delta && <div className="mt-1">{delta}</div>}
     </div>
   )
@@ -60,7 +60,7 @@ function Stat({ label, value, sub, delta, hint }: { label: string; value: React.
 
 function NetRow({ net }: { net: NetProfit | { status: 'filtered' } }) {
   const { currency } = useMoney()
-  const wrap = 'flex flex-wrap items-baseline gap-x-2 gap-y-0.5 border-t border-dashed border-line px-5 py-2.5 text-[12px] text-ink-3'
+  const wrap = 'flex flex-wrap items-baseline gap-x-2 gap-y-0.5 border-t border-dashed border-line px-5 py-2.5 text-[12.5px] text-ink-2'
   if (net.status !== 'ok') {
     const why =
       net.status === 'filtered' ? 'Not shown for one customer: overheads and expenses belong to the whole business.'
@@ -114,7 +114,7 @@ export function Kpis({
 
   return (
     <section aria-label="Key figures" className="space-y-3">
-      <div className="text-[12px] text-ink-3" aria-live="polite">
+      <div className="text-[12.5px] text-ink-2" aria-live="polite">
         {comparison.valid
           ? <>Changes compare with the previous period, {previousLabel}.</>
           : <>No period comparison: {comparison.reason.charAt(0).toLowerCase() + comparison.reason.slice(1)}.</>}
@@ -141,7 +141,7 @@ export function Kpis({
           </div>
 
           <div className="border-t border-line px-5 py-3">
-            <div className="flex items-baseline justify-between text-[12px] text-ink-3">
+            <div className="flex items-baseline justify-between text-[12.5px] text-ink-2">
               <span>Where the profit came from</span>
               {goodsShare !== null && <span>{pct(1 - goodsShare, 1)} from shipping recharges</span>}
             </div>
@@ -197,7 +197,7 @@ export function Kpis({
               <div className="text-ink-3">Net effect on profit</div>
               <div className={cn('font-semibold', credits.netEffectCents < 0 ? 'text-loss' : credits.netEffectCents > 0 ? 'text-gain' : 'text-ink')}>{money(credits.netEffectCents, { sign: true })}</div>
             </div>
-            <p className="text-[11.5px] text-ink-3 sm:col-span-3">
+            <p className="text-[12px] text-ink-3 sm:col-span-3">
               Credit notes count in the period of their own date.
               {credits.unallocated.length > 0 && <> {plural(credits.unallocated.length, 'credit')} span{credits.unallocated.length === 1 ? 's' : ''} several orders and {credits.unallocated.length === 1 ? 'is' : 'are'} shown unallocated ({credits.unallocated.map((n) => n.number).join(', ')}).</>}
               {credits.excludedMixedCustomer.length > 0 && <> {plural(credits.excludedMixedCustomer.length, 'credit')} covering other customers too {credits.excludedMixedCustomer.length === 1 ? 'is' : 'are'} left out of this filter.</>}

@@ -89,10 +89,10 @@ export function OverheadsPanel({
     <section aria-labelledby="oh-title" className="rounded-lg border border-line bg-surface">
       <div className="flex flex-wrap items-start justify-between gap-2 border-b border-line px-4 py-3">
         <div>
-          <h2 id="oh-title" className="text-[14px] font-semibold text-ink">Overheads</h2>
-          <p className="text-[12px] text-ink-3">Monthly costs you enter. Business items come off net business profit; personal items only show in the cash calendar.</p>
+          <h2 id="oh-title" className="text-[15px] font-semibold text-ink">Overheads</h2>
+          <p className="mt-0.5 text-[13px] leading-snug text-ink-2">Monthly costs you enter. Business items come off net business profit; personal items only show in the cash calendar.</p>
         </div>
-        <div className="text-right text-[12px] text-ink-3">
+        <div className="text-right text-[12.5px] text-ink-2">
           <div>Business per month: <span className="font-semibold text-ink">{total(biz)}</span></div>
           <div>Personal per month: <span className="font-medium text-ink-2">{total(personal)}</span></div>
         </div>

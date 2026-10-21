@@ -11,7 +11,7 @@ export async function GET(req: NextRequest) {
   if ((await currentUser()) === false) return NextResponse.redirect(new URL('/login', req.url))
   const c = oneDriveConfig()
   const back = (q: string) => {
-    const res = NextResponse.redirect(new URL(`/?onedrive=${q}`, req.url))
+    const res = NextResponse.redirect(new URL(`/?onedrive=${q}#settings`, req.url))
     res.cookies.set(COOKIE, '', { path: '/onedrive', maxAge: 0 })
     return res
   }

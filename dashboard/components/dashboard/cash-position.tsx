@@ -26,8 +26,8 @@ export function CashPositionPanel({
     <section aria-labelledby="cash-title" className="flex h-full flex-col rounded-lg border border-line bg-surface">
       <div className="flex flex-wrap items-start justify-between gap-2 border-b border-line px-4 py-3">
         <div>
-          <h2 id="cash-title" className="text-[14px] font-semibold text-ink">Cash position</h2>
-          <p className="text-[12px] text-ink-3">{filtered ? 'Open balances on the orders in the current filter.' : 'Open balances on all matched orders.'}</p>
+          <h2 id="cash-title" className="text-[15px] font-semibold text-ink">Cash position</h2>
+          <p className="mt-0.5 text-[13px] leading-snug text-ink-2">{filtered ? 'Open balances on the orders in the current filter.' : 'Open balances on all matched orders.'}</p>
         </div>
         <Badge tone="outline"><Clock className="h-3 w-3" aria-hidden />As of {snapshot}</Badge>
       </div>

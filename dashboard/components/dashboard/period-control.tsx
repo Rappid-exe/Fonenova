@@ -59,11 +59,11 @@ export function PeriodControl({
             {preset === 'custom' && <Check className="h-4 w-4 text-accent" aria-hidden />}
           </div>
           <div className="grid grid-cols-2 gap-2">
-            <label className="text-[11.5px] text-ink-3">
+            <label className="text-[12px] text-ink-3">
               From
               <input type="date" required value={draft.start} onChange={(e) => setDraft({ ...draft, start: e.target.value })} className="mt-1 h-8 w-full rounded-md border border-line px-2 text-[13px] text-ink" />
             </label>
-            <label className="text-[11.5px] text-ink-3">
+            <label className="text-[12px] text-ink-3">
               To
               <input type="date" required value={draft.end} min={draft.start} onChange={(e) => setDraft({ ...draft, end: e.target.value })} className="mt-1 h-8 w-full rounded-md border border-line px-2 text-[13px] text-ink" />
             </label>

@@ -1,10 +1,10 @@
 'use client'
 import { useMemo, useState } from 'react'
-import { FlaskConical } from 'lucide-react'
+import { ChevronDown, FlaskConical } from 'lucide-react'
 import { Select } from '@/components/ui/select'
 import {
   allocateCredits, applyLiveStatus, cashPosition, concentration, creditTotals, customerRows, filterOrders, netBusinessProfit, profitAfterCredits,
-  reconcileLedger, supplierRows, timeSeries, totals, unitsByOrder,
+  overdueClients, reconcileLedger, supplierRows, timeSeries, totals, unitsByOrder,
 } from '@/lib/metrics'
 import { useSection, type Section } from '@/lib/sections'
 import { PartiesTable } from './parties-table'
@@ -27,11 +27,12 @@ import { CurrencyNote, CurrencySwitch } from './currency-switch'
 import { CashPositionPanel } from './cash-position'
 import { ConcentrationPanel } from './concentration'
 import { Kpis } from './kpis'
-import { NeedsAttention } from './needs-attention'
+import { NeedsAttention, TodayList } from './needs-attention'
+import { Headline } from './headline'
+import { StatusPill, TopBar } from './topbar'
 import { OrderDrawer } from './order-drawer'
 import { OrdersTable } from './orders-table'
 import { PeriodControl } from './period-control'
-import { ReconcileBadge } from './reconcile-badge'
 import { TrendChart } from './trend-chart'
 
 interface Props {
@@ -132,6 +133,9 @@ function DashboardBody({ ledger: rawLedger, today, overheads, overheadsSaved, ov
     [view.afterCreditsCents, overheads, range, today, fx, expenses, expenseOverrides],
   )
 
+  // Overdue is the state now, not a period figure: every order, only the customer filter applies.
+  const overdue = useMemo(() => overdueClients(filterOrders(ledger.orders, { customerId: customer }), today), [ledger.orders, customer, today])
+
   const openOrder = openOrderId ? ledger.orders.find((o) => o.id === openOrderId) ?? null : null
   const presetLabel = PRESETS.find((p) => p.id === preset)?.label ?? ''
   const customerName = ledger.customers.find((c) => c.id === customerId)?.name
@@ -139,8 +143,18 @@ function DashboardBody({ ledger: rawLedger, today, overheads, overheadsSaved, ov
     ? `${formatDate(xero.snapshot.fetchedAt.slice(0, 10))} ${new Date(xero.snapshot.fetchedAt).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })} (live, Xero)`
     : formatDate(ledger.meta.snapshotDate)
 
+  const xeroBar = (
+    <XeroBar sources={sources} xero={xero} summary={live?.summary ?? null} ledgerImported={formatDate(ledger.meta.importedAt.slice(0, 10))} ledgerSnapshot={formatDate(ledger.meta.snapshotDate)} notice={notice} oneDrive={oneDrive} oneDriveNotice={oneDriveNotice} hosted={hosted} />
+  )
+  const subtitle = section === 'settings'
+    ? 'Data sources, monthly overheads, and the checks every import must pass.'
+    : section === 'expenses'
+      ? <>{preset === 'all' ? 'All time: every expense row' : `${presetLabel}: ${formatRange(range)}`} · amounts in GBP, as logged</>
+      : <>{presetLabel}: {formatRange(range)} · {customerName ?? 'All customers'}<CurrencyNote /></>
+
   return (
     <>
+      <AutoRefresh />
       {ledger.meta.isSample && (
         <div role="status" className="mt-4 flex items-center gap-2 rounded-md border border-warn/30 bg-warn-soft px-3 py-2 text-[13px] text-warn">
           <FlaskConical className="h-4 w-4 shrink-0" aria-hidden />
@@ -148,86 +162,83 @@ function DashboardBody({ ledger: rawLedger, today, overheads, overheadsSaved, ov
         </div>
       )}
 
-      <div className="pt-5">
-        <AutoRefresh />
-        {(section === 'overview' || section === 'settings' || sources.some((x) => x.configured && !x.ok)) && <XeroBar sources={sources} xero={xero} summary={live?.summary ?? null} ledgerImported={formatDate(ledger.meta.importedAt.slice(0, 10))} ledgerSnapshot={formatDate(ledger.meta.snapshotDate)} notice={notice} oneDrive={oneDrive} oneDriveNotice={oneDriveNotice} hosted={hosted} />}
-      </div>
-
-      <header className="flex flex-col gap-4 pt-2 pb-5 md:flex-row md:items-end md:justify-between">
-        <div className="min-w-0">
-          <h1 className="text-[22px] font-semibold tracking-[-0.015em] text-ink">{TITLES[section]}</h1>
-          {section === 'settings' ? (
-            <p className="mt-1 text-[13px] leading-relaxed text-ink-2">Where the data comes from, your monthly overheads, and the checks every import must pass.</p>
-          ) : (
-          <p className="mt-1 text-[13px] leading-relaxed text-ink-2">
-            <span className="font-medium text-ink">{presetLabel}</span>
-            {', '}{formatRange(range)}{customerName ? `, ${customerName} only` : ', all customers'}.{' '}
-            Xero status as of {snapshot}.{' '}
-            <CurrencyNote />
-          </p>
-          )}
-        </div>
-        {section !== 'settings' && <div className="grid grid-cols-[auto_1fr] items-center gap-2 sm:flex sm:flex-wrap">
-          <ReconcileBadge checks={checks} />
-          <CurrencySwitch />
-          <label className="sr-only" htmlFor="customer-filter">Customer</label>
-          <Select id="customer-filter" value={customerId} onChange={(e) => setCustomerId(e.target.value)} className="min-w-0 sm:w-56">
-            <option value="">All customers</option>
-            {ledger.customers.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
-          </Select>
-          <PeriodControl
-            preset={preset}
-            range={range}
-            coverage={coverage}
-            onPreset={setPreset}
-            onCustom={(r) => { setCustom(r); setPreset('custom') }}
-          />
-        </div>}
-      </header>
-
-      {section === 'overview' && (
-        <>
-      <Kpis
-        totals={view.totals}
-        credits={view.credits}
-        afterCreditsCents={view.afterCreditsCents}
-        previous={view.previous}
-        comparison={comparison}
-        previousLabel={comparison.valid ? formatRange(comparison.previous) : null}
-        net={customer ? { status: 'filtered' } : net}
+      <TopBar
+        title={TITLES[section]}
+        subtitle={subtitle}
+        status={section === 'settings' ? null : <StatusPill sources={sources} checks={checks}>{xeroBar}</StatusPill>}
+        controls={section === 'settings' ? undefined : (
+          <>
+            <CurrencySwitch />
+            <label className="sr-only" htmlFor="customer-filter">Customer</label>
+            <Select id="customer-filter" value={customerId} onChange={(e) => setCustomerId(e.target.value)} className="min-w-0 sm:w-52">
+              <option value="">All customers</option>
+              {ledger.customers.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
+            </Select>
+            <PeriodControl
+              preset={preset}
+              range={range}
+              coverage={coverage}
+              onPreset={setPreset}
+              onCustom={(r) => { setCustom(r); setPreset('custom') }}
+            />
+          </>
+        )}
       />
 
-      <div className="mt-4">
-        <TrendChart
-          series={view.series}
-          granularity={granularity}
-          onGranularity={setGranularity}
-          empty={view.orders.length === 0}
-          range={range}
-          coverageEnd={coverage.end}
-          onShowAllTime={() => setPreset('all')}
-        />
-      </div>
+      {section === 'overview' && (
+        <div className="space-y-4">
+          <Headline
+            totals={view.totals}
+            afterCreditsCents={view.afterCreditsCents}
+            net={customer ? { status: 'filtered' } : net}
+            cash={view.cash}
+            overdue={overdue}
+            snapshot={formatDate(ledger.meta.snapshotDate)}
+            onSettings={() => go('settings')}
+            onExceptions={() => go('exceptions')}
+          />
 
-      <div className="mt-4 grid gap-4 xl:grid-cols-12">
-        <div className="min-w-0 xl:col-span-5">
-          <ConcentrationPanel shares={view.shares} highlightId={customer} customerOrder={ledger.customers.map((c) => c.id)} />
+          <TodayList ledger={ledger} customerId={customer} allocation={allocation} onOpenOrder={setOpenOrderId} onSeeAll={() => go('exceptions')} />
+
+          <TrendChart
+            series={view.series}
+            granularity={granularity}
+            onGranularity={setGranularity}
+            empty={view.orders.length === 0}
+            range={range}
+            coverageEnd={coverage.end}
+            onShowAllTime={() => setPreset('all')}
+          />
+
+          <div className="grid gap-4 xl:grid-cols-12">
+            <div className="min-w-0 xl:col-span-5">
+              <ConcentrationPanel shares={view.shares} highlightId={customer} customerOrder={ledger.customers.map((c) => c.id)} />
+            </div>
+            <div className="min-w-0 xl:col-span-7">
+              <CashPositionPanel cash={view.cash} snapshot={snapshot} supplierName={ledger.suppliers[0]?.name ?? 'supplier'} filtered={preset !== 'all' || !!customer} onOpenOrder={setOpenOrderId} />
+            </div>
+          </div>
+
+          <CashCalendarPanel orders={ledger.orders} overheads={overheads} today={today} snapshot={xero.snapshot} onOpenOrder={setOpenOrderId} />
+
+          <details className="group rounded-lg border border-line bg-surface">
+            <summary className="flex cursor-pointer list-none items-center justify-between gap-2 px-5 py-3.5 text-[15px] font-semibold text-ink [&::-webkit-details-marker]:hidden">
+              <span>More figures <span className="ml-1 font-normal text-ink-2">sales, cost, units, margin split, credit notes, period comparison</span></span>
+              <ChevronDown className="h-4 w-4 text-ink-3 transition-transform group-open:rotate-180" aria-hidden />
+            </summary>
+            <div className="border-t border-line p-4">
+              <Kpis
+                totals={view.totals}
+                credits={view.credits}
+                afterCreditsCents={view.afterCreditsCents}
+                previous={view.previous}
+                comparison={comparison}
+                previousLabel={comparison.valid ? formatRange(comparison.previous) : null}
+                net={customer ? { status: 'filtered' } : net}
+              />
+            </div>
+          </details>
         </div>
-        <div className="min-w-0 xl:col-span-7">
-          <CashPositionPanel cash={view.cash} snapshot={snapshot} supplierName={ledger.suppliers[0]?.name ?? 'supplier'} filtered={preset !== 'all' || !!customer} onOpenOrder={setOpenOrderId} />
-        </div>
-      </div>
-
-      <div className="mt-4">
-        <NeedsAttention ledger={ledger} customerId={customer} allocation={allocation} snapshot={formatDate(ledger.meta.snapshotDate)} onOpenOrder={setOpenOrderId} />
-      </div>
-
-      <div className="mt-4">
-        <CashCalendarPanel orders={ledger.orders} overheads={overheads} today={today} snapshot={xero.snapshot} onOpenOrder={setOpenOrderId} />
-      </div>
-
-
-        </>
       )}
 
       {section === 'orders' && (
@@ -261,20 +272,25 @@ function DashboardBody({ ledger: rawLedger, today, overheads, overheadsSaved, ov
       )}
 
       {section === 'expenses' && (
-        <ExpensesPanel log={expenses} overrides={expenseOverrides} overheads={overheads} range={range} error={expensesError} writable={overheadsWritable} />
+        // "All time" means every expense row: the ledger's last order date must not hide later receipts.
+        <ExpensesPanel log={expenses} overrides={expenseOverrides} overheads={overheads} range={preset === 'all' ? null : range} error={expensesError} writable={overheadsWritable} />
       )}
 
       {section === 'settings' && (
         <div className="space-y-4">
+          <section aria-labelledby="sources-title">
+            <h2 id="sources-title" className="mb-2 text-[15px] font-semibold text-ink">Data sources</h2>
+            {xeroBar}
+          </section>
           <OverheadsPanel overheads={overheads} saved={overheadsSaved} loadError={overheadsError} writable={overheadsWritable} today={today} />
           <ChecksList checks={checks} />
+          <section aria-labelledby="about-title" className="rounded-lg border border-line bg-surface px-5 py-4 text-[13px] leading-relaxed text-ink-2">
+            <h2 id="about-title" className="mb-1 text-[15px] font-semibold text-ink">About these figures</h2>
+            <p>All trade in the ledger is in EUR. Fone Nova&apos;s books are kept in GBP, so exchange-rate movement between invoice and payment is a real risk that is not measured here.</p>
+            <p className="mt-1">Net business profit covers the overheads you enter and the expense rows marked Business. Fone Nova&apos;s own shipping beyond the invoices, and bank, FX and payment fees, are not in the order data.</p>
+          </section>
         </div>
       )}
-
-      <footer className="mt-8 space-y-1 border-t border-line pt-4 text-[12px] leading-relaxed text-ink-3">
-        <p>All trade in this ledger is in EUR. Fone Nova&apos;s books are kept in GBP, so exchange-rate movement between invoice and payment is a real risk that is not measured here.</p>
-        <p>Net business profit covers the overheads you enter. Fone Nova&apos;s own shipping beyond the invoices, and bank, FX and payment fees, are not in the data.</p>
-      </footer>
 
       <OrderDrawer
         order={openOrder}

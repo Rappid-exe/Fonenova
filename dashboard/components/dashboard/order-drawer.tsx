@@ -22,7 +22,7 @@ function InvoiceCard({ side, title, party, number, totalCents, status, owedLabel
         <div className="text-[11.5px] font-medium uppercase tracking-wide text-ink-3">{side}</div>
         <Badge tone={st.tone}>{st.label}</Badge>
       </div>
-      <div className="mt-1 text-[14px] font-semibold text-ink">{title} {number}</div>
+      <div className="mt-1 text-[15px] font-semibold text-ink">{title} {number}</div>
       <div className="text-[12.5px] text-ink-2">{party}</div>
       <dl className="mt-3 grid grid-cols-[1fr_auto] gap-y-1 text-[12.5px]">
         <dt className="text-ink-3">Invoice total</dt><dd className="num font-semibold text-ink">{money(totalCents)}</dd>
@@ -30,7 +30,7 @@ function InvoiceCard({ side, title, party, number, totalCents, status, owedLabel
         <dd className="num text-ink">{owedCents === null ? <span className="text-warn">Unknown (not in Xero)</span> : owedCents === 0 ? <span className="text-ink-3">Nothing</span> : money(owedCents)}</dd>
       </dl>
       {file && (
-        <div className="mt-3 flex items-center gap-1.5 truncate text-[12px] text-ink-3" title={file}>
+        <div className="mt-3 flex items-center gap-1.5 truncate text-[12.5px] text-ink-2" title={file}>
           <FileText className="h-3.5 w-3.5 shrink-0" aria-hidden />{file}
         </div>
       )}
@@ -103,7 +103,7 @@ function DrawerBody({ order: o, ledger, units, allocation, snapshot, ledgerSnaps
           ['Units', count(units.get(o.id) ?? 0), ''],
         ].map(([k, v, c]) => (
           <div key={k} className="bg-surface px-3 py-2.5 last:col-span-2 sm:last:col-span-1">
-            <dt className="text-[11.5px] text-ink-3">{k}</dt>
+            <dt className="text-[12px] text-ink-3">{k}</dt>
             <dd className={cn('mt-0.5 text-[15px] font-semibold text-ink', c)}>{v}</dd>
           </div>
         ))}
@@ -146,7 +146,7 @@ function DrawerBody({ order: o, ledger, units, allocation, snapshot, ledgerSnaps
                 <tr key={l.lineNo} className="border-t border-line align-top">
                   <td className="px-4 py-2 text-ink">
                     {l.description}
-                    {l.note && <div className="mt-0.5 text-[11.5px] text-ink-3">{l.note}</div>}
+                    {l.note && <div className="mt-0.5 text-[12px] text-ink-3">{l.note}</div>}
                   </td>
                   <td className="num px-2 py-2">{count(l.qty)}</td>
                   <td className="num border-l border-line px-2 py-2 text-ink-2">{money(l.supplierUnitCents)}</td>
@@ -208,7 +208,7 @@ function DrawerBody({ order: o, ledger, units, allocation, snapshot, ledgerSnaps
         {shared.length > 0 && (
           <div className="border-t border-line px-4 py-2.5">
             <div className="text-[12px] font-medium text-ink-2">Also referenced by multi-order credits (not allocated to this order)</div>
-            <ul className="mt-1 space-y-0.5 text-[12px] text-ink-3">
+            <ul className="mt-1 space-y-0.5 text-[12.5px] text-ink-2">
               {shared.map((n) => <li key={n.number}>{n.side === 'client' ? 'Client' : 'Supplier'} credit note {n.number}, {formatDate(n.date)}: {money(n.amountCents)} across {n.orderIds.join(', ')}</li>)}
             </ul>
           </div>
@@ -216,7 +216,7 @@ function DrawerBody({ order: o, ledger, units, allocation, snapshot, ledgerSnaps
         {o.live ? (
           <div className="border-t border-line px-4 py-2.5 text-[12.5px]">
             <div className="text-[12px] font-medium text-ink-2">Payments recorded in Xero, each as its own line</div>
-            <div className="mt-1 text-[12px] text-ink-3">
+            <div className="mt-1 text-[12.5px] text-ink-2">
               Client invoice due {o.live.clientDueDate ? formatDate(o.live.clientDueDate) : 'date not in Xero'} · Supplier bill due {o.live.billDueDate ? formatDate(o.live.billDueDate) : 'date not in Xero'}
             </div>
             {o.live.clientPayments.length + o.live.billPayments.length === 0 ? (
@@ -233,7 +233,7 @@ function DrawerBody({ order: o, ledger, units, allocation, snapshot, ledgerSnaps
             )}
           </div>
         ) : (
-          <p className="border-t border-line px-4 py-2.5 text-[12px] text-ink-3">
+          <p className="border-t border-line px-4 py-2.5 text-[12.5px] text-ink-2">
             Individual payment records are not in the ledger. Only the outstanding balance as of {snapshot} is known; each payment will show as its own line once Xero is connected.
           </p>
         )}
@@ -258,7 +258,7 @@ function DrawerBody({ order: o, ledger, units, allocation, snapshot, ledgerSnaps
               ))}
             </ul>
           )}
-          <p className="border-t border-line px-4 py-2 text-[11.5px] text-ink-3">Flags and overdue days are as recorded in the ledger on {ledgerSnapshot} and are not recalculated.</p>
+          <p className="border-t border-line px-4 py-2 text-[12px] text-ink-3">Flags and overdue days are as recorded in the ledger on {ledgerSnapshot} and are not recalculated.</p>
         </section>
       )}
     </div>

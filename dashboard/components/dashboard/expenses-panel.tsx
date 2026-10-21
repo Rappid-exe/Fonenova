@@ -14,13 +14,11 @@ import { cn } from '@/lib/utils'
 
 type Tab = ExpenseClass | 'all'
 
-const TONE: Record<ExpenseClass, 'gain' | 'warn' | 'neutral'> = { business: 'gain', review: 'warn', personal: 'neutral' }
-
 export function ExpensesPanel({ log, overrides, overheads, range, error, writable }: {
   log: ExpenseLog | null
   overrides: ExpenseOverrides
   overheads: Overhead[]
-  range: DateRange
+  range: DateRange | null
   error: string | null
   writable: boolean
 }) {
@@ -39,10 +37,13 @@ export function ExpensesPanel({ log, overrides, overheads, range, error, writabl
     return v === null ? shown : `${shown} (${fmtMoney(v, currency)})`
   }
 
-  async function setClass(id: string, autoCls: ExpenseClass, cls: ExpenseClass) {
+  /** Decide one row or a whole group at once; a choice equal to the automatic one clears the override. */
+  async function setClass(rows: { id: string; autoCls: ExpenseClass }[], cls: ExpenseClass) {
     const next = { ...local }
-    if (cls === autoCls) delete next[id]
-    else next[id] = cls
+    for (const r of rows) {
+      if (cls === r.autoCls) delete next[r.id]
+      else next[r.id] = cls
+    }
     setLocal(next)
     setSaveError(null)
     const res = await fetch('/api/expense-overrides', { method: 'PUT', headers: { 'content-type': 'application/json' }, body: JSON.stringify(next) }).catch(() => null)
@@ -56,7 +57,7 @@ export function ExpensesPanel({ log, overrides, overheads, range, error, writabl
   if (!log) {
     return (
       <section aria-labelledby="exp-title" className="rounded-lg border border-line bg-surface px-4 py-3">
-        <h2 id="exp-title" className="flex items-center gap-1.5 text-[14px] font-semibold text-ink"><Receipt className="h-4 w-4 text-ink-3" aria-hidden />Expenses</h2>
+        <h2 id="exp-title" className="flex items-center gap-1.5 text-[15px] font-semibold text-ink"><Receipt className="h-4 w-4 text-ink-3" aria-hidden />Expenses</h2>
         <p className="mt-1 text-[12.5px] text-ink-3">
           {error ?? 'No expense log imported yet.'} Run <code>npm.cmd run import-expenses -- &quot;path\to\VAT Return From Sept-Dec, 2026.xlsx&quot;</code>.
         </p>
@@ -66,14 +67,21 @@ export function ExpensesPanel({ log, overrides, overheads, range, error, writabl
 
   const rows = tab === 'all' ? s.rows : s.rows.filter((r) => r.cls === tab)
   const count = (c: ExpenseClass) => s.rows.filter((r) => r.cls === c).length
+  // Rows still to decide, grouped by why they need a decision (biggest first).
+  const groups = [...rows.filter((r) => r.cls === 'review').reduce((m, r) => {
+    const g = m.get(r.auto.category) ?? { category: r.auto.category, reason: r.auto.reason, rows: [] as typeof rows, cents: 0 }
+    g.rows.push(r)
+    g.cents += r.expense.amountCents
+    return m.set(r.auto.category, g)
+  }, new Map<string, { category: string; reason: string; rows: typeof rows; cents: number }>()).values()].sort((a, b) => b.cents - a.cents)
 
   return (
     <section aria-labelledby="exp-title" className="rounded-lg border border-line bg-surface">
       <div className="flex flex-wrap items-start justify-between gap-2 border-b border-line px-4 py-3">
         <div>
-          <h2 id="exp-title" className="flex items-center gap-1.5 text-[14px] font-semibold text-ink"><Receipt className="h-4 w-4 text-ink-3" aria-hidden />Expenses</h2>
-          <p className="text-[12px] text-ink-3">
-            From {log.meta.parts ? log.meta.parts.map((p) => p.sourceFile).join(' and ') : log.meta.sourceFile}{s.coverage ? `, ${formatDate(s.coverage.start)} to ${formatDate(s.coverage.end)}` : ''}, imported {formatDate(log.meta.importedAt.slice(0, 10))}.{log.meta.overlapDropped ? ` ${log.meta.overlapDropped} row${log.meta.overlapDropped > 1 ? 's' : ''} in both files counted once, from the newer tracker.` : ''} Only Business rows come off net profit. Change any row with its dropdown.
+          <h2 id="exp-title" className="flex items-center gap-1.5 text-[15px] font-semibold text-ink"><Receipt className="h-4 w-4 text-ink-3" aria-hidden />Expenses</h2>
+          <p className="mt-0.5 text-[13px] leading-snug text-ink-2">
+            From {log.meta.parts ? log.meta.parts.map((p) => p.sourceFile).join(' and ') : log.meta.sourceFile}{s.coverage ? `, ${formatDate(s.coverage.start)} to ${formatDate(s.coverage.end)}` : ''}, imported {formatDate(log.meta.importedAt.slice(0, 10))}.{log.meta.overlapDropped ? ` ${log.meta.overlapDropped} row${log.meta.overlapDropped > 1 ? 's' : ''} in both files counted once, from the newer tracker.` : ''} Only Business rows come off net profit.
           </p>
         </div>
       </div>
@@ -86,7 +94,7 @@ export function ExpensesPanel({ log, overrides, overheads, range, error, writabl
           ['Already in overheads', s.coveredByOverheadCents, 'text-ink-3'],
         ].map(([k, v, c]) => (
           <div key={k as string} className="bg-surface px-4 py-2.5">
-            <dt className="text-[11.5px] text-ink-3">{k}</dt>
+            <dt className="text-[12px] text-ink-3">{k}</dt>
             <dd className={cn('mt-0.5 text-[15px] font-semibold', c as string)}>{gbp(v as number)}</dd>
           </div>
         ))}
@@ -121,6 +129,29 @@ export function ExpensesPanel({ log, overrides, overheads, range, error, writabl
           { value: 'all', label: `All (${s.rows.length})` },
         ]} />
       </div>
+
+      {tab === 'review' && groups.length > 0 && (
+        <div className="border-t border-line">
+          <p className="px-4 pt-3 text-[13px] text-ink-2">Decide a whole group at once, or change single rows in the table below.</p>
+          <ul className="divide-y divide-line">
+            {groups.map((g) => {
+              const ids = g.rows.map((r) => ({ id: r.expense.id, autoCls: r.auto.cls }))
+              return (
+                <li key={g.category} className="flex flex-wrap items-center gap-x-4 gap-y-2 px-4 py-2.5">
+                  <div className="min-w-0 flex-1 basis-64">
+                    <div className="text-[13.5px] font-medium text-ink">{g.category} <span className="font-normal text-ink-2">· {g.rows.length} row{g.rows.length > 1 ? 's' : ''} · {fmtMoney(g.cents, 'GBP')}</span></div>
+                    <div className="text-[12.5px] text-ink-2">{g.reason}</div>
+                  </div>
+                  <div className="flex gap-1.5">
+                    <button type="button" disabled={!writable} onClick={() => setClass(ids, 'business')} className="h-8 rounded-md border border-gain/30 bg-gain-soft px-3 text-[12.5px] font-medium text-gain hover:border-gain/60 disabled:opacity-50">All business</button>
+                    <button type="button" disabled={!writable} onClick={() => setClass(ids, 'personal')} className="h-8 rounded-md border border-line bg-surface px-3 text-[12.5px] font-medium text-ink-2 hover:border-line-strong disabled:opacity-50">All personal</button>
+                  </div>
+                </li>
+              )
+            })}
+          </ul>
+        </div>
+      )}
 
       <div className="relative max-h-[520px] overflow-auto border-t border-line">
         <table className="w-full min-w-[860px] text-[12.5px]">
@@ -157,11 +188,10 @@ export function ExpensesPanel({ log, overrides, overheads, range, error, writabl
                       className="h-8 rounded-md border border-line bg-surface px-2 text-[12.5px] text-ink"
                       value={r.cls}
                       disabled={!writable}
-                      onChange={(e) => setClass(r.expense.id, r.auto.cls, e.target.value as ExpenseClass)}
+                      onChange={(e) => setClass([{ id: r.expense.id, autoCls: r.auto.cls }], e.target.value as ExpenseClass)}
                     >
                       {(['business', 'review', 'personal'] as ExpenseClass[]).map((c) => <option key={c} value={c}>{CLASS_LABEL[c]}</option>)}
                     </select>
-                    <Badge tone={TONE[r.cls]} className="hidden sm:inline-flex">{CLASS_LABEL[r.cls]}</Badge>
                   </div>
                 </td>
               </tr>

@@ -16,8 +16,8 @@ export function ConcentrationPanel({ shares, highlightId, customerOrder }: { sha
   return (
     <section aria-labelledby="conc-title" className="h-full rounded-lg border border-line bg-surface">
       <div className="border-b border-line px-4 py-3">
-        <h2 id="conc-title" className="text-[14px] font-semibold text-ink">Customer concentration</h2>
-        <p className="text-[12px] text-ink-3">Share of sales and gross profit in the period, across all customers.</p>
+        <h2 id="conc-title" className="text-[15px] font-semibold text-ink">Customer concentration</h2>
+        <p className="mt-0.5 text-[13px] leading-snug text-ink-2">Share of sales and gross profit in the period, across all customers.</p>
       </div>
       {!top ? (
         <p className="px-4 py-10 text-center text-[13px] text-ink-3">No orders in this period.</p>
@@ -43,7 +43,7 @@ export function ConcentrationPanel({ shares, highlightId, customerOrder }: { sha
                     <span className="h-2.5 w-2.5 shrink-0 rounded-sm" style={{ background: colorOf(s.customerId) }} aria-hidden />
                     <span className="truncate">{s.customerName}</span>
                   </span>
-                  <span className="shrink-0 text-[12px] text-ink-3">{plural(s.orderCount, 'order')} · margin {pct(s.marginRatio)}</span>
+                  <span className="shrink-0 text-[12.5px] text-ink-2">{plural(s.orderCount, 'order')} · margin {pct(s.marginRatio)}</span>
                 </div>
                 <div className="mt-1.5 grid grid-cols-[44px_1fr_auto] items-center gap-x-2 gap-y-1 text-[12px]">
                   <span className="text-ink-3">Sales</span>

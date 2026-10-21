@@ -864,3 +864,39 @@ export function customerRows(orders: readonly Order[], units: Map<string, number
 export function supplierRows(orders: readonly Order[], units: Map<string, number>, notes: readonly CreditNote[], range: DateRange | null): PartyRow[] {
   return partyRows(orders, units, notes, range, 'supplier', (o) => ({ id: o.supplierId, name: o.supplierName }))
 }
+
+// ---------------------------------------------------------------------------
+// Overdue client invoices (Overview headline)
+// ---------------------------------------------------------------------------
+
+export interface Overdue {
+  totalCents: Cents
+  count: number
+  oldest: { orderId: string; customerName: string; days: number } | null
+}
+
+/**
+ * Client invoices still owed and past due. Uses Xero's live due date when the order has one,
+ * else the ledger's own "Client overdue N days" flag, which is as of the ledger snapshot.
+ */
+export function overdueClients(orders: readonly Order[], today: IsoDate): Overdue {
+  let totalCents = 0
+  let count = 0
+  let oldest: Overdue['oldest'] = null
+  for (const o of orders) {
+    if (!o.clientOwesCents || o.clientOwesCents <= 0) continue
+    let days: number | null = null
+    if (o.live?.clientDueDate) {
+      const d = Math.round((Date.parse(today) - Date.parse(o.live.clientDueDate)) / 86_400_000)
+      days = d > 0 ? d : null
+    } else {
+      const m = o.flags.map((f) => /client overdue (\d+) days?/i.exec(f)).find(Boolean)
+      days = m ? Number(m[1]) : null
+    }
+    if (days === null) continue
+    totalCents += o.clientOwesCents
+    count++
+    if (!oldest || days > oldest.days) oldest = { orderId: o.id, customerName: o.customerName, days }
+  }
+  return { totalCents, count, oldest }
+}

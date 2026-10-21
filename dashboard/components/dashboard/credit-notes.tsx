@@ -18,8 +18,8 @@ export function CreditNotesTable({ notes, periodLabel, onOpenOrder }: { notes: C
     <section aria-labelledby="cn-title" className="rounded-lg border border-line bg-surface">
       <div className="flex flex-wrap items-start justify-between gap-3 border-b border-line px-4 py-3">
         <div>
-          <h2 id="cn-title" className="text-[14px] font-semibold text-ink">Credit notes <span className="ml-1 text-ink-3">{notes.length}</span></h2>
-          <p className="text-[12px] text-ink-3">
+          <h2 id="cn-title" className="text-[15px] font-semibold text-ink">Credit notes <span className="ml-1 text-ink-3">{notes.length}</span></h2>
+          <p className="mt-0.5 text-[13px] leading-snug text-ink-2">
             {periodLabel}, by the credit note&apos;s own date. Issued to customers {money(issued)}, received from suppliers {money(received)}, net effect on profit {money(received - issued, { sign: true })}.
           </p>
         </div>

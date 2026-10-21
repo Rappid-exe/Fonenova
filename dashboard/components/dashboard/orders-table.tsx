@@ -41,7 +41,7 @@ function Th({ k, children, right, className, sort, setSort }: { k: SortKey; chil
   const active = sort.key === k
   const Icon = !active ? ArrowUpDown : sort.dir === 'asc' ? ArrowUp : ArrowDown
   return (
-    <th scope="col" aria-sort={active ? (sort.dir === 'asc' ? 'ascending' : 'descending') : 'none'} className={cn('whitespace-nowrap px-3 py-2 font-medium', right ? 'text-right' : 'text-left', className)}>
+    <th scope="col" aria-sort={active ? (sort.dir === 'asc' ? 'ascending' : 'descending') : 'none'} className={cn('whitespace-nowrap px-2.5 py-2 font-medium', right ? 'text-right' : 'text-left', className)}>
       <button
         type="button"
         onClick={() => setSort((s) => ({ key: k, dir: s.key === k ? (s.dir === 'asc' ? 'desc' : 'asc') : k === 'id' || k === 'customer' ? 'asc' : 'desc' }))}
@@ -119,8 +119,8 @@ export function OrdersTable({
     <section aria-labelledby="orders-title" className="rounded-lg border border-line bg-surface">
       <div className="flex flex-col gap-3 border-b border-line px-4 py-3">
         <div className="flex flex-wrap items-baseline justify-between gap-2">
-          <h2 id="orders-title" className="text-[14px] font-semibold text-ink">Orders</h2>
-          <span className="text-[12px] text-ink-3" aria-live="polite">
+          <h2 id="orders-title" className="text-[15px] font-semibold text-ink">Orders</h2>
+          <span className="text-[12.5px] text-ink-2" aria-live="polite">
             Showing {count(rows.length)} of {count(orders.length)} in this period ({count(totalInLedger)} in ledger)
           </span>
         </div>
@@ -166,23 +166,21 @@ export function OrdersTable({
         </div>
       </div>
 
-      <div className="relative overflow-x-auto">
-        <table className="w-full min-w-[1180px] text-[12.5px]">
+      <div className="relative max-h-[72vh] overflow-auto">
+        <table className="w-full min-w-[760px] text-[13px]">
           <caption className="sr-only">Orders in the selected period. Select a row to see both invoices.</caption>
-          <thead className="bg-subtle text-ink-3">
+          <thead className="sticky top-0 z-20 bg-subtle text-ink-2 shadow-[0_1px_0_var(--color-line)]">
             <tr>
               <Th sort={sort} setSort={setSort} k="id" className="sticky left-0 z-10 bg-subtle pl-4">Order</Th>
               <Th sort={sort} setSort={setSort} k="date">Date</Th>
               <Th sort={sort} setSort={setSort} k="customer">Customer</Th>
-              <th scope="col" className="px-3 py-2 text-left font-medium">Client inv.</th>
-              <th scope="col" className="px-3 py-2 text-left font-medium">Supplier inv.</th>
-              <Th sort={sort} setSort={setSort} k="units" right>Units</Th>
+              <Th sort={sort} setSort={setSort} k="units" right className="hidden min-[1500px]:table-cell">Units</Th>
               <Th sort={sort} setSort={setSort} k="sales" right>Sales</Th>
-              <Th sort={sort} setSort={setSort} k="cost" right>Cost</Th>
+              <Th sort={sort} setSort={setSort} k="cost" right className="hidden min-[1400px]:table-cell">Cost</Th>
               <Th sort={sort} setSort={setSort} k="profit" right>Gross profit</Th>
               <Th sort={sort} setSort={setSort} k="margin" right>Margin</Th>
-              <th scope="col" className="px-3 py-2 text-left font-medium">Client status</th>
-              <th scope="col" className="px-3 py-2 pr-4 text-left font-medium">Flags</th>
+              <th scope="col" className="px-2.5 py-2 text-left font-medium">Client</th>
+              <th scope="col" className="px-2.5 py-2 pr-4 text-left font-medium">Flags</th>
             </tr>
           </thead>
           <tbody>
@@ -202,29 +200,34 @@ export function OrdersTable({
                     band === 'loss' && 'bg-loss-soft/50 hover:bg-loss-soft',
                   )}
                 >
-                  <td className={cn('sticky left-0 z-10 whitespace-nowrap px-3 py-2 pl-4 font-medium text-ink group-hover:bg-subtle group-focus-visible:bg-accent-soft', band === 'loss' ? 'bg-loss-soft' : 'bg-surface')}>
+                  <td className={cn('sticky left-0 z-10 whitespace-nowrap px-2.5 py-2 pl-4 font-medium text-ink group-hover:bg-subtle group-focus-visible:bg-accent-soft', band === 'loss' ? 'bg-loss-soft' : 'bg-surface')}>
                     <span className={cn('mr-2 inline-block h-3.5 w-[3px] translate-y-0.5 rounded-full', band === 'loss' ? 'bg-loss' : band === 'thin' ? 'bg-warn' : 'bg-transparent')} aria-hidden />
                     {o.id}
                   </td>
-                  <td className="whitespace-nowrap px-3 py-2 text-ink-2">{formatDate(o.date)}</td>
-                  <td className="max-w-[180px] truncate px-3 py-2 text-ink">{o.customerName}</td>
-                  <td className="whitespace-nowrap px-3 py-2 text-ink-2">{o.clientInvoiceNo}</td>
-                  <td className="whitespace-nowrap px-3 py-2 text-ink-2">{o.supplierInvoiceNo}</td>
-                  <td className="num px-3 py-2">{count(units.get(o.id) ?? 0)}</td>
-                  <td className="num px-3 py-2">{money(o.clientTotalCents)}</td>
-                  <td className="num px-3 py-2 text-ink-2">{money(o.supplierTotalCents)}</td>
-                  <td className={cn('num px-3 py-2 font-semibold', o.grossMarginCents < 0 ? 'text-loss' : 'text-ink')}>{money(o.grossMarginCents)}</td>
-                  <td className="num px-3 py-2">
+                  <td className="whitespace-nowrap px-2.5 py-2 text-ink-2">{formatDate(o.date)}</td>
+                  <td className="max-w-[150px] truncate whitespace-nowrap px-2.5 py-2 text-ink">{o.customerName}</td>
+                  <td className="num hidden px-2.5 py-2 min-[1500px]:table-cell">{count(units.get(o.id) ?? 0)}</td>
+                  <td className="num px-2.5 py-2">{money(o.clientTotalCents)}</td>
+                  <td className="num hidden px-2.5 py-2 text-ink-2 min-[1400px]:table-cell">{money(o.supplierTotalCents)}</td>
+                  <td className={cn('num px-2.5 py-2 font-semibold', o.grossMarginCents < 0 ? 'text-loss' : 'text-ink')}>{money(o.grossMarginCents)}</td>
+                  <td className="num px-2.5 py-2">
                     <span className={cn('font-medium', band === 'loss' ? 'text-loss' : band === 'thin' ? 'text-warn' : 'text-ink')}>{pct(m)}</span>
                     {band === 'loss' && <span className="sr-only"> (loss)</span>}
                     {band === 'thin' && <span className="sr-only"> (under 0.5%)</span>}
                   </td>
-                  <td className="px-3 py-2"><Badge tone={st.tone}>{st.label}</Badge></td>
-                  <td className="px-3 py-2 pr-4">
-                    <div className="flex max-w-[300px] flex-wrap gap-1">
-                      {o.flags.slice(0, 2).map((f) => <Badge key={f} tone={flagTone(f)} title={f} className="max-w-[180px] truncate">{f}</Badge>)}
-                      {o.flags.length > 2 && <Badge tone="outline" title={o.flags.slice(2).join('; ')}>+{o.flags.length - 2}</Badge>}
-                    </div>
+                  <td className="whitespace-nowrap px-2.5 py-2">
+                    <span className="inline-flex items-center gap-1.5 text-ink-2">
+                      <span className={cn('h-2 w-2 rounded-full', st.tone === 'gain' ? 'bg-gain' : st.tone === 'warn' ? 'bg-warn' : st.tone === 'loss' ? 'bg-loss' : 'bg-line-strong')} aria-hidden />
+                      {st.label}
+                    </span>
+                  </td>
+                  <td className="px-2.5 py-2 pr-4">
+                    {o.flags.length > 0 && (
+                      <span className="flex items-center gap-1" title={o.flags.join('\n')}>
+                        <Badge tone={flagTone(o.flags[0])} className="max-w-[150px] truncate">{o.flags[0]}</Badge>
+                        {o.flags.length > 1 && <Badge tone="outline">+{o.flags.length - 1}</Badge>}
+                      </span>
+                    )}
                   </td>
                 </tr>
               )
