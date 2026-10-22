@@ -11,13 +11,14 @@ import type { Customer, InvoiceStatus, LedgerException, Order } from '@/lib/type
 import { cn } from '@/lib/utils'
 
 type SortKey = 'id' | 'date' | 'customer' | 'units' | 'sales' | 'cost' | 'profit' | 'margin'
-type QuickFilter = 'loss' | 'thin' | 'flagged' | 'exception'
+type QuickFilter = 'loss' | 'thin' | 'flagged' | 'exception' | 'unmatched'
 
 const QUICK: { id: QuickFilter; label: string }[] = [
   { id: 'loss', label: 'Loss-making' },
   { id: 'thin', label: 'Margin under 0.5%' },
   { id: 'flagged', label: 'Flagged' },
   { id: 'exception', label: 'In Exceptions' },
+  { id: 'unmatched', label: 'Not in Xero' },
 ]
 
 export function statusLabel(s: InvoiceStatus): { label: string; tone: 'gain' | 'warn' | 'loss' | 'neutral' } {
@@ -90,6 +91,7 @@ export function OrdersTable({
       if (quick.has('thin') && band !== 'thin') return false
       if (quick.has('flagged') && o.flags.length === 0) return false
       if (quick.has('exception') && !exceptionOrders.has(o.id)) return false
+      if (quick.has('unmatched') && o.clientStatus !== 'NOT_IN_XERO' && o.supplierStatus !== 'NOT_IN_XERO') return false
       if (!needle) return true
       return [o.id, o.customerName, o.clientInvoiceNo, o.supplierInvoiceNo, ...o.flags].some((s) => s.toLowerCase().includes(needle))
     })
@@ -174,9 +176,10 @@ export function OrdersTable({
               <Th sort={sort} setSort={setSort} k="id" className="sticky left-0 z-10 bg-subtle pl-4">Order</Th>
               <Th sort={sort} setSort={setSort} k="date">Date</Th>
               <Th sort={sort} setSort={setSort} k="customer">Customer</Th>
+              <th scope="col" className="whitespace-nowrap px-2.5 py-2 text-left font-medium">Invoice / bill</th>
               <Th sort={sort} setSort={setSort} k="units" right className="hidden min-[1500px]:table-cell">Units</Th>
               <Th sort={sort} setSort={setSort} k="sales" right>Sales</Th>
-              <Th sort={sort} setSort={setSort} k="cost" right className="hidden min-[1400px]:table-cell">Cost</Th>
+              <Th sort={sort} setSort={setSort} k="cost" right className="hidden min-[1600px]:table-cell">Cost</Th>
               <Th sort={sort} setSort={setSort} k="profit" right>Gross profit</Th>
               <Th sort={sort} setSort={setSort} k="margin" right>Margin</Th>
               <th scope="col" className="px-2.5 py-2 text-left font-medium">Client</th>
@@ -205,10 +208,14 @@ export function OrdersTable({
                     {o.id}
                   </td>
                   <td className="whitespace-nowrap px-2.5 py-2 text-ink-2">{formatDate(o.date)}</td>
-                  <td className="max-w-[150px] truncate whitespace-nowrap px-2.5 py-2 text-ink">{o.customerName}</td>
+                  <td className="max-w-[140px] truncate whitespace-nowrap px-2.5 py-2 text-ink" title={o.customerName}>{o.customerName}</td>
+                  <td className="whitespace-nowrap px-2.5 py-1.5 leading-tight">
+                    <div className={cn('text-[12.5px]', o.clientStatus === 'NOT_IN_XERO' ? 'text-loss' : 'text-ink')} title={`Client invoice${o.clientStatus === 'NOT_IN_XERO' ? ' (not in Xero)' : ''}`}>{o.clientInvoiceNo || '–'}</div>
+                    <div className={cn('text-[12px]', o.supplierStatus === 'NOT_IN_XERO' ? 'text-loss' : 'text-ink-3')} title={`Supplier bill${o.supplierStatus === 'NOT_IN_XERO' ? ' (not in Xero)' : ''}`}>{o.supplierInvoiceNo || '–'}</div>
+                  </td>
                   <td className="num hidden px-2.5 py-2 min-[1500px]:table-cell">{count(units.get(o.id) ?? 0)}</td>
                   <td className="num px-2.5 py-2">{money(o.clientTotalCents)}</td>
-                  <td className="num hidden px-2.5 py-2 text-ink-2 min-[1400px]:table-cell">{money(o.supplierTotalCents)}</td>
+                  <td className="num hidden px-2.5 py-2 text-ink-2 min-[1600px]:table-cell">{money(o.supplierTotalCents)}</td>
                   <td className={cn('num px-2.5 py-2 font-semibold', o.grossMarginCents < 0 ? 'text-loss' : 'text-ink')}>{money(o.grossMarginCents)}</td>
                   <td className="num px-2.5 py-2">
                     <span className={cn('font-medium', band === 'loss' ? 'text-loss' : band === 'thin' ? 'text-warn' : 'text-ink')}>{pct(m)}</span>
@@ -218,13 +225,13 @@ export function OrdersTable({
                   <td className="whitespace-nowrap px-2.5 py-2">
                     <span className="inline-flex items-center gap-1.5 text-ink-2">
                       <span className={cn('h-2 w-2 rounded-full', st.tone === 'gain' ? 'bg-gain' : st.tone === 'warn' ? 'bg-warn' : st.tone === 'loss' ? 'bg-loss' : 'bg-line-strong')} aria-hidden />
-                      {st.label}
+                      {o.clientStatus === 'AUTHORISED' ? 'Unpaid' : st.label}
                     </span>
                   </td>
                   <td className="px-2.5 py-2 pr-4">
                     {o.flags.length > 0 && (
                       <span className="flex items-center gap-1" title={o.flags.join('\n')}>
-                        <Badge tone={flagTone(o.flags[0])} className="max-w-[150px] truncate">{o.flags[0]}</Badge>
+                        <Badge tone={flagTone(o.flags[0])} className="max-w-[130px]"><span className="truncate">{o.flags[0]}</span></Badge>
                         {o.flags.length > 1 && <Badge tone="outline">+{o.flags.length - 1}</Badge>}
                       </span>
                     )}
