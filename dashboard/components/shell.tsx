@@ -1,6 +1,6 @@
 'use client'
 import { useState } from 'react'
-import { AlertTriangle, BarChart3, Building2, FileMinus2, LayoutDashboard, LogOut, Menu, Package, Receipt, Settings, Users } from 'lucide-react'
+import { AlertTriangle, BarChart3, Building2, FileMinus2, LayoutDashboard, Link2, LogOut, Menu, Package, Receipt, Settings, Users } from 'lucide-react'
 import { Sheet } from '@/components/ui/sheet'
 import { useSection, type Section } from '@/lib/sections'
 import { cn } from '@/lib/utils'
@@ -11,6 +11,7 @@ const GROUPS: { title: string | null; items: Item[] }[] = [
   { title: null, items: [{ id: 'overview', label: 'Overview', icon: LayoutDashboard }] },
   { title: 'Sales', items: [
     { id: 'orders', label: 'Orders', icon: Package },
+    { id: 'matching', label: 'Invoice matching', icon: Link2 },
     { id: 'customers', label: 'Customers', icon: Users },
     { id: 'credit-notes', label: 'Credit notes', icon: FileMinus2 },
   ] },

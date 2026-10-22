@@ -9,8 +9,8 @@
 import 'server-only'
 import crypto from 'node:crypto'
 import { getJson, getStore, storeWritable } from '../store'
-import { mapBankSummary, mapInvoice } from './map'
-import type { XeroInvoice, XeroSnapshot } from '../types'
+import { mapBankSummary, mapCreditNote, mapInvoice } from './map'
+import type { XeroCreditNote, XeroInvoice, XeroSnapshot } from '../types'
 
 const AUTHORIZE_URL = 'https://login.xero.com/identity/connect/authorize'
 const TOKEN_URL = 'https://identity.xero.com/connect/token'
@@ -169,6 +169,22 @@ export async function refreshSnapshot(c: XeroConfig, sinceIso = '2026-01-01'): P
     if (batch.length < 100) break
   }
 
+  // Credit notes: optional. A missing permission is reported, never fatal.
+  const creditNotes: XeroCreditNote[] = []
+  for (let page = 1; page <= 20; page++) {
+    const r = await get(t, `/CreditNotes?where=${where}&page=${page}`)
+    if (!r.ok) {
+      problems.push(r.problem)
+      break
+    }
+    const batch = (r.json.CreditNotes as Record<string, unknown>[] | undefined) ?? []
+    for (const j of batch) {
+      const cn = mapCreditNote(j)
+      if (cn) creditNotes.push(cn)
+    }
+    if (batch.length < 100) break
+  }
+
   let bankBalances: XeroSnapshot['bankBalances'] = null
   const today = new Date().toISOString().slice(0, 10)
   const b = await get(t, `/Reports/BankSummary?toDate=${today}`)
@@ -180,7 +196,7 @@ export async function refreshSnapshot(c: XeroConfig, sinceIso = '2026-01-01'): P
     problems.push(b.problem)
   }
 
-  const snapshot: XeroSnapshot = { fetchedAt: new Date().toISOString(), tenantName: t.tenantName, baseCurrency: c.baseCurrency, invoices, bankBalances, problems }
+  const snapshot: XeroSnapshot = { fetchedAt: new Date().toISOString(), tenantName: t.tenantName, baseCurrency: c.baseCurrency, invoices, creditNotes, bankBalances, problems }
   await getStore().set('xero:snapshot', snapshot)
   return snapshot
 }

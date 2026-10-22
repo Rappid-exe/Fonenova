@@ -8,6 +8,7 @@ import {
 } from '@/lib/metrics'
 import { useSection, type Section } from '@/lib/sections'
 import { PartiesTable } from './parties-table'
+import { MatchingPanel } from './matching'
 import { CreditNotesTable } from './credit-notes'
 import { ChecksList } from './reconcile-badge'
 import {
@@ -23,6 +24,7 @@ import { AutoRefresh } from './auto-refresh'
 import type { SourceStatus } from '@/lib/sync-core'
 import type { OneDriveState, XeroState } from '@/lib/data-source'
 import { matchOrders } from '@/lib/xero/map'
+import { withXero } from '@/lib/xero/pairing'
 import { CurrencyNote, CurrencySwitch } from './currency-switch'
 import { CashPositionPanel } from './cash-position'
 import { ConcentrationPanel } from './concentration'
@@ -62,9 +64,15 @@ export function Dashboard(props: Props) {
   )
 }
 
+function minutesAgo(iso: string): string {
+  const m = Math.max(0, Math.round((Date.now() - Date.parse(iso)) / 60_000))
+  return m < 1 ? 'just refreshed' : m < 60 ? `refreshed ${m} min ago` : `refreshed ${Math.round(m / 60)} h ago`
+}
+
 const TITLES: Record<Section, string> = {
   overview: 'Profit overview',
   orders: 'Orders',
+  matching: 'Invoice matching',
   customers: 'Customers',
   suppliers: 'Suppliers',
   'credit-notes': 'Credit notes',
@@ -82,8 +90,16 @@ function DashboardBody({ ledger: rawLedger, today, overheads, overheadsSaved, ov
     if (!xero.snapshot) return null
     return applyLiveStatus(rawLedger.orders, matchOrders(rawLedger.orders, xero.snapshot.invoices))
   }, [rawLedger, xero.snapshot])
-  const ledger = useMemo(() => (live ? { ...rawLedger, orders: live.orders } : rawLedger), [rawLedger, live])
-  const coverage = useMemo(() => coverageFor(ledger.orders.map((o) => o.date), ledger.meta.snapshotDate), [ledger])
+  // Ledger orders (with Xero's live status), plus orders from confirmed Xero invoice and bill pairs.
+  const merged = useMemo(
+    () => withXero(live ? { ...rawLedger, orders: live.orders } : rawLedger, xero.snapshot, xero.pairs, today),
+    [rawLedger, live, xero.snapshot, xero.pairs, today],
+  )
+  const ledger = merged.ledger
+  const matching = merged.matching
+  // With Xero connected the data is as of its last refresh, not the spreadsheet's snapshot.
+  const asOf = xero.snapshot ? xero.snapshot.fetchedAt.slice(0, 10) : ledger.meta.snapshotDate
+  const coverage = useMemo(() => coverageFor(ledger.orders.map((o) => o.date), asOf), [ledger, asOf])
   const units = useMemo(() => unitsByOrder(ledger.lines), [ledger])
   const allocation = useMemo(() => allocateCredits(ledger.creditNotes), [ledger])
 
@@ -143,6 +159,9 @@ function DashboardBody({ ledger: rawLedger, today, overheads, overheadsSaved, ov
     ? `${formatDate(xero.snapshot.fetchedAt.slice(0, 10))} ${new Date(xero.snapshot.fetchedAt).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })} (live, Xero)`
     : formatDate(ledger.meta.snapshotDate)
 
+  const xeroNote = xero.snapshot
+    ? `Xero ${minutesAgo(xero.snapshot.fetchedAt)}${matching?.suggestions.length ? ` · ${matching.suggestions.length} to match` : ''}`
+    : null
   const xeroBar = (
     <XeroBar sources={sources} xero={xero} summary={live?.summary ?? null} ledgerImported={formatDate(ledger.meta.importedAt.slice(0, 10))} ledgerSnapshot={formatDate(ledger.meta.snapshotDate)} notice={notice} oneDrive={oneDrive} oneDriveNotice={oneDriveNotice} hosted={hosted} />
   )
@@ -165,7 +184,7 @@ function DashboardBody({ ledger: rawLedger, today, overheads, overheadsSaved, ov
       <TopBar
         title={TITLES[section]}
         subtitle={subtitle}
-        status={section === 'settings' ? null : <StatusPill sources={sources} checks={checks}>{xeroBar}</StatusPill>}
+        status={section === 'settings' ? null : <StatusPill sources={sources} checks={checks} note={xeroNote}>{xeroBar}</StatusPill>}
         controls={section === 'settings' ? undefined : (
           <>
             <CurrencySwitch />
@@ -193,7 +212,7 @@ function DashboardBody({ ledger: rawLedger, today, overheads, overheadsSaved, ov
             net={customer ? { status: 'filtered' } : net}
             cash={view.cash}
             overdue={overdue}
-            snapshot={formatDate(ledger.meta.snapshotDate)}
+            snapshot={formatDate(asOf)}
             onSettings={() => go('settings')}
             onExceptions={() => go('exceptions')}
           />
@@ -255,6 +274,10 @@ function DashboardBody({ ledger: rawLedger, today, overheads, overheadsSaved, ov
         />
       )}
 
+      {section === 'matching' && (
+        <MatchingPanel matching={matching} connected={xero.connected} pairs={xero.pairs} orders={ledger.orders} writable={overheadsWritable} onSettings={() => go('settings')} onOpenOrder={setOpenOrderId} />
+      )}
+
       {section === 'customers' && (
         <PartiesTable kind="customer" rows={view.customerRows} periodLabel={`${presetLabel}, ${formatRange(range)}`} onPick={(id) => { setCustomerId(id); go('orders') }} />
       )}
@@ -268,7 +291,7 @@ function DashboardBody({ ledger: rawLedger, today, overheads, overheadsSaved, ov
       )}
 
       {section === 'exceptions' && (
-        <NeedsAttention ledger={ledger} customerId={customer} allocation={allocation} snapshot={formatDate(ledger.meta.snapshotDate)} onOpenOrder={setOpenOrderId} expanded />
+        <NeedsAttention ledger={ledger} customerId={customer} allocation={allocation} snapshot={formatDate(asOf)} onOpenOrder={setOpenOrderId} expanded />
       )}
 
       {section === 'expenses' && (

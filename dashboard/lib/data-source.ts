@@ -15,7 +15,7 @@ import { STARTER_OVERHEADS, validateOverheads } from './overheads'
 import { dataDir, getStore, storeWritable, type ReadResult, type Store } from './store'
 import { oneDriveConfig, oneDriveConnected } from './onedrive'
 import { loadSnapshot, xeroAvailable, xeroConfig, xeroConnected } from './xero/client'
-import type { ExpenseClass, ExpenseLog, ExpenseOverrides, FxResult, Ledger, Overhead, XeroSnapshot } from './types'
+import type { ExpenseClass, ExpenseLog, ExpenseOverrides, FxResult, Ledger, Overhead, XeroPair, XeroSnapshot } from './types'
 
 export type LoadResult =
   | { ok: true; ledger: Ledger }
@@ -189,17 +189,42 @@ export interface XeroState {
   connected: boolean
   tenantName: string | null
   snapshot: XeroSnapshot | null
+  /** Invoice and bill pairs the owner confirmed on the Matching page. */
+  pairs: XeroPair[]
 }
 
 export async function loadXeroState(): Promise<XeroState> {
   const configured = !!xeroConfig() && xeroAvailable()
-  if (!configured) return { configured, connected: false, tenantName: null, snapshot: null }
+  if (!configured) return { configured, connected: false, tenantName: null, snapshot: null, pairs: [] }
   try {
     const { connected, tenantName } = await xeroConnected()
-    return { configured, connected, tenantName, snapshot: connected ? await loadSnapshot() : null }
+    if (!connected) return { configured, connected, tenantName, snapshot: null, pairs: [] }
+    const [snapshot, pairs] = await Promise.all([loadSnapshot(), loadXeroPairs()])
+    return { configured, connected, tenantName, snapshot, pairs }
   } catch {
-    return { configured, connected: false, tenantName: null, snapshot: null } // the sync line says why
+    return { configured, connected: false, tenantName: null, snapshot: null, pairs: [] } // the sync line says why
   }
+}
+
+export function validatePairs(input: unknown): XeroPair[] | null {
+  if (!Array.isArray(input)) return null
+  const out: XeroPair[] = []
+  for (const p of input) {
+    if (!p || typeof p !== 'object') return null
+    const { orderId, invoiceId, billId, confirmedAt } = p as Record<string, unknown>
+    if (typeof orderId !== 'string' || !/^FN-ORD-\d{3,}$/.test(orderId) || typeof invoiceId !== 'string' || typeof billId !== 'string' || typeof confirmedAt !== 'string') return null
+    out.push({ orderId, invoiceId, billId, confirmedAt })
+  }
+  return out
+}
+
+export async function loadXeroPairs(): Promise<XeroPair[]> {
+  const r = await read('xero:pairs')
+  return r.kind === 'ok' ? validatePairs(r.value) ?? [] : []
+}
+
+export async function saveXeroPairs(pairs: XeroPair[]): Promise<void> {
+  await getStore().set('xero:pairs', pairs)
 }
 
 // ---------------------------------------------------------------------------

@@ -61,6 +61,8 @@ export interface Order {
   supplierPdf: DocumentRef
   /** Present when the statuses above come live from Xero rather than the ledger snapshot. */
   live?: LiveOrderFields
+  /** 'xero' for orders built from a confirmed Xero invoice and bill; absent means the ledger. */
+  source?: 'ledger' | 'xero'
 }
 
 export interface LiveOrderFields {
@@ -221,6 +223,38 @@ export interface XeroInvoice {
   amountDueCents: Cents
   amountPaidCents: Cents
   payments: XeroPayment[]
+  /** Line items, when Xero returned them (it does on paged invoice lists). */
+  lines?: XeroLine[]
+}
+
+export interface XeroLine {
+  description: string
+  quantity: number
+  unitCents: Cents
+  /** As Xero shows it on the line (excluding tax for EU zero-rated trade). */
+  amountCents: Cents
+}
+
+export interface XeroCreditNote {
+  id: string
+  number: string
+  reference: string
+  kind: 'sale' | 'bill'
+  status: string
+  contactName: string
+  currency: string
+  date: IsoDate | null
+  totalCents: Cents
+  /** Invoice numbers this credit was allocated against. */
+  allocatedTo: string[]
+}
+
+/** A Xero sales invoice and supplier bill the owner confirmed as one order. */
+export interface XeroPair {
+  orderId: string
+  invoiceId: string
+  billId: string
+  confirmedAt: string
 }
 
 export interface XeroBankBalance {
@@ -234,6 +268,8 @@ export interface XeroSnapshot {
   tenantName: string
   baseCurrency: string
   invoices: XeroInvoice[]
+  /** Absent in snapshots saved before credit notes were read. */
+  creditNotes?: XeroCreditNote[]
   bankBalances: XeroBankBalance[] | null
   /** Parts of the refresh that failed, in plain words (e.g. a missing permission). */
   problems: string[]

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { applyLiveStatus, cashPosition } from '@/lib/metrics'
-import { mapBankSummary, mapInvoice, matchOrders, parseXeroDate } from '@/lib/xero/map'
+import { mapBankSummary, mapCreditNote, mapInvoice, matchOrders, parseXeroDate } from '@/lib/xero/map'
 import type { Order } from '@/lib/types'
 
 const order = (p: Partial<Order>): Order => ({
@@ -73,5 +73,26 @@ describe('matching Xero to ledger orders', () => {
     const { orders, summary } = applyLiveStatus([order({})], matchOrders([order({})], [gbp]))
     expect(orders[0].clientOwesCents).toBe(10000)
     expect(summary.gaps[0].problem).toMatch(/GBP, not EUR/)
+  })
+})
+
+describe('Xero line items and credit notes', () => {
+  it('reads line items when Xero sends them, and leaves them out when it does not', () => {
+    const i = mapInvoice({ ...xSale, LineItems: [
+      { Description: 'IPHONE 15 128GB - USED ', Quantity: 77, UnitAmount: 362.43, LineAmount: 27907.11 },
+      { Description: 'SHIPPING CHARGES', Quantity: 1, UnitAmount: 400, LineAmount: 400 },
+    ] })!
+    expect(i.lines).toEqual([
+      { description: 'IPHONE 15 128GB - USED', quantity: 77, unitCents: 36243, amountCents: 2790711 },
+      { description: 'SHIPPING CHARGES', quantity: 1, unitCents: 40000, amountCents: 40000 },
+    ])
+    expect(mapInvoice(xSale)!.lines).toBeUndefined()
+  })
+  it('maps credit notes both ways, with the invoices they were allocated to', () => {
+    const cn = mapCreditNote({ Type: 'ACCRECCREDIT', CreditNoteID: 'c1', CreditNoteNumber: 'FN-CN-202606', Status: 'AUTHORISED', CurrencyCode: 'EUR',
+      Contact: { Name: 'Wave Phone B.V.' }, Date: '/Date(1784592000000+0000)/', Total: 894, Allocations: [{ Invoice: { InvoiceNumber: '2026009' }, Amount: 894 }] })
+    expect(cn).toMatchObject({ kind: 'sale', number: 'FN-CN-202606', totalCents: 89400, allocatedTo: ['2026009'], date: '2026-07-21' })
+    expect(mapCreditNote({ Type: 'ACCPAYCREDIT', CreditNoteID: 'c2', Total: 1 })!.kind).toBe('bill')
+    expect(mapCreditNote({ Type: 'ACCREC' })).toBeNull()
   })
 })
