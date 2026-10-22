@@ -107,6 +107,16 @@ Local `npm run dev` skips sign-in when `GOOGLE_CLIENT_ID` is unset. Production b
 
 ## Live data from Xero (read-only)
 
+**Xero is the live source of new orders.** Invoice2Go syncs each sent invoice to Xero, and Mobile
+One's bill emails are auto-forwarded from Gmail to Xero's bills inbox. The **Invoice matching**
+page pairs each new Xero sales invoice with its bill: same FN-ORD reference on both pairs them
+automatically; otherwise it suggests the EUR bill dated within 10 days whose total sits a little
+below the invoice (replayed against the 34 ledger orders it picks the right bill 34/34 with bills
+dated within 2 days, and never offers one bill twice). Confirming makes it an order (FN-ORD-035
+onwards) on every page; Unpair undoes it. Pairs are kept in `data/xero/pairs.json` (or the online
+store when hosted). The spreadsheet ledger stays as history for orders up to 4 Oct, and anything
+it already pairs is never counted again. Xero credit notes the ledger does not have are added too.
+
 The dashboard can read invoice statuses, balances still owed, due dates, each payment and bank
 balances from Xero. Sales, costs and the pairing of client and supplier invoices still come from
 the ledger, and the 25 reconciliation checks always run against the untouched ledger.
@@ -175,4 +185,4 @@ Each import is checked against the tracker's own TOTAL row and the status bar sa
 Both trackers are only ever opened for reading.
 If a save cannot be read (still syncing, or the layout changed), the last good import stays on
 screen and the status bar says why. Xero, once connected, refreshes itself when its data is more
-than 30 minutes old. The manual `npm run import` commands still work and read `.env.local` too.
+than 10 minutes old. The manual `npm run import` commands still work and read `.env.local` too.

@@ -8,6 +8,7 @@ import { getDataSource, isHosted, loadExpenses, loadFxRate, loadOneDriveState, l
 import { todayIso } from '@/lib/periods'
 import { attentionItems } from '@/lib/attention'
 import { allocateCredits, expenseSummary } from '@/lib/metrics'
+import { withXero } from '@/lib/xero/pairing'
 
 // Read the ledger on every request so a fresh import shows without a rebuild.
 export const dynamic = 'force-dynamic'
@@ -52,7 +53,9 @@ export default async function Page({ searchParams }: { searchParams: Promise<Rec
   // Work waiting, for the sidebar. Recomputed on every load, so a decided row drops off at once.
   const high = attentionItems(ledger, allocateCredits(ledger.creditNotes)).filter((i) => i.priority === 'HIGH').length
   const toReview = exp.log ? expenseSummary(exp.log, exp.overrides, oh.overheads, null).rows.filter((r) => r.cls === 'review').length : 0
+  const toMatch = withXero(ledger, xero.snapshot, xero.pairs, todayIso()).matching?.suggestions.length ?? 0
   const badges = {
+    matching: { count: toMatch, title: 'invoices to match', tone: 'warn' as const },
     exceptions: { count: high, title: 'high priority', tone: 'loss' as const },
     expenses: { count: toReview, title: 'to review', tone: 'warn' as const },
   }

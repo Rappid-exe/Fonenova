@@ -3,7 +3,7 @@
  * Pure functions: no network, no files, so they are tested with sample Xero responses.
  */
 import { toCents } from '../money'
-import type { IsoDate, LiveOrderStatus, Order, XeroBankBalance, XeroInvoice } from '../types'
+import type { IsoDate, LiveOrderStatus, Order, XeroBankBalance, XeroCreditNote, XeroInvoice, XeroLine } from '../types'
 
 /** Xero sends "/Date(1715558400000+0000)/" or "2026-05-13T00:00:00". */
 export function parseXeroDate(v: unknown): IsoDate | null {
@@ -34,6 +34,35 @@ export function mapInvoice(j: Json): XeroInvoice | null {
     amountDueCents: toCents(j.AmountDue),
     amountPaidCents: toCents(j.AmountPaid),
     payments: payments.map((p) => ({ id: String(p.PaymentID ?? ''), date: parseXeroDate(p.Date), amountCents: toCents(p.Amount) })),
+    ...(Array.isArray(j.LineItems) ? { lines: (j.LineItems as Json[]).map(mapLine) } : {}),
+  }
+}
+
+function mapLine(l: Json): XeroLine {
+  return {
+    description: String(l.Description ?? '').trim(),
+    quantity: Number(l.Quantity ?? 0) || 0,
+    unitCents: toCents(l.UnitAmount ?? 0),
+    amountCents: toCents(l.LineAmount ?? 0),
+  }
+}
+
+/** ACCRECCREDIT is a credit you issued to a customer; ACCPAYCREDIT one a supplier issued to you. */
+export function mapCreditNote(j: Json): XeroCreditNote | null {
+  const type = j.Type
+  if (type !== 'ACCRECCREDIT' && type !== 'ACCPAYCREDIT') return null
+  const allocations = Array.isArray(j.Allocations) ? (j.Allocations as Json[]) : []
+  return {
+    id: String(j.CreditNoteID ?? ''),
+    number: String(j.CreditNoteNumber ?? ''),
+    reference: String(j.Reference ?? ''),
+    kind: type === 'ACCRECCREDIT' ? 'sale' : 'bill',
+    status: String(j.Status ?? ''),
+    contactName: String((j.Contact as Json | undefined)?.Name ?? ''),
+    currency: String(j.CurrencyCode ?? ''),
+    date: parseXeroDate(j.DateString ?? j.Date),
+    totalCents: toCents(j.Total),
+    allocatedTo: allocations.map((a) => String((a.Invoice as Json | undefined)?.InvoiceNumber ?? '')).filter(Boolean),
   }
 }
 

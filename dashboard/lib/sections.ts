@@ -1,7 +1,7 @@
 'use client'
 import { useEffect, useState } from 'react'
 
-export const SECTIONS = ['overview', 'orders', 'customers', 'suppliers', 'credit-notes', 'exceptions', 'expenses', 'settings'] as const
+export const SECTIONS = ['overview', 'orders', 'matching', 'customers', 'suppliers', 'credit-notes', 'exceptions', 'expenses', 'settings'] as const
 export type Section = (typeof SECTIONS)[number]
 
 const parse = (hash: string): Section => {

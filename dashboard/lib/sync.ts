@@ -19,7 +19,7 @@ import type { ExpenseLog, Ledger } from './types'
 export type { SourceStatus }
 
 const THROTTLE_MS = 30_000
-const XERO_MAX_AGE_MS = 30 * 60_000
+const XERO_MAX_AGE_MS = 10 * 60_000
 
 let last: { at: number; result: SourceStatus[] } | null = null
 let running: Promise<SourceStatus[]> | null = null
