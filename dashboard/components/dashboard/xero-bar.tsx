@@ -81,7 +81,7 @@ export function XeroBar({ xero, summary, ledgerImported, ledgerSnapshot, notice,
           ) : (
             <>
               <span className="font-medium text-gain">Connected{oneDrive.accountName ? ` (${oneDrive.accountName})` : ''}</span>
-              {hosted && <span className="text-ink-3">checked on each visit and every hour</span>}
+              {hosted && <span className="text-ink-3">checked on each visit and daily at 06:00 UTC</span>}
               <Button size="sm" variant="ghost" onClick={() => post('/onedrive/disconnect', 'onedrive-disconnect')} disabled={busy !== null}>
                 <Unlink className="h-3.5 w-3.5" aria-hidden />Disconnect
               </Button>

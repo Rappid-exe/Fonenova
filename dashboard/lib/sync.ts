@@ -1,6 +1,6 @@
 /**
  * Automatic sync: re-import the ledger and the VAT tracker when they are saved, and refresh
- * Xero when its snapshot is old. Runs on page load (at most every 30s) and from the hourly
+ * Xero when its snapshot is old. Runs on page load (at most every 30s) and from the daily
  * scheduled job.
  *
  * Files come from this PC when FN_LEDGER_PATH / FN_EXPENSES_DIR are set, otherwise from

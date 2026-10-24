@@ -120,7 +120,7 @@ export async function finishAuth(c: XeroConfig, code: string, verifier: string):
 
 async function validTokens(c: XeroConfig): Promise<Tokens> {
   const store = getStore()
-  // Locked and re-read inside the lock: a page load and the hourly run must not both spend
+  // Locked and re-read inside the lock: a page load and the daily run must not both spend
   // the same single-use refresh token.
   return store.withLock('xero:tokens', async () => {
     const t = await getJson<Tokens>(store, 'xero:tokens')
