@@ -107,6 +107,17 @@ Local `npm run dev` skips sign-in when `GOOGLE_CLIENT_ID` is unset. Production b
 
 ## Live data from Xero (read-only)
 
+**How documents reach Xero.** Two Make.com scenarios create DRAFT documents: "Integration
+Webhooks" (8112915) turns each Invoice2Go invoice into a Xero sales invoice, and "Mobile One
+Bills" (8119866) turns each Mobile One invoice email into a Xero bill. The dashboard lists every
+draft still to approve (Invoice matching page, "Needs doing" on Overview, the status pill) with a
+link into Xero, and, with `MAKE_API_TOKEN` set, shows each scenario's state, last run and
+credits on Settings; a scenario that is off or whose last run failed turns the status pill red.
+
+**Margin-scheme VAT.** A Settings switch (off by default) deducts 1/6 of each order's positive
+margin from net business profit and shows it on its own line. It is an EUR estimate; confirm with
+the accountant that it applies.
+
 **Xero is the live source of new orders.** Invoice2Go syncs each sent invoice to Xero, and Mobile
 One's bill emails are auto-forwarded from Gmail to Xero's bills inbox. The **Invoice matching**
 page pairs each new Xero sales invoice with its bill: same FN-ORD reference on both pairs them

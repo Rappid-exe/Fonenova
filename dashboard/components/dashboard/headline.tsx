@@ -47,7 +47,7 @@ export function Headline({ totals: t, afterCreditsCents, net, cash, overdue, sna
         label="Net business profit"
         value={currency === 'GBP' ? fmtMoney(net.netGbpCents, 'GBP') : fmtMoney(net.netEurCents, 'EUR')}
         tone={v < 0 ? 'loss' : undefined}
-        sub={net.warnings.length ? <span className="text-warn">{net.warnings[0]}</span> : 'After overheads and business expenses'}
+        sub={net.warnings.length ? <span className="text-warn">{net.warnings[0]}</span> : net.marginVatEurCents ? `After margin-scheme VAT (${money(net.marginVatEurCents)}), overheads and business expenses` : 'After overheads and business expenses'}
       />
     )
   } else if (net.status === 'filtered') {

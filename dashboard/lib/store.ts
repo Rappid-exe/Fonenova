@@ -25,6 +25,7 @@ export type StoreKey =
   | 'xero:tokens'
   | 'xero:snapshot'
   | 'xero:pairs'
+  | 'settings'
   | 'onedrive:tokens'
 
 export type ReadResult = { kind: 'ok'; value: unknown } | { kind: 'missing' } | { kind: 'invalid'; message: string }
@@ -57,6 +58,7 @@ const FILES: Record<StoreKey, string> = {
   'xero:tokens': 'xero/tokens.json',
   'xero:snapshot': 'xero/snapshot.json',
   'xero:pairs': 'xero/pairs.json',
+  settings: 'settings.json',
   'onedrive:tokens': 'onedrive/tokens.json',
 }
 

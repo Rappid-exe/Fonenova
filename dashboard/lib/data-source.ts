@@ -293,3 +293,29 @@ export function validateOverrides(input: unknown): ExpenseOverrides | null {
 export async function saveExpenseOverrides(o: ExpenseOverrides): Promise<void> {
   await getStore().set('expense-overrides', o)
 }
+
+// ---------------------------------------------------------------------------
+// Owner settings (Settings page switches)
+// ---------------------------------------------------------------------------
+
+export interface AppSettings {
+  /** Deduct margin-scheme VAT (1/6 of each positive margin) from net profit. Off until the accountant confirms. */
+  marginSchemeVat: boolean
+}
+
+export const DEFAULT_SETTINGS: AppSettings = { marginSchemeVat: false }
+
+export function validateSettings(input: unknown): AppSettings | null {
+  if (!input || typeof input !== 'object') return null
+  const v = (input as Record<string, unknown>).marginSchemeVat
+  return typeof v === 'boolean' ? { marginSchemeVat: v } : null
+}
+
+export async function loadSettings(): Promise<AppSettings> {
+  const r = await read('settings')
+  return r.kind === 'ok' ? validateSettings(r.value) ?? DEFAULT_SETTINGS : DEFAULT_SETTINGS
+}
+
+export async function saveSettings(s: AppSettings): Promise<void> {
+  await getStore().set('settings', s)
+}

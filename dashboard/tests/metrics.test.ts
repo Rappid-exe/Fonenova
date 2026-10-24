@@ -169,3 +169,24 @@ describe('concentration and cash', () => {
     expect(cash.unknownClientBalances).toBe(1)
   })
 })
+
+describe('margin-scheme VAT', () => {
+  it('is 1/6 of each positive margin, with losses not offset', async () => {
+    const { marginSchemeVat } = await import('@/lib/metrics')
+    const o = (grossMarginCents: number) => ({ grossMarginCents }) as never
+    expect(marginSchemeVat([o(600_00), o(-50_00), o(1)])).toBe(100_00)
+    expect(marginSchemeVat([])).toBe(0)
+  })
+  it('comes off net profit only when passed in', async () => {
+    const { netBusinessProfit } = await import('@/lib/metrics')
+    const fx = { base: 'EUR', quote: 'GBP', rate: 0.8, rateDate: '2026-10-20', source: 't', fetchedAt: 't' } as const
+    const office = { id: 'office-rent', name: 'Office rent', amountCents: 1000_00, currency: 'GBP' as const, dayOfMonth: 15, category: 'business' as const, startDate: '2026-01-15', endDate: null }
+    const args = { grossAfterCreditsEurCents: 10_000_00, overheads: [office], range: { start: '2026-09-01', end: '2026-09-30' }, today: '2026-10-20', fx }
+    const off = netBusinessProfit(args)
+    const on = netBusinessProfit({ ...args, marginVatEurCents: 1_000_00 })
+    if (off.status !== 'ok' || on.status !== 'ok') throw new Error('expected ok')
+    expect(off.netEurCents - on.netEurCents).toBe(1_000_00)
+    expect(off.netGbpCents - on.netGbpCents).toBe(800_00)
+    expect(on.marginVatEurCents).toBe(1_000_00)
+  })
+})

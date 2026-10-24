@@ -72,6 +72,7 @@ function NetRow({ net }: { net: NetProfit | { status: 'filtered' } }) {
   const other = currency === 'GBP' ? fmtMoney(net.netEurCents, 'EUR') : fmtMoney(net.netGbpCents, 'GBP')
   const negative = (currency === 'GBP' ? net.netGbpCents : net.netEurCents) < 0
   const parts = [
+    net.marginVatEurCents ? `margin-scheme VAT ${fmtMoney(net.marginVatEurCents, 'EUR')}` : '',
     net.businessOverheads.GBP ? `overheads ${fmtMoney(net.businessOverheads.GBP, 'GBP')}` : '',
     net.businessOverheads.EUR ? `overheads ${fmtMoney(net.businessOverheads.EUR, 'EUR')}` : '',
     net.businessExpensesCents ? `logged business expenses ${fmtMoney(net.businessExpensesCents, 'GBP')}` : '',

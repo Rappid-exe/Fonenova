@@ -262,3 +262,15 @@ export function withXero(ledger: Ledger, snapshot: XeroSnapshot | null, pairs: r
     matching,
   }
 }
+
+/** Synced invoices and bills still waiting for someone to approve them in Xero, newest first. */
+export function draftsAwaiting(snapshot: XeroSnapshot | null): XeroInvoice[] {
+  return (snapshot?.invoices ?? []).filter((i) => i.status === 'DRAFT').sort((a, b) => (b.date ?? '').localeCompare(a.date ?? ''))
+}
+
+/** Where to open a document in Xero. */
+export function xeroLink(i: Pick<XeroInvoice, 'id' | 'kind'>): string {
+  return i.kind === 'sale'
+    ? `https://go.xero.com/AccountsReceivable/Edit.aspx?InvoiceID=${encodeURIComponent(i.id)}`
+    : `https://go.xero.com/AccountsPayable/Edit.aspx?InvoiceID=${encodeURIComponent(i.id)}`
+}

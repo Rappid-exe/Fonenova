@@ -142,3 +142,17 @@ describe('ledger plus Xero', () => {
     expect(withXero(ledger, null, [], '2026-10-21')).toEqual({ ledger, matching: null })
   })
 })
+
+describe('drafts awaiting approval', () => {
+  it('lists drafts of both kinds, newest first, with a Xero link', async () => {
+    const { draftsAwaiting, xeroLink } = await import('@/lib/xero/pairing')
+    const snap = { fetchedAt: 't', tenantName: 'x', baseCurrency: 'GBP', bankBalances: null, problems: [], invoices: [
+      doc({ id: 'a', kind: 'sale', totalCents: 1, status: 'DRAFT', date: '2026-10-20' }),
+      doc({ id: 'b', kind: 'bill', totalCents: 1, status: 'DRAFT', date: '2026-10-22' }),
+      doc({ id: 'c', kind: 'sale', totalCents: 1, status: 'AUTHORISED' }),
+    ] }
+    expect(draftsAwaiting(snap).map((d) => d.id)).toEqual(['b', 'a'])
+    expect(draftsAwaiting(null)).toEqual([])
+    expect(xeroLink({ id: 'b', kind: 'bill' })).toBe('https://go.xero.com/AccountsPayable/Edit.aspx?InvoiceID=b')
+  })
+})
