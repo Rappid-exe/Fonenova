@@ -1,6 +1,7 @@
 'use client'
 import { useState } from 'react'
-import { AlertTriangle, BarChart3, Building2, FileMinus2, LayoutDashboard, Link2, LogOut, Menu, Package, Receipt, Settings, Users } from 'lucide-react'
+import { AlertTriangle, Building2, FileMinus2, LayoutDashboard, Link2, LogOut, Menu, Package, Receipt, Settings, Users } from 'lucide-react'
+import { BrandMark, BrandName } from '@/components/brand'
 import { Sheet } from '@/components/ui/sheet'
 import { useSection, type Section } from '@/lib/sections'
 import { cn } from '@/lib/utils'
@@ -31,12 +32,10 @@ export type NavBadges = Partial<Record<Section, { count: number; title: string; 
 function Wordmark() {
   return (
     <div className="flex items-center gap-2.5">
-      <div className="flex h-7 w-7 items-center justify-center rounded-md bg-white/10 ring-1 ring-white/15">
-        <BarChart3 className="h-4 w-4 text-white" aria-hidden />
-      </div>
+      <BrandMark className="h-7 w-7" />
       <div className="leading-tight">
-        <div className="text-[14px] font-semibold tracking-[-0.01em] text-white">Ledgerline</div>
-        <div className="text-[11px] text-navy-ink/70">by Fone Nova</div>
+        <BrandName dark className="block text-[15px]" />
+        <div className="text-[11px] text-navy-ink/70">Fone Nova Ltd</div>
       </div>
     </div>
   )
