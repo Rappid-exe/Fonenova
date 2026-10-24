@@ -207,15 +207,21 @@ export function buildXeroOrders(args: {
 }
 
 /** Credit notes Xero has that the ledger does not, linked to orders through what they were allocated to. */
-export function xeroCreditNotes(notes: readonly XeroCreditNote[], orders: readonly Order[], ledgerNotes: readonly CreditNote[]): CreditNote[] {
+export function xeroCreditNotes(notes: readonly XeroCreditNote[], orders: readonly Order[], ledgerNotes: readonly CreditNote[], after: IsoDate | null = null): CreditNote[] {
   const known = new Set(ledgerNotes.map((n) => n.number.toLowerCase()))
+  // Xero may number the ledger's own credits differently, so also treat a credit with the same
+  // side, amount and (near) date as the same one.
+  const sameAsLedger = (n: XeroCreditNote) =>
+    ledgerNotes.some((l) => l.side === (n.kind === 'sale' ? 'client' : 'supplier') && Math.abs(l.amountCents - n.totalCents) <= 1 && (!n.date || !l.date || Math.abs(Date.parse(l.date) - Date.parse(n.date)) <= 7 * 86_400_000))
   const byInvoice = new Map<string, string>()
   for (const o of orders) {
     if (o.clientInvoiceNo) byInvoice.set(`sale:${o.clientInvoiceNo.toLowerCase()}`, o.id)
     if (o.supplierInvoiceNo) byInvoice.set(`bill:${o.supplierInvoiceNo.toLowerCase()}`, o.id)
   }
   return notes
-    .filter((n) => n.currency === 'EUR' && ['AUTHORISED', 'PAID'].includes(n.status) && !known.has(n.number.toLowerCase()))
+    .filter((n) => n.currency === 'EUR' && ['AUTHORISED', 'PAID'].includes(n.status) && !known.has(n.number.toLowerCase()) && !sameAsLedger(n))
+    // The ledger is the record up to its snapshot; only credits after it are new.
+    .filter((n) => !after || (n.date !== null && n.date > after))
     .map((n) => {
       const orderIds = [...new Set(n.allocatedTo.map((no) => byInvoice.get(`${n.kind}:${no.toLowerCase()}`)).filter(Boolean) as string[])]
       return {
@@ -257,7 +263,7 @@ export function withXero(ledger: Ledger, snapshot: XeroSnapshot | null, pairs: r
       lines: [...ledger.lines, ...built.lines],
       customers: addParties(ledger.customers, built.orders.map((o) => ({ id: o.customerId, name: o.customerName }))),
       suppliers: addParties(ledger.suppliers, built.orders.map((o) => ({ id: o.supplierId, name: o.supplierName }))),
-      creditNotes: [...ledger.creditNotes, ...xeroCreditNotes(snapshot.creditNotes ?? [], orders, ledger.creditNotes)],
+      creditNotes: [...ledger.creditNotes, ...xeroCreditNotes(snapshot.creditNotes ?? [], orders, ledger.creditNotes, ledger.meta.snapshotDate)],
     },
     matching,
   }
