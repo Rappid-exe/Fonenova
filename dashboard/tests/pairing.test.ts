@@ -156,3 +156,17 @@ describe('drafts awaiting approval', () => {
     expect(xeroLink({ id: 'b', kind: 'bill' })).toBe('https://go.xero.com/AccountsPayable/Edit.aspx?InvoiceID=b')
   })
 })
+
+describe('Xero credit notes never double the ledger', () => {
+  it('skips credits the ledger has under another number, and anything dated before the ledger snapshot', async () => {
+    const { xeroCreditNotes } = await import('@/lib/xero/pairing')
+    const ledgerNotes = [{ side: 'supplier' as const, number: '2026080086', date: '2026-08-13', amountCents: 43_668_00, refersToInvoices: '', orderIds: [], covers: '', xeroShows: '', check: '' }]
+    const cn = (number: string, kind: 'sale' | 'bill', date: string, totalCents: number) => ({ id: number, number, reference: '', kind, status: 'AUTHORISED', contactName: 'x', currency: 'EUR', date, totalCents, allocatedTo: [] })
+    const out = xeroCreditNotes([
+      cn('MO-CN-12', 'bill', '2026-08-14', 43_668_00), // the ledger's credit, Xero's number: same one
+      cn('CN-0003', 'sale', '2026-09-01', 500_00), // before the 4 Oct snapshot: the ledger's job
+      cn('CN-0008', 'sale', '2026-10-20', 981_00), // genuinely new
+    ], [], ledgerNotes, '2026-10-04')
+    expect(out.map((n) => n.number)).toEqual(['CN-0008'])
+  })
+})
