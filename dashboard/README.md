@@ -92,6 +92,13 @@ daily, Pro allows hourly).
 The same rules as on your PC apply: newest tracker, `_backups` skipped, and a save that cannot be
 read leaves the last good import on screen with the reason in the status bar.
 
+**Send this PC's data online (no OneDrive app needed).** `npm run push-online` copies the
+imported ledger and expenses, plus your overheads, row decisions, confirmed Xero pairs and
+settings, into the online store. It reads the store's details from `.env.online.local`
+(git-ignored): `KV_REST_API_URL`, `KV_REST_API_TOKEN` and `FN_STORE_KEY`, the same values as in
+Vercel. Decisions already made on the website are kept unless you add `-- --force`. Xero and
+OneDrive tokens are never copied. Run it again whenever the trackers change.
+
 **OneDrive app (once, free).** Azure portal → App registrations → New registration:
 *Personal Microsoft accounts only*; redirect URI platform **Public client/native (mobile & desktop)**,
 `https://dashboard.fonenova.com/onedrive/callback`. That is a public client signing in with PKCE,
