@@ -3,7 +3,7 @@ import '@fontsource-variable/inter'
 import './globals.css'
 
 export const metadata: Metadata = {
-  title: 'Profit overview · Ledgerline by Fone Nova',
+  title: 'QuayPilot · Fone Nova',
   description: 'Internal gross profit dashboard for Fone Nova Ltd.',
   robots: { index: false, follow: false },
 }

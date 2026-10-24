@@ -1,4 +1,5 @@
-import { BarChart3, Lock } from 'lucide-react'
+import { Lock } from 'lucide-react'
+import { BrandMark, BrandName } from '@/components/brand'
 import { authConfig } from '@/lib/auth'
 
 export const dynamic = 'force-dynamic'
@@ -20,12 +21,10 @@ export default async function LoginPage({ searchParams }: { searchParams: Promis
     <main className="flex min-h-dvh items-center justify-center px-4">
       <div className="w-full max-w-sm rounded-lg border border-line bg-surface p-6">
         <div className="flex items-center gap-2.5">
-          <div className="flex h-8 w-8 items-center justify-center rounded-md bg-navy">
-            <BarChart3 className="h-4 w-4 text-white" aria-hidden />
-          </div>
+          <BrandMark className="h-8 w-8" />
           <div className="leading-tight">
-            <div className="text-[15px] font-semibold text-ink">Ledgerline</div>
-            <div className="text-[12px] text-ink-3">by Fone Nova</div>
+            <BrandName className="block text-[16px]" />
+            <div className="text-[12px] text-ink-3">Fone Nova Ltd</div>
           </div>
         </div>
         <h1 className="mt-6 flex items-center gap-1.5 text-[15px] font-semibold text-ink">
