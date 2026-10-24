@@ -3,7 +3,8 @@
  *
  *   npm run import-expenses -- "C:\path\VAT Return From Sept-Dec, 2026.xlsx"
  *
- * With no path it reads FN_EXPENSES_PATH, then data/expenses.xlsx. The May to Aug tracker
+ * With no path it reads FN_EXPENSES_PATH; else, with FN_EXPENSES_DIR, the newest tracker and the
+ * May to Aug tracker in that folder (as the dashboard does); else data/expenses.xlsx. The May to Aug tracker
  * (VATReturn_Automated_….xlsx) goes to expenses-archive.json; the dashboard joins the two. Reads Sheet2 (the expense
  * log) and, if present, the "FX Exchanges (Reference)" sheet. Amounts are GBP. Nothing is
  * adjusted: the script prints its totals so they can be checked against the tracker's summary.
@@ -12,15 +13,32 @@ import fs from 'node:fs'
 import path from 'node:path'
 import { loadEnvConfig } from '@next/env'
 import { importExpenses } from '../lib/importers/expenses'
-import { isArchiveName } from '../lib/sync-core'
+import { isArchiveName, newestTracker } from '../lib/sync-core'
 
 loadEnvConfig(process.cwd())
 
-async function main() {
+async function inputs(): Promise<string[]> {
   const arg = process.argv.slice(2).find((a) => !a.startsWith('--'))
-  const input = arg ?? process.env.FN_EXPENSES_PATH ?? 'data/expenses.xlsx'
+  if (arg ?? process.env.FN_EXPENSES_PATH) return [(arg ?? process.env.FN_EXPENSES_PATH)!]
+  const dir = process.env.FN_EXPENSES_DIR
+  if (dir) {
+    const current = (await newestTracker(dir))?.file
+    const archive = process.env.FN_EXPENSES_ARCHIVE ?? (await newestTracker(dir, 3, isArchiveName))?.file
+    const found = [current, archive].filter((f): f is string => !!f)
+    if (found.length) return found
+    console.error(`No expense tracker found in FN_EXPENSES_DIR (${dir}).`)
+    process.exit(2)
+  }
+  return ['data/expenses.xlsx']
+}
+
+async function main() {
+  for (const input of await inputs()) await importOne(input)
+}
+
+async function importOne(input: string) {
   if (!fs.existsSync(input)) {
-    console.error(`Expense tracker not found: ${input}\nPass its path, set FN_EXPENSES_PATH, or save it as dashboard/data/expenses.xlsx.`)
+    console.error(`Expense tracker not found: ${input}\nPass its path, set FN_EXPENSES_PATH or FN_EXPENSES_DIR, or save it as dashboard/data/expenses.xlsx.`)
     process.exit(2)
   }
   const { log, skipped, check } = await importExpenses(input)
