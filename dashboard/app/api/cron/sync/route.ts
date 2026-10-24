@@ -6,7 +6,7 @@ export const dynamic = 'force-dynamic'
 export const maxDuration = 60
 
 /**
- * The hourly scheduled sync (vercel.json). Vercel sends CRON_SECRET as a bearer token; this
+ * The daily scheduled sync (vercel.json). Vercel sends CRON_SECRET as a bearer token; this
  * route is outside the Google sign-in, so that token is its only lock. Returns statuses only,
  * never figures.
  */

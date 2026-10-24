@@ -78,7 +78,7 @@ configuration in production locks everyone out; it never opens up.
 | `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET` | Google OAuth web client, redirect URI `https://dashboard.fonenova.com/auth/callback` |
 | `KV_REST_API_URL`, `KV_REST_API_TOKEN` | Online storage. Set automatically when you connect **Upstash Redis** (Vercel → Storage) to the project |
 | `FN_STORE_KEY` | 32+ random characters. Everything saved online is compressed and AES-256-GCM encrypted with it, so Upstash only holds ciphertext. Changing it means connecting OneDrive and Xero again |
-| `CRON_SECRET` | 16+ random characters. Vercel sends it to the hourly sync; without it the sync route refuses everyone |
+| `CRON_SECRET` | 16+ random characters. Vercel sends it to the daily sync; without it the sync route refuses everyone |
 | `MS_CLIENT_ID` | Microsoft app for OneDrive (below). `MS_CLIENT_SECRET` is optional |
 | `FN_ONEDRIVE_LEDGER` | The ledger's place in OneDrive, e.g. `Desktop/FoneNova_Order_Ledger.xlsx`. A Windows path pasted as is (`C:\Users\...\OneDrive\Desktop\...`) works too |
 | `FN_ONEDRIVE_EXPENSES_DIR` | The VAT returns folder in OneDrive, e.g. `Desktop/VAT RETURNS` |
@@ -87,7 +87,8 @@ configuration in production locks everyone out; it never opens up.
 **Live data on the web.** The hosted dashboard reads the same two spreadsheets from OneDrive,
 read-only, and keeps everything it saves (imports, overheads, row decisions, Xero and OneDrive
 tokens) in Upstash, encrypted. It checks for new saves on each visit (at most every 30 seconds)
-and every hour from a scheduled job (`vercel.json`, `/api/cron/sync`; hourly needs Vercel Pro).
+and once a day at 06:00 UTC from a scheduled job (`vercel.json`, `/api/cron/sync`; Hobby allows
+daily, Pro allows hourly).
 The same rules as on your PC apply: newest tracker, `_backups` skipped, and a save that cannot be
 read leaves the last good import on screen with the reason in the status bar.
 
