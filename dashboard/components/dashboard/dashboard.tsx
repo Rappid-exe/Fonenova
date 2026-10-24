@@ -4,7 +4,7 @@ import { ChevronDown, FlaskConical } from 'lucide-react'
 import { Select } from '@/components/ui/select'
 import {
   allocateCredits, applyLiveStatus, cashPosition, concentration, creditTotals, customerRows, filterOrders, netBusinessProfit, profitAfterCredits,
-  overdueClients, reconcileLedger, supplierRows, timeSeries, totals, unitsByOrder,
+  marginSchemeVat, overdueClients, reconcileLedger, supplierRows, timeSeries, totals, unitsByOrder,
 } from '@/lib/metrics'
 import { useSection, type Section } from '@/lib/sections'
 import { PartiesTable } from './parties-table'
@@ -22,9 +22,11 @@ import { CashCalendarPanel } from './cash-calendar'
 import { XeroBar } from './xero-bar'
 import { AutoRefresh } from './auto-refresh'
 import type { SourceStatus } from '@/lib/sync-core'
-import type { OneDriveState, XeroState } from '@/lib/data-source'
+import type { AppSettings, OneDriveState, XeroState } from '@/lib/data-source'
 import { matchOrders } from '@/lib/xero/map'
-import { withXero } from '@/lib/xero/pairing'
+import { draftsAwaiting, withXero } from '@/lib/xero/pairing'
+import { makeNeedsAttention, type MakeStatus } from '@/lib/make'
+import { DraftsList, MakeCard, MarginVatCard } from './automations'
 import { CurrencyNote, CurrencySwitch } from './currency-switch'
 import { CashPositionPanel } from './cash-position'
 import { ConcentrationPanel } from './concentration'
@@ -54,6 +56,8 @@ interface Props {
   oneDrive: OneDriveState
   oneDriveNotice: string | null
   hosted: boolean
+  settings: AppSettings
+  make: MakeStatus | null
 }
 
 export function Dashboard(props: Props) {
@@ -81,7 +85,7 @@ const TITLES: Record<Section, string> = {
   settings: 'Settings',
 }
 
-function DashboardBody({ ledger: rawLedger, today, overheads, overheadsSaved, overheadsError, overheadsWritable, xero, notice, expenses, expenseOverrides, expensesError, sources, oneDrive, oneDriveNotice, hosted }: Props) {
+function DashboardBody({ ledger: rawLedger, today, overheads, overheadsSaved, overheadsError, overheadsWritable, xero, notice, expenses, expenseOverrides, expensesError, sources, oneDrive, oneDriveNotice, hosted, settings, make }: Props) {
   const { fx } = useMoney()
   const [section, go] = useSection()
   // Reconcile against the untouched ledger; everything else uses Xero's live statuses where found.
@@ -144,10 +148,14 @@ function DashboardBody({ ledger: rawLedger, today, overheads, overheadsSaved, ov
   }, [ledger, units, range, comparison, customer, granularity])
 
   // Overheads are company-wide, so net profit is only meaningful without a customer filter.
+  // Margin-scheme VAT on the period's orders: always worked out for the Settings card, deducted only when switched on.
+  const marginVat = useMemo(() => marginSchemeVat(view.orders), [view.orders])
   const net = useMemo(
-    () => netBusinessProfit({ grossAfterCreditsEurCents: view.afterCreditsCents, overheads, range, today, fx: fx.ok ? fx.fx : null, expenses, overrides: expenseOverrides }),
-    [view.afterCreditsCents, overheads, range, today, fx, expenses, expenseOverrides],
+    () => netBusinessProfit({ grossAfterCreditsEurCents: view.afterCreditsCents, overheads, range, today, fx: fx.ok ? fx.fx : null, expenses, overrides: expenseOverrides, marginVatEurCents: settings.marginSchemeVat ? marginVat : 0 }),
+    [view.afterCreditsCents, overheads, range, today, fx, expenses, expenseOverrides, settings.marginSchemeVat, marginVat],
   )
+  const drafts = useMemo(() => draftsAwaiting(xero.snapshot), [xero.snapshot])
+  const makeAlert = makeNeedsAttention(make)
 
   // Overdue is the state now, not a period figure: every order, only the customer filter applies.
   const overdue = useMemo(() => overdueClients(filterOrders(ledger.orders, { customerId: customer }), today), [ledger.orders, customer, today])
@@ -160,7 +168,7 @@ function DashboardBody({ ledger: rawLedger, today, overheads, overheadsSaved, ov
     : formatDate(ledger.meta.snapshotDate)
 
   const xeroNote = xero.snapshot
-    ? `Xero ${minutesAgo(xero.snapshot.fetchedAt)}${matching?.suggestions.length ? ` · ${matching.suggestions.length} to match` : ''}`
+    ? `Xero ${minutesAgo(xero.snapshot.fetchedAt)}${matching?.suggestions.length ? ` · ${matching.suggestions.length} to match` : ''}${drafts.length ? ` · ${drafts.length} draft${drafts.length > 1 ? 's' : ''} to approve` : ''}`
     : null
   const xeroBar = (
     <XeroBar sources={sources} xero={xero} summary={live?.summary ?? null} ledgerImported={formatDate(ledger.meta.importedAt.slice(0, 10))} ledgerSnapshot={formatDate(ledger.meta.snapshotDate)} notice={notice} oneDrive={oneDrive} oneDriveNotice={oneDriveNotice} hosted={hosted} />
@@ -184,7 +192,7 @@ function DashboardBody({ ledger: rawLedger, today, overheads, overheadsSaved, ov
       <TopBar
         title={TITLES[section]}
         subtitle={subtitle}
-        status={section === 'settings' ? null : <StatusPill sources={sources} checks={checks} note={xeroNote}>{xeroBar}</StatusPill>}
+        status={section === 'settings' ? null : <StatusPill sources={sources} checks={checks} note={xeroNote} alert={makeAlert ? 'A Make sync needs attention' : null}>{xeroBar}</StatusPill>}
         controls={section === 'settings' ? undefined : (
           <>
             <CurrencySwitch />
@@ -217,7 +225,18 @@ function DashboardBody({ ledger: rawLedger, today, overheads, overheadsSaved, ov
             onExceptions={() => go('exceptions')}
           />
 
-          <TodayList ledger={ledger} customerId={customer} allocation={allocation} onOpenOrder={setOpenOrderId} onSeeAll={() => go('exceptions')} />
+          <TodayList
+            ledger={ledger}
+            customerId={customer}
+            allocation={allocation}
+            onOpenOrder={setOpenOrderId}
+            onSeeAll={() => go('exceptions')}
+            extra={[
+              ...(makeAlert ? [{ id: 'make', label: 'A Make.com sync needs attention', sub: 'A scenario is off, its last run failed, or credits are nearly used. See Settings.', onClick: () => go('settings') }] : []),
+              ...(drafts.length ? [{ id: 'drafts', label: `Approve ${drafts.length} synced draft${drafts.length > 1 ? 's' : ''} in Xero`, sub: drafts.slice(0, 3).map((d) => `${d.kind === 'sale' ? 'invoice' : 'bill'} ${d.number}`).join(', '), amountCents: drafts.filter((d) => d.currency === 'EUR').reduce((n, d) => n + d.totalCents, 0), onClick: () => go('matching') }] : []),
+              ...(matching?.suggestions.length ? [{ id: 'match', label: `Match ${matching.suggestions.length} new invoice${matching.suggestions.length > 1 ? 's' : ''} to their bills`, sub: matching.suggestions.slice(0, 3).map((x) => `invoice ${x.invoice.number}`).join(', '), amountCents: matching.suggestions.reduce((n, x) => n + x.invoice.totalCents, 0), onClick: () => go('matching') }] : []),
+            ]}
+          />
 
           <TrendChart
             series={view.series}
@@ -274,6 +293,7 @@ function DashboardBody({ ledger: rawLedger, today, overheads, overheadsSaved, ov
         />
       )}
 
+      {section === 'matching' && drafts.length > 0 && <div className="mb-4"><DraftsList drafts={drafts} /></div>}
       {section === 'matching' && (
         <MatchingPanel matching={matching} connected={xero.connected} pairs={xero.pairs} orders={ledger.orders} writable={overheadsWritable} onSettings={() => go('settings')} onOpenOrder={setOpenOrderId} />
       )}
@@ -305,7 +325,9 @@ function DashboardBody({ ledger: rawLedger, today, overheads, overheadsSaved, ov
             <h2 id="sources-title" className="mb-2 text-[15px] font-semibold text-ink">Data sources</h2>
             {xeroBar}
           </section>
+          <MakeCard make={make} />
           <OverheadsPanel overheads={overheads} saved={overheadsSaved} loadError={overheadsError} writable={overheadsWritable} today={today} />
+          <MarginVatCard enabled={settings.marginSchemeVat} writable={overheadsWritable} vatEurCents={marginVat} />
           <ChecksList checks={checks} />
           <section aria-labelledby="about-title" className="rounded-lg border border-line bg-surface px-5 py-4 text-[13px] leading-relaxed text-ink-2">
             <h2 id="about-title" className="mb-1 text-[15px] font-semibold text-ink">About these figures</h2>

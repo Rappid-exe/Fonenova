@@ -125,12 +125,14 @@ export function NeedsAttention({
 }
 
 /** The three most important open items, for the Overview. */
-export function TodayList({ ledger, customerId, allocation, onOpenOrder, onSeeAll }: {
+export function TodayList({ ledger, customerId, allocation, onOpenOrder, onSeeAll, extra = [] }: {
   ledger: Ledger
   customerId: string | null
   allocation: CreditAllocation
   onOpenOrder: (id: string) => void
   onSeeAll: () => void
+  /** Live jobs (drafts to approve, invoices to match, a failing sync) shown before the ledger items. */
+  extra?: { id: string; label: string; sub: string; amountCents?: number; onClick: () => void }[]
 }) {
   const { money } = useMoney()
   const items = useMemo(() => {
@@ -139,7 +141,7 @@ export function TodayList({ ledger, customerId, allocation, onOpenOrder, onSeeAl
     const cust = new Map(ledger.orders.map((o) => [o.id, o.customerId]))
     return all.filter((i) => i.orderIds.length === 0 || i.orderIds.some((id) => cust.get(id) === customerId))
   }, [ledger, allocation, customerId])
-  if (items.length === 0) return null
+  if (items.length === 0 && extra.length === 0) return null
   return (
     <section aria-labelledby="today-title" className="rounded-lg border border-line bg-surface">
       <div className="flex items-center justify-between gap-2 border-b border-line px-5 py-3">
@@ -149,7 +151,19 @@ export function TodayList({ ledger, customerId, allocation, onOpenOrder, onSeeAl
         </button>
       </div>
       <ul className="divide-y divide-line">
-        {items.slice(0, 3).map((i) => {
+        {extra.map((x) => (
+          <li key={x.id}>
+            <button type="button" onClick={x.onClick} className="grid w-full grid-cols-[auto_1fr_auto] items-start gap-x-3 px-5 py-3 text-left hover:bg-subtle">
+              <Badge tone="warn" className="mt-0.5">Now</Badge>
+              <span className="min-w-0">
+                <span className="block truncate text-[13.5px] font-medium text-ink">{x.label}</span>
+                <span className="block truncate text-[12.5px] text-ink-2">{x.sub}</span>
+              </span>
+              <span className="text-[14px] font-semibold text-ink">{x.amountCents ? money(x.amountCents) : ''}</span>
+            </button>
+          </li>
+        ))}
+        {items.slice(0, Math.max(1, 3 - extra.length)).map((i) => {
           const p = P[i.priority]
           const open = i.orderId ? () => onOpenOrder(i.orderId!) : undefined
           return (

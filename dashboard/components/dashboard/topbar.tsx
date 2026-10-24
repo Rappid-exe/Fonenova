@@ -42,13 +42,15 @@ export function TopBar({ title, subtitle, status, controls }: { title: string; s
  * One pill for "can I trust these numbers": every source synced and every reconciliation check
  * passing. The details (and the connect buttons) open from it.
  */
-export function StatusPill({ sources, checks, note, children }: { sources: SourceStatus[]; checks: Check[]; note?: string | null; children: React.ReactNode }) {
+export function StatusPill({ sources, checks, note, alert, children }: { sources: SourceStatus[]; checks: Check[]; note?: string | null; alert?: string | null; children: React.ReactNode }) {
   const broken = sources.filter((s) => s.configured && !s.ok)
   const failing = checks.filter((c) => !c.ok)
-  const ok = broken.length === 0 && failing.length === 0
+  const ok = broken.length === 0 && failing.length === 0 && !alert
   const label = ok
     ? 'Data up to date'
-    : failing.length
+    : alert && !failing.length && !broken.length
+      ? alert
+      : failing.length
       ? `${failing.length} check${failing.length > 1 ? 's' : ''} failing`
       : `${broken.length} source${broken.length > 1 ? 's' : ''} need${broken.length > 1 ? '' : 's'} attention`
   return (
@@ -61,13 +63,14 @@ export function StatusPill({ sources, checks, note, children }: { sources: Sourc
       >
         {ok ? <CircleCheck className="h-4 w-4" aria-hidden /> : <CircleAlert className="h-4 w-4" aria-hidden />}
         {label}
-        <span className="hidden font-normal opacity-80 md:inline">· {note ?? `${checks.length}/${checks.length} ledger checks`}</span>
+        {/* "refreshed N min ago" can differ by a minute between server and browser */}
+        <span suppressHydrationWarning className="hidden font-normal opacity-80 md:inline">· {note ?? `${checks.length}/${checks.length} ledger checks`}</span>
       </PopoverTrigger>
       <PopoverContent className="w-[min(620px,calc(100vw-24px))] p-3">
         <p className="mb-2 px-1 text-[12.5px] text-ink-2">
           {failing.length
             ? <span className="text-loss">{failing.length} of {checks.length} reconciliation checks fail. See Settings for the list.</span>
-            : <>All {checks.length} ledger checks pass: every total matches the spreadsheet to the cent.{note && <> {note.charAt(0).toUpperCase() + note.slice(1)}.</>}</>}
+            : <span suppressHydrationWarning>All {checks.length} ledger checks pass: every total matches the spreadsheet to the cent.{note && ` ${note.charAt(0).toUpperCase() + note.slice(1)}.`}</span>}
         </p>
         {children}
       </PopoverContent>

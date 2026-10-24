@@ -486,6 +486,8 @@ export type NetProfit =
       businessOverheads: ByCurrency
       /** Business costs from the expense log, GBP pence. */
       businessExpensesCents: Cents
+      /** Margin-scheme VAT taken off, EUR cents (0 when the Settings switch is off). */
+      marginVatEurCents: Cents
       /** Net business profit, in each currency. Each is converted once from its booked figures. */
       netEurCents: Cents
       netGbpCents: Cents
@@ -506,6 +508,8 @@ export function netBusinessProfit(args: {
   fx: FxRate | null
   expenses?: ExpenseLog | null
   overrides?: ExpenseOverrides
+  /** Margin-scheme VAT to deduct (see marginSchemeVat), EUR cents. */
+  marginVatEurCents?: Cents
 }): NetProfit {
   const chargedTo = args.range.end < args.today ? args.range.end : args.today
   const window = args.range.start > chargedTo ? null : { start: args.range.start, end: chargedTo }
@@ -520,7 +524,8 @@ export function netBusinessProfit(args: {
   const gbpCosts = sums.GBP + expCents
   const gbpAsEur = convertCents(gbpCosts, 'GBP', 'EUR', args.fx)
   const eurAsGbp = convertCents(sums.EUR, 'EUR', 'GBP', args.fx)
-  const grossGbp = convertCents(args.grossAfterCreditsEurCents, 'EUR', 'GBP', args.fx)
+  const vat = args.marginVatEurCents ?? 0
+  const grossGbp = convertCents(args.grossAfterCreditsEurCents - vat, 'EUR', 'GBP', args.fx)
   if (gbpAsEur === null || eurAsGbp === null || grossGbp === null) return { status: 'needs-rate' }
 
   const warnings: string[] = []
@@ -536,7 +541,8 @@ export function netBusinessProfit(args: {
     charges,
     businessOverheads: sums,
     businessExpensesCents: expCents,
-    netEurCents: args.grossAfterCreditsEurCents - sums.EUR - gbpAsEur,
+    marginVatEurCents: vat,
+    netEurCents: args.grossAfterCreditsEurCents - vat - sums.EUR - gbpAsEur,
     netGbpCents: grossGbp - gbpCosts - eurAsGbp,
     warnings,
   }
@@ -899,4 +905,12 @@ export function overdueClients(orders: readonly Order[], today: IsoDate): Overdu
     if (!oldest || days > oldest.days) oldest = { orderId: o.id, customerName: o.customerName, days }
   }
   return { totalCents, count, oldest }
+}
+
+/**
+ * Margin-scheme VAT estimate: VAT is 1/6 of the VAT-inclusive margin on each sale. Losses are
+ * not offset against other orders. An EUR estimate: HMRC uses the sterling margin at each sale.
+ */
+export function marginSchemeVat(orders: readonly Order[]): Cents {
+  return orders.reduce((n, o) => n + (o.grossMarginCents > 0 ? Math.round(o.grossMarginCents / 6) : 0), 0)
 }

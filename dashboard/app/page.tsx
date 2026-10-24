@@ -4,11 +4,12 @@ import { Dashboard } from '@/components/dashboard/dashboard'
 import { Shell } from '@/components/shell'
 import { currentUser } from '@/lib/session'
 import { syncSources } from '@/lib/sync'
-import { getDataSource, isHosted, loadExpenses, loadFxRate, loadOneDriveState, loadOverheads, loadXeroState, overheadsWritable, toClientLedger } from '@/lib/data-source'
+import { getDataSource, isHosted, loadExpenses, loadFxRate, loadOneDriveState, loadOverheads, loadSettings, loadXeroState, overheadsWritable, toClientLedger } from '@/lib/data-source'
+import { loadMakeStatus } from '@/lib/make'
 import { todayIso } from '@/lib/periods'
 import { attentionItems } from '@/lib/attention'
 import { allocateCredits, expenseSummary } from '@/lib/metrics'
-import { withXero } from '@/lib/xero/pairing'
+import { draftsAwaiting, withXero } from '@/lib/xero/pairing'
 
 // Read the ledger on every request so a fresh import shows without a rebuild.
 export const dynamic = 'force-dynamic'
@@ -26,7 +27,7 @@ export default async function Page({ searchParams }: { searchParams: Promise<Rec
   // Straight after connecting Xero or OneDrive, skip the 30s throttle so the page shows the new state.
   const sources = await syncSources({ force: !!(notice || oneDriveNotice) })
   const source = getDataSource()
-  const [result, fx, oh, xero, exp, oneDrive] = await Promise.all([source.load(), loadFxRate(), loadOverheads(), loadXeroState(), loadExpenses(), loadOneDriveState()])
+  const [result, fx, oh, xero, exp, oneDrive, settings, make] = await Promise.all([source.load(), loadFxRate(), loadOverheads(), loadXeroState(), loadExpenses(), loadOneDriveState(), loadSettings(), loadMakeStatus()])
 
   if (!result.ok) {
     return (
@@ -53,15 +54,15 @@ export default async function Page({ searchParams }: { searchParams: Promise<Rec
   // Work waiting, for the sidebar. Recomputed on every load, so a decided row drops off at once.
   const high = attentionItems(ledger, allocateCredits(ledger.creditNotes)).filter((i) => i.priority === 'HIGH').length
   const toReview = exp.log ? expenseSummary(exp.log, exp.overrides, oh.overheads, null).rows.filter((r) => r.cls === 'review').length : 0
-  const toMatch = withXero(ledger, xero.snapshot, xero.pairs, todayIso()).matching?.suggestions.length ?? 0
+  const toMatch = (withXero(ledger, xero.snapshot, xero.pairs, todayIso()).matching?.suggestions.length ?? 0) + draftsAwaiting(xero.snapshot).length
   const badges = {
-    matching: { count: toMatch, title: 'invoices to match', tone: 'warn' as const },
+    matching: { count: toMatch, title: 'to match or approve', tone: 'warn' as const },
     exceptions: { count: high, title: 'high priority', tone: 'loss' as const },
     expenses: { count: toReview, title: 'to review', tone: 'warn' as const },
   }
   return (
     <Shell email={email} badges={badges}>
-      <Dashboard ledger={toClientLedger(ledger)} today={todayIso()} fx={fx} overheads={oh.overheads} overheadsSaved={oh.saved} overheadsError={oh.error ?? null} overheadsWritable={overheadsWritable()} xero={xero} notice={notice} expenses={exp.log} expenseOverrides={exp.overrides} expensesError={exp.error ?? null} sources={sources} oneDrive={oneDrive} oneDriveNotice={oneDriveNotice} hosted={isHosted()} />
+      <Dashboard ledger={toClientLedger(ledger)} today={todayIso()} fx={fx} overheads={oh.overheads} overheadsSaved={oh.saved} overheadsError={oh.error ?? null} overheadsWritable={overheadsWritable()} xero={xero} notice={notice} expenses={exp.log} expenseOverrides={exp.overrides} expensesError={exp.error ?? null} sources={sources} oneDrive={oneDrive} oneDriveNotice={oneDriveNotice} hosted={isHosted()} settings={settings} make={make} />
     </Shell>
   )
 }
