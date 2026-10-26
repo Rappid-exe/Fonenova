@@ -3,7 +3,8 @@ import { FileWarning } from 'lucide-react'
 import { Dashboard } from '@/components/dashboard/dashboard'
 import { Shell } from '@/components/shell'
 import { currentUser } from '@/lib/session'
-import { syncSources } from '@/lib/sync'
+import { after } from 'next/server'
+import { lastSources, syncSources } from '@/lib/sync'
 import { getDataSource, isHosted, loadExpenses, loadFxRate, loadOneDriveState, loadOverheads, loadSettings, loadXeroState, overheadsWritable, toClientLedger } from '@/lib/data-source'
 import { loadMakeStatus } from '@/lib/make'
 import { loadWeeklyEmailState } from '@/lib/weekly'
@@ -29,9 +30,12 @@ export default async function Page({ searchParams }: { searchParams: Promise<Rec
   if (user === false) redirect('/login')
   const email = user
 
-  // Pick up any ledger or tracker saved since the last visit, before reading the data.
-  // Straight after connecting Xero or OneDrive, skip the 30s throttle so the page shows the new state.
-  const sources = await syncSources({ force: !!(notice || oneDriveNotice) })
+  // Show the stored data straight away and sync after the response, so the page never waits on
+  // OneDrive or Xero; the next refresh (AutoRefresh, every minute) shows anything new. Straight
+  // after connecting Xero or OneDrive, sync first instead, so the page shows the new connection.
+  const connecting = !!(notice || oneDriveNotice)
+  const sources = connecting ? await syncSources({ force: true }) : await lastSources()
+  if (!connecting) after(() => syncSources().then(() => undefined, () => undefined))
   const source = getDataSource()
   const [result, fx, oh, xero, exp, oneDrive, settings, make, weekly, askState] = await Promise.all([source.load(), loadFxRate(), loadOverheads(), loadXeroState(), loadExpenses(), loadOneDriveState(), loadSettings(), loadMakeStatus(), loadWeeklyEmailState(), loadAskState()])
 

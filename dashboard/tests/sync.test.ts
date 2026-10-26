@@ -87,3 +87,24 @@ describe('syncing a file', () => {
     expect(await syncFile(opts(null, async () => ({ meta: { importedAt: 'x' }, n: 1 })))).toMatchObject({ configured: false, message: 'off' })
   })
 })
+
+describe('checking for a new save is cheap', () => {
+  it('reads only the small date key once one exists, never the whole import', async () => {
+    const { FileStore } = await import('@/lib/store')
+    const { syncFile } = await import('@/lib/sync-core')
+    const fsm = await import('node:fs')
+    const osm = await import('node:os')
+    const pathm = await import('node:path')
+    const store = new FileStore(fsm.mkdtempSync(pathm.join(osm.tmpdir(), 'meta-')))
+    const reads: string[] = []
+    const get = store.get.bind(store)
+    store.get = async (k) => (reads.push(k), get(k))
+    const file = { fileName: 'FoneNova_Order_Ledger.xlsx', savedAt: async () => Date.parse('2026-10-04T10:00:00Z'), read: async () => Buffer.from('') }
+    const opts = { source: 'ledger' as const, label: 'Order ledger', file, store, key: 'ledger' as const, notConfigured: '', run: async () => ({ meta: { importedAt: '2026-10-26T06:00:00.000Z' } }), describe: () => ({ ok: true, message: 'Imported' }) }
+    expect((await syncFile(opts)).changed).toBe(true)
+    reads.length = 0
+    const again = await syncFile(opts)
+    expect([again.changed, again.message]).toEqual([false, 'Up to date'])
+    expect(reads).toEqual(['meta:ledger'])
+  })
+})

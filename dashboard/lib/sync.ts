@@ -1,7 +1,7 @@
 /**
  * Automatic sync: re-import the ledger and the VAT tracker when they are saved, and refresh
- * Xero when its snapshot is old. Runs on page load (at most every 30s) and from the daily
- * scheduled job.
+ * Xero when its snapshot is old. Runs after each page load (at most every 30s, in the background
+ * so the page never waits for it) and from the daily scheduled job.
  *
  * Files come from this PC when FN_LEDGER_PATH / FN_EXPENSES_DIR are set, otherwise from
  * OneDrive once it is connected (the hosted version). Results go into the store.
@@ -11,7 +11,7 @@ import { importExpenses } from './importers/expenses'
 import { importLedger } from './importers/ledger'
 import { reconcileLedger } from './metrics'
 import { oneDriveConfig, oneDriveConnected, oneDriveSources } from './onedrive'
-import { getStore, type Store } from './store'
+import { getJson, getStore, type Store } from './store'
 import { combineQuarterLogs } from './expenses'
 import { allTrackers, combinedSource, isArchiveName, localFile, newestTracker, syncFile, type FileSource, type SourceStatus } from './sync-core'
 import { loadSnapshot, refreshSnapshot, xeroAvailable, xeroConfig, xeroConnected } from './xero/client'
@@ -32,10 +32,34 @@ let running: Promise<SourceStatus[]> | null = null
 export async function syncSources(opts: { force?: boolean } = {}): Promise<SourceStatus[]> {
   if (process.env.FN_LEDGER_BR) return []
   if (!opts.force && last && Date.now() - last.at < THROTTLE_MS) return last.result
+  if (!opts.force) {
+    // Another server instance may have just synced: the stored result counts too.
+    const stored = await storedStatus()
+    if (stored && Date.now() - stored.at < THROTTLE_MS) return (last = stored).result
+  }
   running ??= run().finally(() => { running = null })
   const result = await running
   last = { at: Date.now(), result }
+  await getStore().set('sync:status', last).catch(() => {})
   return result
+}
+
+async function storedStatus(): Promise<{ at: number; result: SourceStatus[] } | null> {
+  try {
+    return await getJson<{ at: number; result: SourceStatus[] }>(getStore(), 'sync:status')
+  } catch {
+    return null
+  }
+}
+
+/**
+ * The last sync's result without syncing, for the page to show at once while a fresh sync runs
+ * after the response (see app/page.tsx). Empty until the first sync has run.
+ */
+export async function lastSources(): Promise<SourceStatus[]> {
+  if (process.env.FN_LEDGER_BR) return []
+  if (last) return last.result
+  return (await storedStatus())?.result ?? []
 }
 
 async function run(): Promise<SourceStatus[]> {

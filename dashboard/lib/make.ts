@@ -77,14 +77,18 @@ export async function loadMakeStatus(fetchImpl: typeof fetch = fetch): Promise<M
     }
     return null
   }
-  const scenarios: MakeScenario[] = []
-  for (const id of ids) {
-    const [s, l] = await Promise.all([get(`/scenarios/${id}`), get(`/scenarios/${id}/logs?pg[sortDir]=desc&pg[limit]=10`)])
-    if (!s) continue
-    scenarios.push({ ...parseScenario(id, s), ...(l ? parseLogs(l) : { lastRunAt: null, lastRunOk: null, lastError: null }) })
-  }
+  // Every request at once: a page load waits for the slowest one, not for all of them in turn.
   const org = process.env.MAKE_ORG_ID
-  const credits = org ? parseCredits(await get(`/organizations/${org}`), await get(`/organizations/${org}/usage`)) : { used: null, limit: null }
+  const [perScenario, orgJson, usageJson] = await Promise.all([
+    Promise.all(ids.map((id) => Promise.all([get(`/scenarios/${id}`), get(`/scenarios/${id}/logs?pg[sortDir]=desc&pg[limit]=10`)]))),
+    org ? get(`/organizations/${org}`) : null,
+    org ? get(`/organizations/${org}/usage`) : null,
+  ])
+  const scenarios: MakeScenario[] = []
+  perScenario.forEach(([s, l], i) => {
+    if (s) scenarios.push({ ...parseScenario(ids[i], s), ...(l ? parseLogs(l) : { lastRunAt: null, lastRunOk: null, lastError: null }) })
+  })
+  const credits = org ? parseCredits(orgJson, usageJson) : { used: null, limit: null }
   const status: MakeStatus = { configured: true, scenarios, creditsUsed: credits.used, creditsLimit: credits.limit, problems: [...new Set(problems)], fetchedAt: new Date().toISOString() }
   cache = { at: Date.now(), status }
   return status

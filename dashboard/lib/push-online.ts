@@ -9,6 +9,7 @@
  * tokens are single-use, so a copy would break one of the two.
  */
 import type { Store, StoreKey } from './store'
+import { metaKeyFor, type ImportMeta } from './sync-core'
 
 export const IMPORTS: StoreKey[] = ['ledger', 'expenses', 'expenses-archive']
 export const DECISIONS: StoreKey[] = ['overheads', 'expense-overrides', 'xero:pairs', 'settings']
@@ -35,6 +36,10 @@ export async function pushOnline(from: Store, to: Store, opts: { force?: boolean
       continue
     }
     await to.set(key, local.value)
+    // Keep the small date key in step, so the online sync compares against what was just pushed.
+    const metaKey = metaKeyFor(key)
+    const meta = (local.value as { meta?: ImportMeta }).meta
+    if (metaKey && meta) await to.set(metaKey, { sourceModifiedAt: meta.sourceModifiedAt, importedAt: meta.importedAt })
     out.push({ key, result: 'copied' })
   }
   return out

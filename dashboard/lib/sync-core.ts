@@ -133,6 +133,16 @@ export function localFile(file: string): FileSource {
   }
 }
 
+export interface ImportMeta {
+  sourceModifiedAt?: string
+  importedAt?: string
+}
+
+/** The small key that holds an import's dates, for the imports that have one. */
+export function metaKeyFor(key: StoreKey): StoreKey | null {
+  return key === 'ledger' || key === 'expenses' || key === 'expenses-archive' ? (`meta:${key}` as StoreKey) : null
+}
+
 /**
  * Sync one file-based source. On any failure the data in the store is left exactly as it
  * was, so the dashboard keeps showing the last good import and says what went wrong.
@@ -148,7 +158,13 @@ export async function syncFile<T extends { meta: { sourceModifiedAt?: string; im
   /** Plain-words result for a successful import, e.g. "reconciled 25/25". */
   describe: (data: T) => { ok: boolean; message: string }
 }): Promise<SourceStatus> {
-  const prev = (await getJson<{ meta?: { sourceModifiedAt?: string; importedAt?: string } }>(opts.store, opts.key))?.meta ?? null
+  // The import's dates live in a small meta key, so checking for a new save doesn't download and
+  // decrypt the whole import. Imports saved before meta keys existed are read once in full.
+  const metaKey = metaKeyFor(opts.key)
+  const prev =
+    (metaKey ? await getJson<ImportMeta>(opts.store, metaKey) : null) ??
+    (await getJson<{ meta?: ImportMeta }>(opts.store, opts.key))?.meta ??
+    null
   const base = { source: opts.source, label: opts.label, importedAt: prev?.importedAt ?? null, checkedAt: new Date().toISOString() }
   if (!opts.file) return { ...base, configured: false, fileName: null, fileSavedAt: null, changed: false, ok: !!prev, message: opts.notConfigured }
 
@@ -180,5 +196,6 @@ export async function syncFile<T extends { meta: { sourceModifiedAt?: string; im
   }
   data.meta.sourceModifiedAt = fileSavedAt
   await opts.store.set(opts.key, data)
+  if (metaKey) await opts.store.set(metaKey, { sourceModifiedAt: fileSavedAt, importedAt: data.meta.importedAt } satisfies ImportMeta)
   return { ...base, importedAt: data.meta.importedAt, configured: true, fileName, fileSavedAt, changed: true, ...opts.describe(data) }
 }
