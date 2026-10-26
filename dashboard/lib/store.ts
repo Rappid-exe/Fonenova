@@ -30,6 +30,10 @@ export type StoreKey =
   | 'gmail:tokens'
   | 'digest:last'
   | 'ai:usage'
+  | 'sync:status'
+  | 'meta:ledger'
+  | 'meta:expenses'
+  | 'meta:expenses-archive'
 
 export type ReadResult = { kind: 'ok'; value: unknown } | { kind: 'missing' } | { kind: 'invalid'; message: string }
 
@@ -66,6 +70,10 @@ const FILES: Record<StoreKey, string> = {
   'gmail:tokens': 'gmail/tokens.json',
   'digest:last': 'digest-last.json',
   'ai:usage': 'ai-usage.json',
+  'sync:status': 'sync-status.json',
+  'meta:ledger': 'generated/ledger.meta.json',
+  'meta:expenses': 'generated/expenses.meta.json',
+  'meta:expenses-archive': 'generated/expenses-archive.meta.json',
 }
 
 const SECRET_KEYS = new Set<StoreKey>(['xero:tokens', 'onedrive:tokens', 'gmail:tokens'])
