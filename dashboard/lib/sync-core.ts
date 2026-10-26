@@ -30,9 +30,9 @@ const TRACKER = /^vat return from.*\.xlsx$/i
 /** The May to Aug 2026 tracker, kept read-only: "VATReturn_Automated_v18_delivered_1.xlsx". */
 const ARCHIVE = /^vatreturn_automated.*\.xlsx$/i
 
-/** The VAT return tracker's file name, excluding Excel's own `~$` lock files. */
+/** The VAT return tracker's file name, excluding Excel's own `~$` lock files and failed copies. */
 export function isTrackerName(name: string): boolean {
-  return TRACKER.test(name) && !name.startsWith('~$')
+  return TRACKER.test(name) && !name.startsWith('~$') && !/\(failed/i.test(name)
 }
 
 /** The earlier (May to Aug) tracker's file name. The newest saved copy wins. */
@@ -50,7 +50,43 @@ export function skipFolder(name: string): boolean {
  * Excel's own `~$` lock files and anything not named like the tracker. Looks 3 folders deep.
  */
 export async function newestTracker(dir: string, depth = 3, matches: (name: string) => boolean = isTrackerName): Promise<{ file: string; mtimeMs: number } | null> {
-  let best: { file: string; mtimeMs: number } | null = null
+  const all = await findTrackers(dir, depth, matches)
+  return all.reduce<{ file: string; mtimeMs: number } | null>((best, f) => (!best || f.mtimeMs > best.mtimeMs ? f : best), null)
+}
+
+/**
+ * Every quarter's tracker under `dir`: the expense system starts a new "VAT Return From…" file
+ * for each VAT return (May-Oct 2026, then Nov 2026-Jan 2027, ...), and all of them hold real
+ * payments. A file name found twice keeps its newest copy. Same skips as newestTracker.
+ */
+export async function allTrackers(dir: string, depth = 3): Promise<{ file: string; mtimeMs: number }[]> {
+  const byName = new Map<string, { file: string; mtimeMs: number }>()
+  for (const f of await findTrackers(dir, depth, isTrackerName)) {
+    const k = path.basename(f.file).toLowerCase()
+    const had = byName.get(k)
+    if (!had || f.mtimeMs > had.mtimeMs) byName.set(k, f)
+  }
+  return [...byName.values()].sort((a, b) => a.file.localeCompare(b.file))
+}
+
+/**
+ * Several files read as one source: saved time is the newest part's, so any part changing
+ * re-imports all of them. `read` is unused (the import reads each part itself).
+ */
+export function combinedSource(parts: FileSource[]): FileSource & { parts: FileSource[] } {
+  return {
+    parts,
+    fileName: parts.map((p) => p.fileName).join(' + '),
+    savedAt: async () => {
+      const times = await Promise.all(parts.map((p) => p.savedAt()))
+      return times.some((t) => t === null) ? null : Math.max(...(times as number[]))
+    },
+    read: async () => Buffer.alloc(0),
+  }
+}
+
+async function findTrackers(dir: string, depth: number, matches: (name: string) => boolean): Promise<{ file: string; mtimeMs: number }[]> {
+  const out: { file: string; mtimeMs: number }[] = []
   async function walk(d: string, level: number) {
     let entries: import('node:fs').Dirent[]
     try {
@@ -65,12 +101,12 @@ export async function newestTracker(dir: string, depth = 3, matches: (name: stri
         await walk(full, level + 1)
       } else if (matches(e.name)) {
         const st = await fs.stat(full).catch(() => null)
-        if (st && (!best || st.mtimeMs > best.mtimeMs)) best = { file: full, mtimeMs: st.mtimeMs }
+        if (st) out.push({ file: full, mtimeMs: st.mtimeMs })
       }
     }
   }
   await walk(dir, 0)
-  return best
+  return out
 }
 
 /** Re-import only when the source was saved after the copy in use, or there is no copy yet. */

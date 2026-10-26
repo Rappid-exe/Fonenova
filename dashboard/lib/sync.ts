@@ -12,7 +12,8 @@ import { importLedger } from './importers/ledger'
 import { reconcileLedger } from './metrics'
 import { oneDriveConfig, oneDriveConnected, oneDriveSources } from './onedrive'
 import { getStore, type Store } from './store'
-import { isArchiveName, localFile, newestTracker, syncFile, type FileSource, type SourceStatus } from './sync-core'
+import { combineQuarterLogs } from './expenses'
+import { allTrackers, combinedSource, isArchiveName, localFile, newestTracker, syncFile, type FileSource, type SourceStatus } from './sync-core'
 import { loadSnapshot, refreshSnapshot, xeroAvailable, xeroConfig, xeroConnected } from './xero/client'
 import type { ExpenseLog, Ledger } from './types'
 
@@ -67,7 +68,7 @@ async function run(): Promise<SourceStatus[]> {
     store,
     key: 'expenses',
     notConfigured: files.expensesNote,
-    run: async (f) => (await importExpenses(f)).log,
+    run: async (f) => importTrackers(files.expenses, f),
     describe: describeExpenses,
   })
   const sources = [ledger, expenses]
@@ -87,6 +88,14 @@ async function run(): Promise<SourceStatus[]> {
   return [...sources, await syncXero()]
 }
 
+/** One quarter tracker, or all of them joined (one "VAT Return From…" file per VAT return). */
+async function importTrackers(source: FileSource | null, f: { name: string; data: Buffer }): Promise<ExpenseLog> {
+  const parts = source && 'parts' in source ? (source as FileSource & { parts: FileSource[] }).parts : null
+  if (!parts) return (await importExpenses(f)).log
+  const logs = await Promise.all(parts.map(async (p) => (await importExpenses({ name: p.fileName, data: await p.read() })).log))
+  return combineQuarterLogs(logs)!
+}
+
 const gbp = (c: number) => `£${(c / 100).toLocaleString('en-GB', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
 
 /** Row count plus the check against the tracker's own TOTAL row. A mismatch is a red line, not a silent pass. */
@@ -104,11 +113,13 @@ async function fileSources(store: Store): Promise<{ ledger: FileSource | null; e
   const trackerDir = process.env.FN_EXPENSES_DIR
   const trackerPath = process.env.FN_EXPENSES_PATH
   if (!process.env.VERCEL && (ledgerPath || trackerDir || trackerPath)) {
-    const tracker = trackerPath ?? (trackerDir ? (await newestTracker(trackerDir))?.file ?? null : null)
+    // One tracker per VAT quarter: read them all, so a new quarter never hides the previous one.
+    const trackers = trackerPath ? [trackerPath] : trackerDir ? (await allTrackers(trackerDir)).map((t) => t.file) : []
     const archive = process.env.FN_EXPENSES_ARCHIVE ?? (trackerDir ? (await newestTracker(trackerDir, 3, isArchiveName))?.file ?? null : null)
+    const parts = trackers.map(localFile)
     return {
       ledger: ledgerPath ? localFile(ledgerPath) : null,
-      expenses: tracker ? localFile(tracker) : null,
+      expenses: parts.length === 0 ? null : parts.length === 1 ? parts[0] : combinedSource(parts),
       archive: archive ? localFile(archive) : null,
       ledgerNote: 'Automatic sync is off: set FN_LEDGER_PATH in .env.local. Showing the last manual import.',
       expensesNote: trackerDir
