@@ -886,9 +886,18 @@ export interface Overdue {
  * else the ledger's own "Client overdue N days" flag, which is as of the ledger snapshot.
  */
 export function overdueClients(orders: readonly Order[], today: IsoDate): Overdue {
-  let totalCents = 0
-  let count = 0
-  let oldest: Overdue['oldest'] = null
+  const list = overdueOrders(orders, today)
+  const top = list[0]
+  return {
+    totalCents: list.reduce((n, x) => n + x.owedCents, 0),
+    count: list.length,
+    oldest: top ? { orderId: top.order.id, customerName: top.order.customerName, days: top.days } : null,
+  }
+}
+
+/** Each overdue client invoice with its days late, oldest first (same rules as overdueClients). */
+export function overdueOrders(orders: readonly Order[], today: IsoDate): { order: Order; owedCents: Cents; days: number }[] {
+  const out: { order: Order; owedCents: Cents; days: number }[] = []
   for (const o of orders) {
     if (!o.clientOwesCents || o.clientOwesCents <= 0) continue
     let days: number | null = null
@@ -899,12 +908,9 @@ export function overdueClients(orders: readonly Order[], today: IsoDate): Overdu
       const m = o.flags.map((f) => /client overdue (\d+) days?/i.exec(f)).find(Boolean)
       days = m ? Number(m[1]) : null
     }
-    if (days === null) continue
-    totalCents += o.clientOwesCents
-    count++
-    if (!oldest || days > oldest.days) oldest = { orderId: o.id, customerName: o.customerName, days }
+    if (days !== null) out.push({ order: o, owedCents: o.clientOwesCents, days })
   }
-  return { totalCents, count, oldest }
+  return out.sort((a, b) => b.days - a.days)
 }
 
 /**

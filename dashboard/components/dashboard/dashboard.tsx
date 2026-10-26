@@ -3,7 +3,7 @@ import { useMemo, useState } from 'react'
 import { ChevronDown, FlaskConical } from 'lucide-react'
 import { Select } from '@/components/ui/select'
 import {
-  allocateCredits, applyLiveStatus, cashPosition, concentration, creditTotals, customerRows, filterOrders, netBusinessProfit, profitAfterCredits,
+  allocateCredits, cashPosition, concentration, creditTotals, customerRows, filterOrders, netBusinessProfit, profitAfterCredits,
   marginSchemeVat, overdueClients, reconcileLedger, supplierRows, timeSeries, totals, unitsByOrder,
 } from '@/lib/metrics'
 import { useSection, type Section } from '@/lib/sections'
@@ -23,11 +23,11 @@ import { XeroBar } from './xero-bar'
 import { AutoRefresh } from './auto-refresh'
 import type { SourceStatus } from '@/lib/sync-core'
 import type { AppSettings, OneDriveState, XeroState } from '@/lib/data-source'
-import { matchOrders } from '@/lib/xero/map'
-import { draftsAwaiting, withXero } from '@/lib/xero/pairing'
-import { xeroChecks } from '@/lib/xero/checks'
+import { draftsAwaiting } from '@/lib/xero/pairing'
+import { liveView } from '@/lib/live-view'
 import { makeNeedsAttention, type MakeStatus } from '@/lib/make'
-import { DraftsList, MakeCard, MarginVatCard } from './automations'
+import type { WeeklyEmailState } from '@/lib/weekly'
+import { DraftsList, MakeCard, MarginVatCard, WeeklyEmailCard } from './automations'
 import { CurrencyNote, CurrencySwitch } from './currency-switch'
 import { CashPositionPanel } from './cash-position'
 import { ConcentrationPanel } from './concentration'
@@ -59,6 +59,8 @@ interface Props {
   hosted: boolean
   settings: AppSettings
   make: MakeStatus | null
+  weekly: WeeklyEmailState
+  gmailNotice: string | null
 }
 
 export function Dashboard(props: Props) {
@@ -86,29 +88,22 @@ const TITLES: Record<Section, string> = {
   settings: 'Settings',
 }
 
-function DashboardBody({ ledger: rawLedger, today, overheads, overheadsSaved, overheadsError, overheadsWritable, xero, notice, expenses, expenseOverrides, expensesError, sources, oneDrive, oneDriveNotice, hosted, settings, make }: Props) {
+function DashboardBody({ ledger: rawLedger, today, overheads, overheadsSaved, overheadsError, overheadsWritable, xero, notice, expenses, expenseOverrides, expensesError, sources, oneDrive, oneDriveNotice, hosted, settings, make, weekly, gmailNotice }: Props) {
   const { fx } = useMoney()
   const [section, go] = useSection()
   // Reconcile against the untouched ledger; everything else uses Xero's live statuses where found.
   const checks = useMemo(() => reconcileLedger(rawLedger), [rawLedger])
-  const live = useMemo(() => {
-    if (!xero.snapshot) return null
-    return applyLiveStatus(rawLedger.orders, matchOrders(rawLedger.orders, xero.snapshot.invoices))
-  }, [rawLedger, xero.snapshot])
-  // Ledger orders (with Xero's live status), plus orders from confirmed Xero invoice and bill pairs.
-  const merged = useMemo(
-    () => withXero(live ? { ...rawLedger, orders: live.orders } : rawLedger, xero.snapshot, xero.pairs, today),
-    [rawLedger, live, xero.snapshot, xero.pairs, today],
-  )
+  // Ledger orders (with Xero's live status), plus orders from confirmed Xero invoice and bill pairs,
+  // plus the live Xero checks. The same function feeds the Friday email and the AI bar.
+  const merged = useMemo(() => liveView(rawLedger, xero.snapshot, xero.pairs, today), [rawLedger, xero.snapshot, xero.pairs, today])
   const ledger = merged.ledger
   const matching = merged.matching
+  const xchecks = merged.checks
   // With Xero connected the data is as of its last refresh, not the spreadsheet's snapshot.
   const asOf = xero.snapshot ? xero.snapshot.fetchedAt.slice(0, 10) : ledger.meta.snapshotDate
   const coverage = useMemo(() => coverageFor(ledger.orders.map((o) => o.date), asOf), [ledger, asOf])
   const units = useMemo(() => unitsByOrder(ledger.lines), [ledger])
   const allocation = useMemo(() => allocateCredits(ledger.creditNotes), [ledger])
-  // Live Xero checks: credit notes, totals, overdue bills and old drafts against what Xero holds now.
-  const xchecks = useMemo(() => xeroChecks({ ledger: rawLedger, orders: ledger.orders, snapshot: xero.snapshot, today }), [rawLedger, ledger, xero.snapshot, today])
 
   const [preset, setPreset] = useState<PresetId>('all')
   const [custom, setCustom] = useState<DateRange>({ start: coverage.start, end: coverage.end })
@@ -174,7 +169,7 @@ function DashboardBody({ ledger: rawLedger, today, overheads, overheadsSaved, ov
     ? `Xero ${minutesAgo(xero.snapshot.fetchedAt)}${matching?.suggestions.length ? ` · ${matching.suggestions.length} to match` : ''}${drafts.length ? ` · ${drafts.length} draft${drafts.length > 1 ? 's' : ''} to approve` : ''}`
     : null
   const xeroBar = (
-    <XeroBar sources={sources} xero={xero} summary={live?.summary ?? null} ledgerImported={formatDate(ledger.meta.importedAt.slice(0, 10))} ledgerSnapshot={formatDate(ledger.meta.snapshotDate)} notice={notice} oneDrive={oneDrive} oneDriveNotice={oneDriveNotice} hosted={hosted} />
+    <XeroBar sources={sources} xero={xero} summary={merged.summary} ledgerImported={formatDate(ledger.meta.importedAt.slice(0, 10))} ledgerSnapshot={formatDate(ledger.meta.snapshotDate)} notice={notice} oneDrive={oneDrive} oneDriveNotice={oneDriveNotice} hosted={hosted} />
   )
   const subtitle = section === 'settings'
     ? 'Data sources, monthly overheads, and the checks every import must pass.'
@@ -330,6 +325,7 @@ function DashboardBody({ ledger: rawLedger, today, overheads, overheadsSaved, ov
             {xeroBar}
           </section>
           <MakeCard make={make} />
+          <WeeklyEmailCard state={weekly} notice={gmailNotice} />
           <OverheadsPanel overheads={overheads} saved={overheadsSaved} loadError={overheadsError} writable={overheadsWritable} today={today} />
           <MarginVatCard enabled={settings.marginSchemeVat} writable={overheadsWritable} vatEurCents={marginVat} />
           <ChecksList checks={checks} />

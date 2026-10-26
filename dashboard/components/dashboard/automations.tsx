@@ -1,11 +1,12 @@
 'use client'
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { CircleAlert, CircleCheck, ExternalLink, Workflow } from 'lucide-react'
+import { CircleAlert, CircleCheck, ExternalLink, Mail, Workflow } from 'lucide-react'
 import { useMoney } from '@/components/currency'
 import { formatDate } from '@/lib/periods'
 import { xeroLink } from '@/lib/xero/pairing'
 import type { MakeStatus } from '@/lib/make'
+import type { WeeklyEmailState } from '@/lib/weekly'
 import type { XeroInvoice } from '@/lib/types'
 import { cn } from '@/lib/utils'
 
@@ -45,7 +46,7 @@ export function MakeCard({ make }: { make: MakeStatus | null }) {
       </div>
       {!make ? (
         <p className="px-5 py-3 text-[13px] text-ink-2">
-          Not shown yet: add <code>MAKE_API_TOKEN</code> (Make → Profile → API, read-only scopes), <code>MAKE_ZONE=eu1</code>, <code>MAKE_ORG_ID=9377699</code> and <code>MAKE_SCENARIOS=8112915,8119866</code> to <code>.env.local</code>.
+          Not shown yet: add <code>MAKE_API_TOKEN</code> (Make → Profile → API, read-only scopes), <code>MAKE_ZONE=eu1</code>, <code>MAKE_ORG_ID=9377699</code> and <code>MAKE_SCENARIOS=8112915,8119866</code> in Vercel → Settings → Environment Variables (or <code>.env.local</code> on your PC), then redeploy.
         </p>
       ) : (
         <>
@@ -114,6 +115,69 @@ export function MarginVatCard({ enabled, writable, vatEurCents }: { enabled: boo
         </button>
       </div>
       {error && <p role="alert" className="mt-2 text-[13px] text-loss">{error}</p>}
+    </section>
+  )
+}
+
+const GMAIL_NOTICE: Record<string, string> = {
+  connected: 'Gmail connected. The weekly email will send on Fridays.',
+  declined: 'Google sign-in was cancelled.',
+  state: 'The Google sign-in expired or was opened in another browser. Try again.',
+  'wrong-account': 'That Google account is not the dashboard’s account. Sign in with the allowed address.',
+  failed: 'Google did not accept the connection. Try again; if it repeats, check the Gmail API is enabled.',
+  'not-configured': 'Needs GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET and online storage first.',
+}
+
+/** The Friday cash email: is Gmail connected, who gets it, when it last went, and a test button. */
+export function WeeklyEmailCard({ state, notice }: { state: WeeklyEmailState; notice: string | null }) {
+  const router = useRouter()
+  const [busy, setBusy] = useState<'test' | 'off' | null>(null)
+  const [result, setResult] = useState<{ ok: boolean; text: string } | null>(null)
+  async function test() {
+    setBusy('test')
+    setResult(null)
+    const res = await fetch('/api/digest', { method: 'POST' }).catch(() => null)
+    const body = (await res?.json().catch(() => null)) as { ok?: boolean; message?: string; to?: string } | null
+    setResult(body?.ok ? { ok: true, text: `Sent to ${body.to}. Check the inbox (and spam, the first time).` } : { ok: false, text: body?.message ?? 'Could not send' })
+    router.refresh()
+    setBusy(null)
+  }
+  async function disconnect() {
+    setBusy('off')
+    await fetch('/gmail/disconnect', { method: 'POST' }).catch(() => null)
+    router.refresh()
+    setBusy(null)
+  }
+  const last = state.last
+  return (
+    <section aria-labelledby="weekly-title" className="rounded-lg border border-line bg-surface">
+      <div className="border-b border-line px-5 py-3">
+        <h2 id="weekly-title" className="flex items-center gap-1.5 text-[15px] font-semibold text-ink"><Mail className="h-4 w-4 text-ink-3" aria-hidden />Friday cash email</h2>
+        <p className="mt-0.5 text-[13px] leading-snug text-ink-2">Every Friday about 16:00 UK: who is late paying, what you must pay in the next 14 days against what should come in, Xero problems to fix, and drafts to approve. Sent from your own Gmail; the connection can send mail only, never read it.</p>
+      </div>
+      <div className="space-y-2 px-5 py-3 text-[13.5px]">
+        {notice && GMAIL_NOTICE[notice] && <p role="status" className={cn('rounded-md px-3 py-2 text-[13px]', notice === 'connected' ? 'bg-gain-soft text-gain' : 'bg-warn-soft text-warn')}>{GMAIL_NOTICE[notice]}</p>}
+        {!state.configured ? (
+          <p className="text-ink-2">Not set up: needs the Google sign-in variables (GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET).</p>
+        ) : !state.connected ? (
+          <div className="flex flex-wrap items-center gap-3">
+            <a href="/gmail/connect" className="inline-flex h-9 items-center rounded-md bg-navy px-3 text-[13px] font-medium text-white hover:bg-navy-2">Connect Gmail (send only)</a>
+            <span className="text-[13px] text-ink-2">Goes to {state.to}.</span>
+          </div>
+        ) : (
+          <>
+            <p className="flex items-center gap-1.5 text-ink"><CircleCheck className="h-4 w-4 text-gain" aria-hidden />Sends from <strong className="font-medium">{state.from}</strong> to <strong className="font-medium">{state.to}</strong></p>
+            <p className="text-ink-2">
+              {last ? <>Last {last.test ? 'test ' : ''}send: {when(last.at)} · <span className={last.ok ? 'text-gain' : 'text-loss'}>{last.ok ? 'sent' : last.message}</span></> : 'Nothing sent yet.'}
+            </p>
+            <div className="flex flex-wrap gap-2 pt-1">
+              <button type="button" onClick={test} disabled={busy !== null} className="inline-flex h-9 items-center rounded-md bg-navy px-3 text-[13px] font-medium text-white hover:bg-navy-2 disabled:opacity-50">{busy === 'test' ? 'Sending…' : 'Send test email now'}</button>
+              <button type="button" onClick={disconnect} disabled={busy !== null} className="inline-flex h-9 items-center rounded-md border border-line px-3 text-[13px] font-medium text-ink-2 hover:text-ink disabled:opacity-50">Disconnect</button>
+            </div>
+            {result && <p role="status" className={cn('text-[13px]', result.ok ? 'text-gain' : 'text-loss')}>{result.text}</p>}
+          </>
+        )}
+      </div>
     </section>
   )
 }
