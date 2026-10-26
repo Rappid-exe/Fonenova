@@ -3,7 +3,7 @@ import { cronAuthorised } from '@/lib/cron'
 import { syncSources } from '@/lib/sync'
 
 export const dynamic = 'force-dynamic'
-export const maxDuration = 60
+export const maxDuration = 300 // Hobby with Fluid compute allows up to 300s; a full import can pass 60s
 
 /**
  * The daily scheduled sync (vercel.json). Vercel sends CRON_SECRET as a bearer token; this

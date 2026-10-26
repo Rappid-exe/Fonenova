@@ -1,10 +1,8 @@
 import { NextResponse, type NextRequest } from 'next/server'
 import { finishOneDriveAuth, oneDriveConfig } from '@/lib/onedrive'
 import { currentUser } from '@/lib/session'
-import { syncSources } from '@/lib/sync'
 
 export const dynamic = 'force-dynamic'
-export const maxDuration = 60
 const COOKIE = 'fn_onedrive_oauth'
 
 export async function GET(req: NextRequest) {
@@ -29,6 +27,7 @@ export async function GET(req: NextRequest) {
     console.error('OneDrive sign-in failed:', e instanceof Error ? e.message : e)
     return back('failed')
   }
-  await syncSources({ force: true }) // first import straight away; problems show in the status bar
+  // No import here: the page this redirects to syncs straight away (forced by ?onedrive=), so a
+  // slow first import can't time out the sign-in.
   return back('connected')
 }

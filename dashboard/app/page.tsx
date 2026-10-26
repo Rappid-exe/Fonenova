@@ -13,6 +13,8 @@ import { draftsAwaiting, withXero } from '@/lib/xero/pairing'
 
 // Read the ledger on every request so a fresh import shows without a rebuild.
 export const dynamic = 'force-dynamic'
+// A visit can run a full import (first OneDrive read, a newly saved tracker); allow up to 300s on Hobby.
+export const maxDuration = 300
 
 export default async function Page({ searchParams }: { searchParams: Promise<Record<string, string | undefined>> }) {
   const params = await searchParams
