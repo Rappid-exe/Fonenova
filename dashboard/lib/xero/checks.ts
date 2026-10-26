@@ -15,6 +15,8 @@ import { xeroLink } from './pairing'
 /** Differences under a euro are rounding, not a mistake. */
 const TOLERANCE = 100
 const DRAFT_DAYS = 7
+/** Unpaid bills at or above this get their own line in the list. */
+const BIG_BILL = 10_000_00
 
 const norm = (s: string) => s.trim().toLowerCase()
 const eur = (c: Cents) => `€${(c / 100).toLocaleString('en-GB', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
@@ -84,7 +86,17 @@ export function creditGaps(ledgerNotes: readonly CreditNote[], xeroNotes: readon
     const group = subsetSum(pool.filter((g) => !x.date || g.note.date === x.date || Math.abs(daysBetween(g.note.date, x.date)) <= 7), x.totalCents)
     group?.forEach((g) => settled.add(g))
   }
-  return gaps.filter((g) => !settled.has(g) && Math.abs(g.gapCents) > TOLERANCE)
+  // A credit applied to another of the same customer's invoices shows as one note short and
+  // another over by the same amount (FN-CN-202601's €44,804 sits on 2026037, not 2026034): moved, not missing.
+  const open = gaps.filter((g) => !settled.has(g) && Math.abs(g.gapCents) > TOLERANCE)
+  for (const s of open.filter((g) => g.gapCents > 0)) {
+    const o = open.find((g) => g !== s && !settled.has(g) && g.note.side === s.note.side && g.gapCents < 0 && Math.abs(s.gapCents + g.gapCents) <= TOLERANCE)
+    if (o) {
+      settled.add(s)
+      settled.add(o)
+    }
+  }
+  return open.filter((g) => !settled.has(g))
 }
 
 /** A set of gaps whose note amounts add up to `total` (small sets only: a handful of credit notes). */
@@ -182,6 +194,7 @@ export function xeroChecks(args: { ledger: Ledger; orders: readonly Order[]; sna
     const l = links.get(o.id)
     if (l?.bill) orderOfBill.set(l.bill.id, { order: o, client: l.client })
   }
+  const smallBills: { b: XeroInvoice; late: number }[] = []
   for (const b of invoices) {
     if (b.kind !== 'bill' || b.status === 'DRAFT' || b.amountDueCents <= 0 || !b.dueDate) continue
     const late = daysBetween(b.dueDate, today)
@@ -190,6 +203,12 @@ export function xeroChecks(args: { ledger: Ledger; orders: readonly Order[]; sna
     const clientPaid = link?.client?.status === 'PAID'
     const noInvoice = link ? !link.client : false
     if (!clientPaid && !noInvoice && late < 14) continue // ordinary terms slack; long overdue still shows below
+    // Large or clear-cut ones get their own line; small remainders (often a credit or payment
+    // not recorded) are grouped below, so they don't bury everything else.
+    if (!noInvoice && b.amountDueCents < BIG_BILL) {
+      smallBills.push({ b, late })
+      continue
+    }
     items.push({
       id: `X-BILL-${b.id}`,
       priority: clientPaid || noInvoice || late >= 30 ? 'HIGH' : 'MEDIUM',
@@ -202,6 +221,23 @@ export function xeroChecks(args: { ledger: Ledger; orders: readonly Order[]; sna
       impactLabel: 'Unpaid',
       action: 'If it was paid, record the payment in Xero (check Revolut). If not, it is genuinely owed.',
       link: xeroLink(b),
+    })
+  }
+
+  if (smallBills.length) {
+    const total = smallBills.reduce((n, x) => n + x.b.amountDueCents, 0)
+    const list = smallBills.sort((a, b) => b.b.amountDueCents - a.b.amountDueCents)
+    items.push({
+      id: 'X-BILLS-SMALL',
+      priority: 'MEDIUM',
+      source: 'Xero check',
+      reference: `${smallBills.length} supplier bill${smallBills.length > 1 ? 's' : ''} part-unpaid`,
+      orderId: null,
+      orderIds: list.map((x) => orderOfBill.get(x.b.id)?.order.id).filter((id): id is string => !!id),
+      issue: `Unpaid in Xero past their due date: ${list.map((x) => `${x.b.number || x.b.reference} ${eur(x.b.amountDueCents)} (${x.late} days)`).join(', ')}.`,
+      impactCents: total,
+      impactLabel: 'Unpaid in Xero',
+      action: 'Usually a payment or credit that was never recorded in Xero. Match each against Revolut; record it, or pay what is genuinely owed.',
     })
   }
 
