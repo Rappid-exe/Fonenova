@@ -7,6 +7,7 @@ import { syncSources } from '@/lib/sync'
 import { getDataSource, isHosted, loadExpenses, loadFxRate, loadOneDriveState, loadOverheads, loadSettings, loadXeroState, overheadsWritable, toClientLedger } from '@/lib/data-source'
 import { loadMakeStatus } from '@/lib/make'
 import { loadWeeklyEmailState } from '@/lib/weekly'
+import { loadAskState } from '@/lib/ask/data'
 import { todayIso } from '@/lib/periods'
 import { attentionItems } from '@/lib/attention'
 import { allocateCredits, expenseSummary } from '@/lib/metrics'
@@ -32,7 +33,7 @@ export default async function Page({ searchParams }: { searchParams: Promise<Rec
   // Straight after connecting Xero or OneDrive, skip the 30s throttle so the page shows the new state.
   const sources = await syncSources({ force: !!(notice || oneDriveNotice) })
   const source = getDataSource()
-  const [result, fx, oh, xero, exp, oneDrive, settings, make, weekly] = await Promise.all([source.load(), loadFxRate(), loadOverheads(), loadXeroState(), loadExpenses(), loadOneDriveState(), loadSettings(), loadMakeStatus(), loadWeeklyEmailState()])
+  const [result, fx, oh, xero, exp, oneDrive, settings, make, weekly, askState] = await Promise.all([source.load(), loadFxRate(), loadOverheads(), loadXeroState(), loadExpenses(), loadOneDriveState(), loadSettings(), loadMakeStatus(), loadWeeklyEmailState(), loadAskState()])
 
   if (!result.ok) {
     return (
@@ -69,7 +70,7 @@ export default async function Page({ searchParams }: { searchParams: Promise<Rec
   }
   return (
     <Shell email={email} badges={badges}>
-      <Dashboard ledger={toClientLedger(ledger)} today={todayIso()} fx={fx} overheads={oh.overheads} overheadsSaved={oh.saved} overheadsError={oh.error ?? null} overheadsWritable={overheadsWritable()} xero={xero} notice={notice} expenses={exp.log} expenseOverrides={exp.overrides} expensesError={exp.error ?? null} sources={sources} oneDrive={oneDrive} oneDriveNotice={oneDriveNotice} hosted={isHosted()} settings={settings} make={make} weekly={weekly} gmailNotice={gmailNotice} />
+      <Dashboard ledger={toClientLedger(ledger)} today={todayIso()} fx={fx} overheads={oh.overheads} overheadsSaved={oh.saved} overheadsError={oh.error ?? null} overheadsWritable={overheadsWritable()} xero={xero} notice={notice} expenses={exp.log} expenseOverrides={exp.overrides} expensesError={exp.error ?? null} sources={sources} oneDrive={oneDrive} oneDriveNotice={oneDriveNotice} hosted={isHosted()} settings={settings} make={make} weekly={weekly} gmailNotice={gmailNotice} askState={askState} />
     </Shell>
   )
 }

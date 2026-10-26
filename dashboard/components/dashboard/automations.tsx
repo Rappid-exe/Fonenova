@@ -1,12 +1,13 @@
 'use client'
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { CircleAlert, CircleCheck, ExternalLink, Mail, Workflow } from 'lucide-react'
+import { CircleAlert, CircleCheck, ExternalLink, Mail, Sparkles, Workflow } from 'lucide-react'
 import { useMoney } from '@/components/currency'
 import { formatDate } from '@/lib/periods'
 import { xeroLink } from '@/lib/xero/pairing'
 import type { MakeStatus } from '@/lib/make'
 import type { WeeklyEmailState } from '@/lib/weekly'
+import type { AskState } from '@/lib/ask/data'
 import type { XeroInvoice } from '@/lib/types'
 import { cn } from '@/lib/utils'
 
@@ -177,6 +178,26 @@ export function WeeklyEmailCard({ state, notice }: { state: WeeklyEmailState; no
             {result && <p role="status" className={cn('text-[13px]', result.ok ? 'text-gain' : 'text-loss')}>{result.text}</p>}
           </>
         )}
+      </div>
+    </section>
+  )
+}
+
+/** The AI bar: is it set up, how many questions are left today, and what leaves the dashboard. */
+export function AskCard({ state }: { state: AskState }) {
+  return (
+    <section aria-labelledby="ask-title" className="rounded-lg border border-line bg-surface">
+      <div className="border-b border-line px-5 py-3">
+        <h2 id="ask-title" className="flex items-center gap-1.5 text-[15px] font-semibold text-ink"><Sparkles className="h-4 w-4 text-ink-3" aria-hidden />AI questions (search bar)</h2>
+        <p className="mt-0.5 text-[13px] leading-snug text-ink-2">Typing an order, invoice, customer or page finds it straight away, free. A question goes to Claude Haiku, which looks the answer up with read-only tools over this dashboard&apos;s data. About $0.002 a question.</p>
+      </div>
+      <div className="space-y-1.5 px-5 py-3 text-[13.5px]">
+        {state.configured ? (
+          <p className="flex items-center gap-1.5 text-ink"><CircleCheck className="h-4 w-4 text-gain" aria-hidden />On · {state.usedToday} of {state.limit} questions used today (resets at midnight UTC)</p>
+        ) : (
+          <p className="text-ink-2">Not set up: create an API key at console.anthropic.com in its own workspace with a monthly spend limit (e.g. $5), then add it in Vercel as <code>ANTHROPIC_API_KEY</code> (Sensitive) and redeploy. <code>AI_DAILY_LIMIT</code> changes the daily cap (default 50).</p>
+        )}
+        <p className="text-[12.5px] text-ink-3">Each question and the figures the tools return are sent to Anthropic&apos;s API, which does not train on API data by default. Nothing can be changed through it.</p>
       </div>
     </section>
   )

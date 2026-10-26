@@ -7,7 +7,7 @@ import type { SourceStatus } from '@/lib/sync-core'
 import { cn } from '@/lib/utils'
 
 /** Page title, a short subtitle, the data status, and the filters. Filters fold away on a phone. */
-export function TopBar({ title, subtitle, status, controls }: { title: string; subtitle?: React.ReactNode; status: React.ReactNode; controls?: React.ReactNode }) {
+export function TopBar({ title, subtitle, status, controls, search }: { title: string; subtitle?: React.ReactNode; status: React.ReactNode; controls?: React.ReactNode; search?: React.ReactNode }) {
   const [open, setOpen] = useState(false)
   return (
     <header className="flex flex-wrap items-center gap-x-3 gap-y-3 pb-5 pt-6">
@@ -15,6 +15,7 @@ export function TopBar({ title, subtitle, status, controls }: { title: string; s
         <h1 className="text-[22px] font-semibold tracking-[-0.015em] text-ink">{title}</h1>
         {subtitle && <p className="mt-0.5 text-[13px] text-ink-2">{subtitle}</p>}
       </div>
+      {search && <div className="order-last w-full sm:order-none sm:w-auto">{search}</div>}
       <div className="flex items-center gap-2">
         {status}
         {controls && (
