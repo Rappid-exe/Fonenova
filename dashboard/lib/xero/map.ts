@@ -16,6 +16,12 @@ export function parseXeroDate(v: unknown): IsoDate | null {
 
 type Json = Record<string, unknown>
 
+/** Xero's exchange rate, kept only when it sent a usable one (1 for base-currency documents). */
+function withRate(v: unknown): { currencyRate?: number } {
+  const n = Number(v)
+  return v !== undefined && v !== null && Number.isFinite(n) && n > 0 ? { currencyRate: n } : {}
+}
+
 export function mapInvoice(j: Json): XeroInvoice | null {
   const type = j.Type
   if (type !== 'ACCREC' && type !== 'ACCPAY') return null
@@ -33,7 +39,8 @@ export function mapInvoice(j: Json): XeroInvoice | null {
     totalCents: toCents(j.Total),
     amountDueCents: toCents(j.AmountDue),
     amountPaidCents: toCents(j.AmountPaid),
-    payments: payments.map((p) => ({ id: String(p.PaymentID ?? ''), date: parseXeroDate(p.Date), amountCents: toCents(p.Amount) })),
+    payments: payments.map((p) => ({ id: String(p.PaymentID ?? ''), date: parseXeroDate(p.Date), amountCents: toCents(p.Amount), ...withRate(p.CurrencyRate) })),
+    ...withRate(j.CurrencyRate),
     ...(Array.isArray(j.LineItems) ? { lines: (j.LineItems as Json[]).map(mapLine) } : {}),
   }
 }
@@ -63,6 +70,10 @@ export function mapCreditNote(j: Json): XeroCreditNote | null {
     date: parseXeroDate(j.DateString ?? j.Date),
     totalCents: toCents(j.Total),
     allocatedTo: allocations.map((a) => String((a.Invoice as Json | undefined)?.InvoiceNumber ?? '')).filter(Boolean),
+    allocations: allocations
+      .map((a) => ({ invoiceNumber: String((a.Invoice as Json | undefined)?.InvoiceNumber ?? ''), amountCents: toCents(a.Amount ?? 0) }))
+      .filter((a) => a.invoiceNumber),
+    ...(j.RemainingCredit !== undefined ? { remainingCents: toCents(j.RemainingCredit) } : {}),
   }
 }
 

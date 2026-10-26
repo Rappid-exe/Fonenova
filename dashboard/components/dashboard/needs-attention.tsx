@@ -1,10 +1,11 @@
 'use client'
 import { useMemo, useState } from 'react'
-import { AlertOctagon, AlertTriangle, ArrowRight, Info } from 'lucide-react'
+import { AlertOctagon, AlertTriangle, ArrowRight, ExternalLink, Info } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { attentionItems, type AttentionItem } from '@/lib/attention'
 import type { CreditAllocation } from '@/lib/metrics'
+import type { XeroChecks } from '@/lib/xero/checks'
 import { useMoney } from '@/components/currency'
 import type { Ledger, Priority } from '@/lib/types'
 import { cn } from '@/lib/utils'
@@ -21,6 +22,7 @@ export function NeedsAttention({
   ledger,
   customerId,
   allocation,
+  checks,
   snapshot,
   onOpenOrder,
   expanded = false,
@@ -28,6 +30,8 @@ export function NeedsAttention({
   ledger: Ledger
   customerId: string | null
   allocation: CreditAllocation
+  /** Live Xero checks (lib/xero/checks.ts). */
+  checks?: XeroChecks
   snapshot: string
   onOpenOrder: (id: string) => void
   /** Show every item from the start (the Exceptions page). */
@@ -35,7 +39,7 @@ export function NeedsAttention({
 }) {
   const { money } = useMoney()
   const [showAll, setShowAll] = useState(expanded)
-  const all = useMemo(() => attentionItems(ledger, allocation), [ledger, allocation])
+  const all = useMemo(() => attentionItems(ledger, allocation, checks), [ledger, allocation, checks])
   const items = useMemo(() => {
     if (!customerId) return all
     const cust = new Map(ledger.orders.map((o) => [o.id, o.customerId]))
@@ -60,7 +64,7 @@ export function NeedsAttention({
         <div>
           <h2 id="attn-title" className="text-[15px] font-semibold text-ink">Needs attention <span className="ml-1 text-ink-3">{items.length}</span></h2>
           <p className="mt-0.5 text-[13px] leading-snug text-ink-2">
-            From the ledger&apos;s Exceptions tab, plus checks on the order data. Open as of {snapshot}{customerId ? ', selected customer only' : ''}.
+            From the ledger&apos;s Exceptions tab, plus checks on the order data{checks ? ' and live checks against Xero' : ''}. Open as of {snapshot}{customerId ? ', selected customer only' : ''}.
           </p>
         </div>
         {high > 0 && <Badge tone="loss"><AlertOctagon className="h-3 w-3" aria-hidden />{high} high priority</Badge>}
@@ -101,6 +105,7 @@ export function NeedsAttention({
                 </div>
                 <p className="mt-0.5 text-[13px] leading-relaxed text-ink-2">{i.issue}</p>
                 {i.action && <p className="mt-1 text-[12.5px] leading-relaxed text-ink-3"><span className="font-medium text-ink-2">Action:</span> {i.action}</p>}
+                {i.link && <a href={i.link} target="_blank" rel="noreferrer" className="mt-1 inline-flex items-center gap-1 text-[12.5px] font-medium text-accent hover:underline">Open in Xero<ExternalLink className="h-3 w-3" aria-hidden /></a>}
               </div>
               <div className="md:text-right">
                 <div className="text-[11px] text-ink-3">{i.impactLabel}</div>
@@ -125,10 +130,11 @@ export function NeedsAttention({
 }
 
 /** The three most important open items, for the Overview. */
-export function TodayList({ ledger, customerId, allocation, onOpenOrder, onSeeAll, extra = [] }: {
+export function TodayList({ ledger, customerId, allocation, checks, onOpenOrder, onSeeAll, extra = [] }: {
   ledger: Ledger
   customerId: string | null
   allocation: CreditAllocation
+  checks?: XeroChecks
   onOpenOrder: (id: string) => void
   onSeeAll: () => void
   /** Live jobs (drafts to approve, invoices to match, a failing sync) shown before the ledger items. */
@@ -136,11 +142,11 @@ export function TodayList({ ledger, customerId, allocation, onOpenOrder, onSeeAl
 }) {
   const { money } = useMoney()
   const items = useMemo(() => {
-    const all = attentionItems(ledger, allocation)
+    const all = attentionItems(ledger, allocation, checks)
     if (!customerId) return all
     const cust = new Map(ledger.orders.map((o) => [o.id, o.customerId]))
     return all.filter((i) => i.orderIds.length === 0 || i.orderIds.some((id) => cust.get(id) === customerId))
-  }, [ledger, allocation, customerId])
+  }, [ledger, allocation, checks, customerId])
   if (items.length === 0 && extra.length === 0) return null
   return (
     <section aria-labelledby="today-title" className="rounded-lg border border-line bg-surface">
@@ -165,7 +171,7 @@ export function TodayList({ ledger, customerId, allocation, onOpenOrder, onSeeAl
         ))}
         {items.slice(0, Math.max(1, 3 - extra.length)).map((i) => {
           const p = P[i.priority]
-          const open = i.orderId ? () => onOpenOrder(i.orderId!) : undefined
+          const open = i.orderId ? () => onOpenOrder(i.orderId!) : i.link ? () => window.open(i.link, '_blank', 'noreferrer') : undefined
           return (
             <li key={i.id}>
               <button type="button" onClick={open} disabled={!open} className="grid w-full grid-cols-[auto_1fr_auto] items-start gap-x-3 px-5 py-3 text-left enabled:hover:bg-subtle">

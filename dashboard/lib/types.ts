@@ -206,6 +206,8 @@ export interface XeroPayment {
   id: string
   date: IsoDate | null
   amountCents: Cents
+  /** Xero's rate on the payment date: units of the document currency per 1 unit of base currency. */
+  currencyRate?: number | null
 }
 
 export interface XeroInvoice {
@@ -223,6 +225,8 @@ export interface XeroInvoice {
   amountDueCents: Cents
   amountPaidCents: Cents
   payments: XeroPayment[]
+  /** Xero's rate on the document date: units of the document currency per 1 unit of base currency. */
+  currencyRate?: number | null
   /** Line items, when Xero returned them (it does on paged invoice lists). */
   lines?: XeroLine[]
 }
@@ -247,6 +251,10 @@ export interface XeroCreditNote {
   totalCents: Cents
   /** Invoice numbers this credit was allocated against. */
   allocatedTo: string[]
+  /** Each allocation with its amount. Absent in snapshots saved before amounts were read. */
+  allocations?: { invoiceNumber: string; amountCents: Cents }[]
+  /** Credit not yet allocated or refunded. */
+  remainingCents?: Cents
 }
 
 /** A Xero sales invoice and supplier bill the owner confirmed as one order. */

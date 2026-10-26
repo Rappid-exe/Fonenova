@@ -10,6 +10,7 @@ import { todayIso } from '@/lib/periods'
 import { attentionItems } from '@/lib/attention'
 import { allocateCredits, expenseSummary } from '@/lib/metrics'
 import { draftsAwaiting, withXero } from '@/lib/xero/pairing'
+import { xeroChecks } from '@/lib/xero/checks'
 
 // Read the ledger on every request so a fresh import shows without a rebuild.
 export const dynamic = 'force-dynamic'
@@ -54,9 +55,12 @@ export default async function Page({ searchParams }: { searchParams: Promise<Rec
 
   const { ledger } = result
   // Work waiting, for the sidebar. Recomputed on every load, so a decided row drops off at once.
-  const high = attentionItems(ledger, allocateCredits(ledger.creditNotes)).filter((i) => i.priority === 'HIGH').length
+  // Same view the dashboard shows: ledger plus Xero orders, with the live Xero checks.
+  const merged = withXero(ledger, xero.snapshot, xero.pairs, todayIso())
+  const checks = xeroChecks({ ledger, orders: merged.ledger.orders, snapshot: xero.snapshot, today: todayIso() })
+  const high = attentionItems(merged.ledger, allocateCredits(merged.ledger.creditNotes), checks).filter((i) => i.priority === 'HIGH').length
   const toReview = exp.log ? expenseSummary(exp.log, exp.overrides, oh.overheads, null).rows.filter((r) => r.cls === 'review').length : 0
-  const toMatch = (withXero(ledger, xero.snapshot, xero.pairs, todayIso()).matching?.suggestions.length ?? 0) + draftsAwaiting(xero.snapshot).length
+  const toMatch = (merged.matching?.suggestions.length ?? 0) + draftsAwaiting(xero.snapshot).length
   const badges = {
     matching: { count: toMatch, title: 'to match or approve', tone: 'warn' as const },
     exceptions: { count: high, title: 'high priority', tone: 'loss' as const },
