@@ -8,7 +8,7 @@ import type { Cents, Ledger, Priority } from './types'
 export interface AttentionItem {
   id: string
   priority: Priority
-  source: 'Exceptions tab' | 'Derived from ledger'
+  source: 'Exceptions tab' | 'Derived from ledger' | 'Xero check'
   reference: string
   orderId: string | null
   /** Orders this item concerns, for the customer filter. Empty = portfolio-wide. */
@@ -17,12 +17,16 @@ export interface AttentionItem {
   impactCents: Cents
   impactLabel: string
   action: string | null
+  /** Where to fix it, e.g. the document in Xero. */
+  link?: string
 }
 
 const RANK: Record<Priority, number> = { HIGH: 0, MEDIUM: 1, LOW: 2 }
 
-export function attentionItems(ledger: Ledger, allocation: CreditAllocation): AttentionItem[] {
-  const items: AttentionItem[] = ledger.exceptions.map((e) => ({
+/** `checks` are the live Xero checks (lib/xero/checks.ts); they replace the Exceptions-tab rows they supersede. */
+export function attentionItems(ledger: Ledger, allocation: CreditAllocation, checks?: { items: AttentionItem[]; supersedes: string[] }): AttentionItem[] {
+  const gone = new Set(checks?.supersedes ?? [])
+  const items: AttentionItem[] = ledger.exceptions.filter((e) => !gone.has(e.id)).map((e) => ({
     id: e.id,
     priority: e.priority,
     source: 'Exceptions tab',
@@ -53,6 +57,8 @@ export function attentionItems(ledger: Ledger, allocation: CreditAllocation): At
     })
   }
 
+  items.push(...(checks?.items ?? []))
+
   for (const n of allocation.unallocated) {
     items.push({
       id: `D-UNALLOC-${n.number}`,
@@ -61,10 +67,11 @@ export function attentionItems(ledger: Ledger, allocation: CreditAllocation): At
       reference: `${n.side === 'client' ? 'Client' : 'Supplier'} credit note ${n.number}`,
       orderId: null,
       orderIds: n.orderIds,
-      issue: `Covers ${n.orderIds.length} orders (${n.orderIds.join(', ')}), so it is not attributed to any one order. It counts in portfolio totals only. Xero shows: ${n.xeroShows}`,
+      issue: `Covers ${n.orderIds.length} orders (${n.orderIds.join(', ')}), so it is not attributed to any one order. It counts in portfolio totals only.${checks ? '' : ` Xero shows: ${n.xeroShows}`}`,
       impactCents: n.amountCents,
       impactLabel: 'Credit amount',
-      action: n.check || null,
+      // The note's "check" text is about Xero as it was at the ledger snapshot; the live checks say it now.
+      action: checks && /xero/i.test(n.check) ? null : n.check || null,
     })
   }
 

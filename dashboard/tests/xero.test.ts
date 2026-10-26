@@ -87,11 +87,15 @@ describe('Xero line items and credit notes', () => {
       { description: 'SHIPPING CHARGES', quantity: 1, unitCents: 40000, amountCents: 40000 },
     ])
     expect(mapInvoice(xSale)!.lines).toBeUndefined()
+    const fxSale = mapInvoice({ Type: 'ACCREC', InvoiceID: 'f', CurrencyCode: 'EUR', CurrencyRate: 1.1512, Total: 100, Payments: [{ PaymentID: 'p', Amount: 100, CurrencyRate: 1.1402 }] })!
+    expect([fxSale.currencyRate, fxSale.payments[0].currencyRate]).toEqual([1.1512, 1.1402])
   })
   it('maps credit notes both ways, with the invoices they were allocated to', () => {
     const cn = mapCreditNote({ Type: 'ACCRECCREDIT', CreditNoteID: 'c1', CreditNoteNumber: 'FN-CN-202606', Status: 'AUTHORISED', CurrencyCode: 'EUR',
       Contact: { Name: 'Wave Phone B.V.' }, Date: '/Date(1784592000000+0000)/', Total: 894, Allocations: [{ Invoice: { InvoiceNumber: '2026009' }, Amount: 894 }] })
-    expect(cn).toMatchObject({ kind: 'sale', number: 'FN-CN-202606', totalCents: 89400, allocatedTo: ['2026009'], date: '2026-07-21' })
+    expect(cn).toMatchObject({ kind: 'sale', number: 'FN-CN-202606', totalCents: 89400, allocatedTo: ['2026009'], allocations: [{ invoiceNumber: '2026009', amountCents: 89400 }], date: '2026-07-21' })
+    expect(cn!.remainingCents).toBeUndefined()
+    expect(mapCreditNote({ Type: 'ACCPAYCREDIT', CreditNoteID: 'c3', Total: 10, RemainingCredit: 4 })!.remainingCents).toBe(400)
     expect(mapCreditNote({ Type: 'ACCPAYCREDIT', CreditNoteID: 'c2', Total: 1 })!.kind).toBe('bill')
     expect(mapCreditNote({ Type: 'ACCREC' })).toBeNull()
   })

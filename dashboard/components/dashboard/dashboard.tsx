@@ -25,6 +25,7 @@ import type { SourceStatus } from '@/lib/sync-core'
 import type { AppSettings, OneDriveState, XeroState } from '@/lib/data-source'
 import { matchOrders } from '@/lib/xero/map'
 import { draftsAwaiting, withXero } from '@/lib/xero/pairing'
+import { xeroChecks } from '@/lib/xero/checks'
 import { makeNeedsAttention, type MakeStatus } from '@/lib/make'
 import { DraftsList, MakeCard, MarginVatCard } from './automations'
 import { CurrencyNote, CurrencySwitch } from './currency-switch'
@@ -106,6 +107,8 @@ function DashboardBody({ ledger: rawLedger, today, overheads, overheadsSaved, ov
   const coverage = useMemo(() => coverageFor(ledger.orders.map((o) => o.date), asOf), [ledger, asOf])
   const units = useMemo(() => unitsByOrder(ledger.lines), [ledger])
   const allocation = useMemo(() => allocateCredits(ledger.creditNotes), [ledger])
+  // Live Xero checks: credit notes, totals, overdue bills and old drafts against what Xero holds now.
+  const xchecks = useMemo(() => xeroChecks({ ledger: rawLedger, orders: ledger.orders, snapshot: xero.snapshot, today }), [rawLedger, ledger, xero.snapshot, today])
 
   const [preset, setPreset] = useState<PresetId>('all')
   const [custom, setCustom] = useState<DateRange>({ start: coverage.start, end: coverage.end })
@@ -229,6 +232,7 @@ function DashboardBody({ ledger: rawLedger, today, overheads, overheadsSaved, ov
             ledger={ledger}
             customerId={customer}
             allocation={allocation}
+            checks={xchecks}
             onOpenOrder={setOpenOrderId}
             onSeeAll={() => go('exceptions')}
             extra={[
@@ -311,7 +315,7 @@ function DashboardBody({ ledger: rawLedger, today, overheads, overheadsSaved, ov
       )}
 
       {section === 'exceptions' && (
-        <NeedsAttention ledger={ledger} customerId={customer} allocation={allocation} snapshot={formatDate(asOf)} onOpenOrder={setOpenOrderId} expanded />
+        <NeedsAttention ledger={ledger} customerId={customer} allocation={allocation} checks={xchecks} snapshot={formatDate(asOf)} onOpenOrder={setOpenOrderId} expanded />
       )}
 
       {section === 'expenses' && (
