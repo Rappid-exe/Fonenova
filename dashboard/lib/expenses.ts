@@ -17,6 +17,22 @@ export interface Classified {
 
 type Rule = { test: RegExp; cls: ExpenseClass; category: string; reason: string; overheadId?: string }
 
+/**
+ * The expense system (Rqppid/fnova-expenses) logs every payment out of the GBP account and starts
+ * the Remarks of non-purchases with a tag. Wages and PAYE are real costs; the rest is money
+ * moving, not a cost. Own-account transfers are dropped at import (see importers/expenses.ts).
+ */
+const TAG_RULES: Rule[] = [
+  { test: /^\s*\[outside vat scope: wages\]/i, cls: 'business', category: 'Wages', reason: 'Wages (tagged by the expense system)' },
+  { test: /^\s*\[outside vat scope: paye/i, cls: 'business', category: 'PAYE / NIC', reason: 'Employer PAYE and National Insurance on wages' },
+  { test: /^\s*\[outside vat scope: hmrc\]/i, cls: 'review', category: 'HMRC payment', reason: 'VAT or Corporation Tax paid to HMRC is not an operating cost. Mark personal to leave it out' },
+  { test: /^\s*\[not a purchase: payment to director\]/i, cls: 'review', category: 'Director payment', reason: 'Paid to a director outside payroll (drawings or loan): not a cost unless it is salary. Mark personal to leave it out' },
+  { test: /^\s*\[not a purchase: loan repayment\]/i, cls: 'review', category: 'Loan repayment', reason: 'Repaying a loan moves money, it is not a cost (only interest is). Mark personal to leave it out' },
+]
+
+/** Remarks tag marking a move between Fone Nova's own accounts: not spending at all. */
+export const OWN_ACCOUNT_TAG = /^\s*\[not a purchase: own-account transfer\]/i
+
 const RULES: Rule[] = [
   // Already charged by the overhead schedule
   { test: /\b(hq|iwg)\b.*office|office rent/i, cls: 'business', category: 'Office rent', reason: 'Office at Weavers Court; charged by the Office rent overhead', overheadId: 'office-rent' },
@@ -56,7 +72,10 @@ const RULES: Rule[] = [
   { test: /tesco|lidl|sainsbury|asda|spar|istanbul market|grocer|greggs|boots|meal|dinner|takeaway|food|snack|sushi|uber eats|happy yemen|fallone|erbil|deerah|chick|mr chicken|flipdish|coca|sandals?\b|bath sheets|dehumidifier|household|toothbrush|lebara|chair hire|club24|fitness|wal-mart|walmart|roshan|fruit|\bmace\b|duunes|iceland|centra|vending|co-op|pizza|restaurant|\bbfc\b|pepe|bagel|wh smith|drink|refreshment|nuts/i, cls: 'personal', category: 'Food, groceries, household', reason: 'Day-to-day personal spending' },
 ]
 
-export function classifyExpense(e: Pick<Expense, 'payee' | 'description'>): Classified {
+export function classifyExpense(e: Pick<Expense, 'payee' | 'description'> & { remarks?: string }): Classified {
+  for (const r of TAG_RULES) {
+    if (r.test.test(e.remarks ?? '')) return { cls: r.cls, category: r.category, reason: r.reason, overheadId: null }
+  }
   const text = `${e.payee} ${e.description}`
   for (const r of RULES) {
     if (r.test.test(text)) return { cls: r.cls, category: r.category, reason: r.reason, overheadId: r.overheadId ?? null }
@@ -68,6 +87,47 @@ export const CLASS_LABEL: Record<ExpenseClass, string> = {
   business: 'Business',
   review: 'Needs review',
   personal: 'Personal',
+}
+
+/**
+ * One log from several quarter trackers ("VAT Return From…", one per VAT return). Their rows
+ * are different payments (a late receipt sits in the quarter that claims it), so they are
+ * simply joined; a row that is identical in two files is kept once.
+ */
+export function combineQuarterLogs(logs: ExpenseLog[]): ExpenseLog | null {
+  if (!logs.length) return null
+  if (logs.length === 1) return logs[0]
+  const span = (l: ExpenseLog) => {
+    const d = l.expenses.map((e) => e.date).sort()
+    return { sourceFile: l.meta.sourceFile, rows: l.expenses.length, from: d[0] ?? null, to: d.at(-1) ?? null }
+  }
+  const sorted = [...logs].sort((a, b) => (span(a).from ?? '').localeCompare(span(b).from ?? ''))
+  const seen = new Set<string>()
+  const expenses = sorted.flatMap((l) => l.expenses).filter((e) => (seen.has(e.id) ? false : (seen.add(e.id), true)))
+  const fxKey = (f: FxConversion) => `${f.date}|${f.eurCents}|${f.gbpCents}`
+  const fxSeen = new Set<string>()
+  const fxConversions = sorted.flatMap((l) => l.fxConversions).filter((f) => (fxSeen.has(fxKey(f)) ? false : (fxSeen.add(fxKey(f)), true)))
+  const checks = sorted.map((l) => l.meta.totalCheck)
+  const allFound = checks.every((c) => c?.found)
+  const sum = (pick: (c: NonNullable<(typeof checks)[number]>) => { amountCents: number; vatCents: number } | null) => ({
+    amountCents: checks.reduce((n, c) => n + (c ? pick(c)?.amountCents ?? 0 : 0), 0),
+    vatCents: checks.reduce((n, c) => n + (c ? pick(c)?.vatCents ?? 0 : 0), 0),
+  })
+  return {
+    meta: {
+      ...sorted.at(-1)!.meta,
+      sourceFile: sorted.map((l) => l.meta.sourceFile).join(' + '),
+      parts: sorted.map(span),
+      totalCheck: {
+        found: allFound,
+        sheet: allFound ? sum((c) => c.sheet) : null,
+        imported: sum((c) => c.imported),
+        matches: allFound && checks.every((c) => c?.matches),
+      },
+    },
+    expenses,
+    fxConversions: fxConversions.sort((a, b) => a.date.localeCompare(b.date)),
+  }
 }
 
 /**
