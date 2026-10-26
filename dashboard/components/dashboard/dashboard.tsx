@@ -25,6 +25,8 @@ import type { SourceStatus } from '@/lib/sync-core'
 import type { AppSettings, OneDriveState, XeroState } from '@/lib/data-source'
 import { draftsAwaiting } from '@/lib/xero/pairing'
 import { liveView } from '@/lib/live-view'
+import { money as formatMoney } from '@/lib/format'
+import { fxProfits, fxTotals, type FxProfit } from '@/lib/fx-profit'
 import { makeNeedsAttention, type MakeStatus } from '@/lib/make'
 import type { WeeklyEmailState } from '@/lib/weekly'
 import { DealChecker } from './deal-checker'
@@ -101,6 +103,8 @@ function DashboardBody({ ledger: rawLedger, today, overheads, overheadsSaved, ov
   const ledger = merged.ledger
   const matching = merged.matching
   const xchecks = merged.checks
+  // Profit in pounds per order, from Xero's own exchange rates.
+  const fxByOrder = useMemo(() => (xero.snapshot ? fxProfits(ledger.orders, xero.snapshot.invoices) : null), [ledger.orders, xero.snapshot])
   // With Xero connected the data is as of its last refresh, not the spreadsheet's snapshot.
   const asOf = xero.snapshot ? xero.snapshot.fetchedAt.slice(0, 10) : ledger.meta.snapshotDate
   const coverage = useMemo(() => coverageFor(ledger.orders.map((o) => o.date), asOf), [ledger, asOf])
@@ -277,6 +281,7 @@ function DashboardBody({ ledger: rawLedger, today, overheads, overheadsSaved, ov
                 previousLabel={comparison.valid ? formatRange(comparison.previous) : null}
                 net={customer ? { status: 'filtered' } : net}
               />
+              {fxByOrder && <FxPeriod list={view.orders.map((o) => fxByOrder.get(o.id)).filter((f): f is FxProfit => !!f)} />}
             </div>
           </details>
         </div>
@@ -339,7 +344,7 @@ function DashboardBody({ ledger: rawLedger, today, overheads, overheadsSaved, ov
           <ChecksList checks={checks} />
           <section aria-labelledby="about-title" className="rounded-lg border border-line bg-surface px-5 py-4 text-[13px] leading-relaxed text-ink-2">
             <h2 id="about-title" className="mb-1 text-[15px] font-semibold text-ink">About these figures</h2>
-            <p>All trade in the ledger is in EUR. Fone Nova&apos;s books are kept in GBP, so exchange-rate movement between invoice and payment is a real risk that is not measured here.</p>
+            <p>All trade in the ledger is in EUR. Fone Nova&apos;s books are kept in GBP, so exchange-rate movement between invoice and payment is a real risk. With Xero connected, each order&apos;s drawer and More figures show the profit in pounds at Xero&apos;s own rates, booked and realised; bank and conversion fees are not included.</p>
             <p className="mt-1">Net business profit covers the overheads you enter and the expense rows marked Business. Fone Nova&apos;s own shipping beyond the invoices, and bank, FX and payment fees, are not in the order data.</p>
           </section>
         </div>
@@ -352,8 +357,26 @@ function DashboardBody({ ledger: rawLedger, today, overheads, overheadsSaved, ov
         allocation={allocation}
         snapshot={snapshot}
         ledgerSnapshot={formatDate(ledger.meta.snapshotDate)}
+        fx={fxByOrder}
         onClose={() => setOpenOrderId(null)}
       />
     </>
+  )
+}
+
+/** Currency effect over the period's settled orders: booked in pounds at invoice time vs realised. */
+function FxPeriod({ list }: { list: FxProfit[] }) {
+  const t = fxTotals(list)
+  if (!t.settled) return null
+  const gbp = (p: number) => formatMoney(p, 'GBP')
+  return (
+    <div className="mt-4 rounded-md border border-line px-4 py-3 text-[13px]">
+      <div className="font-semibold text-ink">Currency effect, in pounds</div>
+      <p className="mt-0.5 text-ink-2">
+        {t.settled} settled order{t.settled > 1 ? 's' : ''}: booked {gbp(t.bookedGbpCents)} at Xero&apos;s invoice-day rates, realised {gbp(t.realisedGbpCents)} at the payment-day rates.{' '}
+        <span className={t.effectGbpCents < 0 ? 'font-semibold text-loss' : 'font-semibold text-gain'}>{t.effectGbpCents < 0 ? 'Lost' : 'Gained'} {gbp(Math.abs(t.effectGbpCents))}</span> to exchange-rate moves.
+        {t.pending ? ` ${t.pending} more not counted until fully paid in cash.` : ''}
+      </p>
+    </div>
   )
 }

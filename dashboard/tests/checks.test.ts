@@ -44,6 +44,14 @@ describe('credit notes against Xero', () => {
     const gaps = Object.fromEntries(creditGaps(ledgerNotes, xero).map((g) => [g.note.number, g.gapCents]))
     expect(gaps).toEqual({ '2026080086': 43_668_00, '2026080085': 30_561_00, '2026080087': -378_00 })
   })
+
+  it('treats a credit applied to another invoice of the same side as moved, not missing (real Xero: 2026037 holds FN-CN-202601)', () => {
+    const ledgerNotes = [
+      note({ side: 'client', number: 'FN-CN-202601', amountCents: 44_804_00, refersToInvoices: '2026034' }),
+      note({ side: 'client', number: 'FN-CN-202602', amountCents: 27_907_11, refersToInvoices: '2026037' }),
+    ]
+    expect(creditGaps(ledgerNotes, [credit('CN', 'sale', 72_711_11, [['2026037', 72_711_11]])])).toEqual([])
+  })
 })
 
 describe('xeroChecks', () => {
@@ -56,6 +64,16 @@ describe('xeroChecks', () => {
     const r = xeroChecks({ ledger: base, orders: [o], snapshot: snap([doc({ id: 's', kind: 'sale', number: '2026022', totalCents: 55_442_00 }), doc({ id: 'b', kind: 'bill', number: '2026070062', totalCents: 44_212_00 })]), today: '2026-10-26' })
     expect(r.items.map((i) => [i.id, i.impactCents, i.priority])).toEqual([['X-TOTAL-FN-ORD-018-sale', 9_100_00, 'HIGH']])
     expect(r.items[0].link).toContain('AccountsReceivable')
+  })
+
+  it('groups small part-unpaid bills into one item, and gives a large one its own line', () => {
+    const r = xeroChecks({ ledger: base, orders: [], snapshot: snap([
+      doc({ id: 'a', kind: 'bill', number: '2026050049', totalCents: 139_300_00, status: 'AUTHORISED', amountDueCents: 3_105_00, dueDate: '2026-05-27' }),
+      doc({ id: 'b', kind: 'bill', number: '2026060058', totalCents: 26_200_00, status: 'AUTHORISED', amountDueCents: 16_200_00, dueDate: '2026-06-24' }),
+      doc({ id: 'c', kind: 'bill', number: '2026080084', totalCents: 157_369_00, status: 'AUTHORISED', amountDueCents: 3_999_77, dueDate: '2026-08-16' }),
+    ]), today: '2026-10-26' })
+    expect(r.items.map((i) => [i.id, i.impactCents])).toEqual([['X-BILL-b', 16_200_00], ['X-BILLS-SMALL', 7_104_77]])
+    expect(r.items[1].issue).toContain('2026080084 €3,999.77 (71 days)')
   })
 
   it('flags an overdue bill whose order has no client invoice in Xero, and an old draft', () => {
@@ -98,7 +116,7 @@ describe.skipIf(!fs.existsSync(real))('xeroChecks on the real ledger, with Xero 
       credit('MO-85', 'bill', 895_00, [['2026050049', 895_00]], '2026-08-13'),
       credit('MO-87', 'bill', 27_238_68, [['2026080081', 27_238_68]]),
       credit('MO-87b', 'bill', 378_00, [['2026070073', 378_00]]),
-      credit('CN-02', 'sale', 27_907_11, [['2026037', 27_907_11]]),
+      credit('CN-02', 'sale', 72_711_11, [['2026037', 72_711_11]]), // as real Xero has it: 202601 and 202602 together
       credit('CN-03-05', 'sale', 31_783_00, [['2026033', 31_783_00]]),
     ]
     const r = xeroChecks({ ledger, orders: ledger.orders, snapshot: { fetchedAt: '2026-10-26T06:00:00Z', tenantName: 'Fonenova Ltd', baseCurrency: 'GBP', invoices, creditNotes, bankBalances: null, problems: [] }, today: '2026-10-26' })
@@ -108,7 +126,6 @@ describe.skipIf(!fs.existsSync(real))('xeroChecks on the real ledger, with Xero 
       'X-CREDIT-2026080085 3056100',
       'X-CREDIT-2026080086 4366800',
       'X-CREDIT-2026080087 37800',
-      'X-CREDIT-FN-CN-202601 4480400',
       'X-TOTAL-FN-ORD-018-sale 910000',
     ])
     expect(r.supersedes.sort()).toEqual(['EX-01', 'EX-02', 'EX-10'])

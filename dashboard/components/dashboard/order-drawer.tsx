@@ -4,9 +4,10 @@ import { Badge } from '@/components/ui/badge'
 import { Sheet } from '@/components/ui/sheet'
 import { linesFor, marginBand, orderMargin, type CreditAllocation } from '@/lib/metrics'
 import { sumCents } from '@/lib/money'
-import { count, pct } from '@/lib/format'
+import { count, money as formatMoney, pct } from '@/lib/format'
 import { useMoney } from '@/components/currency'
 import { formatDate } from '@/lib/periods'
+import type { FxProfit } from '@/lib/fx-profit'
 import type { CreditNote, Ledger, Order } from '@/lib/types'
 import { cn } from '@/lib/utils'
 import { flagTone, statusLabel } from './orders-table'
@@ -57,8 +58,10 @@ function CreditRow({ n }: { n: CreditNote }) {
   )
 }
 
-export function OrderDrawer({ order, ledger, units, allocation, snapshot, ledgerSnapshot, onClose }: {
+export function OrderDrawer({ order, ledger, units, allocation, snapshot, ledgerSnapshot, fx, onClose }: {
   order: Order | null
+  /** GBP profit from Xero's rates, by order (lib/fx-profit.ts). */
+  fx?: Map<string, FxProfit> | null
   ledger: Ledger
   units: Map<string, number>
   allocation: CreditAllocation
@@ -74,12 +77,12 @@ export function OrderDrawer({ order, ledger, units, allocation, snapshot, ledger
       description={order ? `Ordered ${formatDate(order.date)}. Xero status as of ${snapshot}.` : undefined}
       className="max-w-[920px]"
     >
-      {order && <DrawerBody order={order} ledger={ledger} units={units} allocation={allocation} snapshot={snapshot} ledgerSnapshot={ledgerSnapshot} />}
+      {order && <DrawerBody order={order} ledger={ledger} units={units} allocation={allocation} snapshot={snapshot} ledgerSnapshot={ledgerSnapshot} fx={fx?.get(order.id) ?? null} />}
     </Sheet>
   )
 }
 
-function DrawerBody({ order: o, ledger, units, allocation, snapshot, ledgerSnapshot }: { order: Order; ledger: Ledger; units: Map<string, number>; allocation: CreditAllocation; snapshot: string; ledgerSnapshot: string }) {
+function DrawerBody({ order: o, ledger, units, allocation, snapshot, ledgerSnapshot, fx }: { order: Order; ledger: Ledger; units: Map<string, number>; allocation: CreditAllocation; snapshot: string; ledgerSnapshot: string; fx: FxProfit | null }) {
   const { money } = useMoney()
   const lines = linesFor(ledger.lines, o.id)
   const goods = lines.filter((l) => l.type === 'goods')
@@ -114,6 +117,8 @@ function DrawerBody({ order: o, ledger, units, allocation, snapshot, ledgerSnaps
           {band === 'loss' ? 'Loss-making order: the supplier invoice is larger than the client invoice.' : 'Margin under 0.5%, the ledger’s thin-margin threshold.'}
         </p>
       )}
+
+      {fx && <FxCard fx={fx} />}
 
       <div className="grid gap-3 md:grid-cols-2">
         <InvoiceCard side="Client invoice" title="Invoice" party={o.customerName} number={o.clientInvoiceNo} totalCents={o.clientTotalCents} status={o.clientStatus} owedLabel={`Client still owes (${snapshot})`} owedCents={o.clientOwesCents} file={o.clientPdf.fileName} />
@@ -262,5 +267,22 @@ function DrawerBody({ order: o, ledger, units, allocation, snapshot, ledgerSnaps
         </section>
       )}
     </div>
+  )
+}
+
+const gbp = (pence: number) => formatMoney(pence, 'GBP')
+
+/** The order in pounds: booked at Xero's document rates, realised at its payment rates. */
+function FxCard({ fx }: { fx: FxProfit }) {
+  const e = fx.effectGbpCents
+  return (
+    <section aria-labelledby="fx-title" className="rounded-lg border border-line bg-surface px-4 py-3 text-[13px]">
+      <h3 id="fx-title" className="font-semibold text-ink">In pounds, from Xero&apos;s rates</h3>
+      <dl className="mt-2 grid gap-x-6 gap-y-1.5 sm:grid-cols-3">
+        <div><dt className="text-[12px] text-ink-3">Booked profit</dt><dd className="font-semibold text-ink">{gbp(fx.bookedGbpCents)}</dd><dd className="text-[11.5px] text-ink-3">invoice at {fx.invoiceRate}, bill at {fx.billRate} €/£</dd></div>
+        <div><dt className="text-[12px] text-ink-3">Realised profit</dt><dd className="font-semibold text-ink">{fx.realisedGbpCents === null ? '—' : gbp(fx.realisedGbpCents)}</dd><dd className="text-[11.5px] text-ink-3">{fx.pending ?? 'at the payment-day rates'}</dd></div>
+        <div><dt className="text-[12px] text-ink-3">Currency effect</dt><dd className={cn('font-semibold', e === null ? 'text-ink-3' : e < 0 ? 'text-loss' : 'text-gain')}>{e === null ? 'once both sides are paid' : gbp(e)}</dd></div>
+      </dl>
+    </section>
   )
 }
