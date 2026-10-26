@@ -10,7 +10,7 @@
  */
 import crypto from 'node:crypto'
 import { getJson, getStore, type Store } from './store'
-import { isArchiveName, isTrackerName, skipFolder, type FileSource } from './sync-core'
+import { combinedSource, isArchiveName, isTrackerName, skipFolder, type FileSource } from './sync-core'
 
 const LOGIN = () => (process.env.FN_MS_LOGIN_URL ?? 'https://login.microsoftonline.com/consumers/oauth2/v2.0').replace(/\/$/, '')
 const GRAPH = () => (process.env.FN_GRAPH_URL ?? 'https://graph.microsoft.com/v1.0').replace(/\/$/, '')
@@ -178,6 +178,24 @@ export async function newestDriveTracker(list: (id: string) => Promise<DriveItem
   return best
 }
 
+/** Every quarter's tracker in a folder tree (a name found twice keeps its newest copy). */
+export async function allDriveTrackers(list: (id: string) => Promise<DriveItem[]>, rootId: string, depth = 3): Promise<DriveItem[]> {
+  const byName = new Map<string, DriveItem>()
+  async function walk(id: string, level: number) {
+    for (const item of await list(id)) {
+      if (item.folder) {
+        if (!skipFolder(item.name) && level < depth) await walk(item.id, level + 1)
+      } else if (item.file && isTrackerName(item.name)) {
+        const k = item.name.toLowerCase()
+        const had = byName.get(k)
+        if (!had || Date.parse(item.lastModifiedDateTime) > Date.parse(had.lastModifiedDateTime)) byName.set(k, item)
+      }
+    }
+  }
+  await walk(rootId, 0)
+  return [...byName.values()].sort((a, b) => a.name.localeCompare(b.name))
+}
+
 function driveFile(g: Graph, fileName: string, find: () => Promise<DriveItem | null>): FileSource {
   let item: DriveItem | null | undefined
   return {
@@ -210,8 +228,10 @@ export async function oneDriveSources(c: OneDriveConfig, store: Store = getStore
   const folder = await itemByPath(g, c.expensesDir)
   if (!folder?.folder) return { ledger, expenses: null, expensesNote: 'The VAT returns folder was not found in OneDrive.', archive: null }
   const list = (id: string) => children(g, id)
-  const [found, old] = await Promise.all([newestDriveTracker(list, folder.id), newestDriveTracker(list, folder.id, 3, isArchiveName)])
+  const [found, old] = await Promise.all([allDriveTrackers(list, folder.id), newestDriveTracker(list, folder.id, 3, isArchiveName)])
   const archive = old ? driveFile(g, old.name, async () => old) : null
-  if (!found) return { ledger, expenses: null, expensesNote: 'No "VAT Return From…xlsx" found in that OneDrive folder (backups are skipped).', archive }
-  return { ledger, expenses: driveFile(g, found.name, async () => found), expensesNote: null, archive }
+  if (!found.length) return { ledger, expenses: null, expensesNote: 'No "VAT Return From…xlsx" found in that OneDrive folder (backups are skipped).', archive }
+  // One tracker per VAT quarter: read them all, so a new quarter never hides the previous one.
+  const parts = found.map((it) => driveFile(g, it.name, async () => it))
+  return { ledger, expenses: parts.length === 1 ? parts[0] : combinedSource(parts), expensesNote: null, archive }
 }

@@ -3,8 +3,9 @@
  *
  *   npm run import-expenses -- "C:\path\VAT Return From Sept-Dec, 2026.xlsx"
  *
- * With no path it reads FN_EXPENSES_PATH; else, with FN_EXPENSES_DIR, the newest tracker and the
- * May to Aug tracker in that folder (as the dashboard does); else data/expenses.xlsx. The May to Aug tracker
+ * With no path it reads FN_EXPENSES_PATH; else, with FN_EXPENSES_DIR, every quarter's tracker (one
+ * "VAT Return From…" file per VAT return, joined into one) and the May to Aug tracker in that
+ * folder (as the dashboard does); else data/expenses.xlsx. The May to Aug tracker
  * (VATReturn_Automated_….xlsx) goes to expenses-archive.json; the dashboard joins the two. Reads Sheet2 (the expense
  * log) and, if present, the "FX Exchanges (Reference)" sheet. Amounts are GBP. Nothing is
  * adjusted: the script prints its totals so they can be checked against the tracker's summary.
@@ -13,7 +14,9 @@ import fs from 'node:fs'
 import path from 'node:path'
 import { loadEnvConfig } from '@next/env'
 import { importExpenses } from '../lib/importers/expenses'
-import { isArchiveName, newestTracker } from '../lib/sync-core'
+import { combineQuarterLogs } from '../lib/expenses'
+import { allTrackers, isArchiveName, newestTracker } from '../lib/sync-core'
+import type { ExpenseLog } from '../lib/types'
 
 loadEnvConfig(process.cwd())
 
@@ -22,9 +25,9 @@ async function inputs(): Promise<string[]> {
   if (arg ?? process.env.FN_EXPENSES_PATH) return [(arg ?? process.env.FN_EXPENSES_PATH)!]
   const dir = process.env.FN_EXPENSES_DIR
   if (dir) {
-    const current = (await newestTracker(dir))?.file
+    const quarters = (await allTrackers(dir)).map((t) => t.file)
     const archive = process.env.FN_EXPENSES_ARCHIVE ?? (await newestTracker(dir, 3, isArchiveName))?.file
-    const found = [current, archive].filter((f): f is string => !!f)
+    const found = [...quarters, archive].filter((f): f is string => !!f)
     if (found.length) return found
     console.error(`No expense tracker found in FN_EXPENSES_DIR (${dir}).`)
     process.exit(2)
@@ -33,19 +36,29 @@ async function inputs(): Promise<string[]> {
 }
 
 async function main() {
-  for (const input of await inputs()) await importOne(input)
+  const quarters: ExpenseLog[] = []
+  for (const input of await inputs()) {
+    const log = await importOne(input)
+    if (isArchiveName(path.basename(input))) write('expenses-archive.json', log)
+    else quarters.push(log)
+  }
+  // Every quarter's tracker goes into one expenses.json; the dashboard joins it with May to Aug.
+  if (quarters.length) write('expenses.json', combineQuarterLogs(quarters)!)
 }
 
-async function importOne(input: string) {
+function write(name: string, log: ExpenseLog) {
+  const out = path.join('data', 'generated', name)
+  fs.mkdirSync(path.dirname(out), { recursive: true })
+  fs.writeFileSync(out, JSON.stringify(log, null, 2) + '\n')
+  console.log(`Wrote ${out}`)
+}
+
+async function importOne(input: string): Promise<ExpenseLog> {
   if (!fs.existsSync(input)) {
     console.error(`Expense tracker not found: ${input}\nPass its path, set FN_EXPENSES_PATH or FN_EXPENSES_DIR, or save it as dashboard/data/expenses.xlsx.`)
     process.exit(2)
   }
   const { log, skipped, check } = await importExpenses(input)
-  // The May to Aug tracker is kept beside the current one; the dashboard joins them.
-  const out = path.join('data', 'generated', isArchiveName(path.basename(input)) ? 'expenses-archive.json' : 'expenses.json')
-  fs.mkdirSync(path.dirname(out), { recursive: true })
-  fs.writeFileSync(out, JSON.stringify(log, null, 2) + '\n')
   const total = log.expenses.reduce((n, e) => n + e.amountCents, 0)
   const vat = log.expenses.reduce((n, e) => n + e.vatCents, 0)
   const dates = log.expenses.map((e) => e.date).sort()
@@ -58,7 +71,7 @@ async function importOne(input: string) {
   else if (check.matches) console.log(`  Matches the tracker's TOTAL row (${gbp(check.sheet!.amountCents)})`)
   else console.warn(`  MISMATCH: the tracker's TOTAL row says ${gbp(check.sheet!.amountCents)}`)
   for (const s of skipped) console.warn(`  SKIPPED ${s}`)
-  console.log(`Wrote ${out}`)
+  return log
 }
 
 if (process.argv[1] && path.resolve(process.argv[1]) === path.resolve(__filename)) {

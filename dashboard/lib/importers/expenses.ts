@@ -6,6 +6,7 @@ import crypto from 'node:crypto'
 import ExcelJS from 'exceljs'
 import { loadWorkbook, type XlsxInput } from './xlsx'
 import path from 'node:path'
+import { OWN_ACCOUNT_TAG } from '../expenses'
 import { toCents } from '../money'
 import type { Expense, ExpenseLog, FxConversion } from '../types'
 
@@ -124,12 +125,19 @@ export async function importExpenses(input: XlsxInput): Promise<{ log: ExpenseLo
     }
   }
 
+  // The check is against every row the tracker holds, before own-account moves are dropped.
   const sum = { amountCents: expenses.reduce((n, e) => n + e.amountCents, 0), vatCents: expenses.reduce((n, e) => n + e.vatCents, 0) }
   const check: TotalCheck = sheetTotal
     ? { found: true, sheet: sheetTotal, imported: sum, matches: sheetTotal.amountCents === sum.amountCents }
     : { found: false, sheet: null, imported: sum, matches: false }
+  // Moves between Fone Nova's own accounts are logged by the expense system but are not spending.
+  const spending = expenses.filter((e) => {
+    if (!OWN_ACCOUNT_TAG.test(e.remarks)) return true
+    skipped.push(`${e.date} ${e.payee} ${(e.amountCents / 100).toFixed(2)}: own-account transfer, not an expense`)
+    return false
+  })
   return {
-    log: { meta: { sourceFile: path.basename(file), importedAt: new Date().toISOString(), currency: 'GBP', totalCheck: check }, expenses, fxConversions },
+    log: { meta: { sourceFile: path.basename(file), importedAt: new Date().toISOString(), currency: 'GBP', totalCheck: check }, expenses: spending, fxConversions },
     skipped,
     check,
   }
