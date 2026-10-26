@@ -127,6 +127,19 @@ Setup, once: in Google Cloud (project of the sign-in client) enable the **Gmail 
 the consent screen's user type to **Internal** so the connection never expires. Recipient:
 `DIGEST_TO`, else `AUTH_ALLOWED_EMAIL`.
 
+## AI bar (search and questions)
+
+The search box in the top bar (Ctrl/⌘ K) finds orders (by number, e.g. `34`), invoice and bill
+numbers, customers and pages instantly, in the browser, at no cost. A question ("who owes me
+most?") goes to `/api/ask`, where Claude Haiku 5.5 (`lib/ask/run.ts`) answers with read-only
+tools over the same view as the page (`lib/ask/tools.ts`: orders, period totals, customers,
+overdue, cash due, Xero problems, expenses, deal check). It cannot change anything.
+
+Cost guards: `AI_DAILY_LIMIT` questions a day (default 50, counted in the store), at most four
+tool rounds and low effort per question (about $0.002 each). Put `ANTHROPIC_API_KEY` in its own
+Anthropic workspace with a monthly spend limit. Each question and the figures the tools return
+are sent to Anthropic's API.
+
 ## Live data from Xero (read-only)
 
 **How documents reach Xero.** Two Make.com scenarios create DRAFT documents: "Integration

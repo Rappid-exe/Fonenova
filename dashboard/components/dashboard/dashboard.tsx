@@ -29,8 +29,10 @@ import { money as formatMoney } from '@/lib/format'
 import { fxProfits, fxTotals, type FxProfit } from '@/lib/fx-profit'
 import { makeNeedsAttention, type MakeStatus } from '@/lib/make'
 import type { WeeklyEmailState } from '@/lib/weekly'
+import type { AskState } from '@/lib/ask/data'
 import { DealChecker } from './deal-checker'
-import { DraftsList, MakeCard, MarginVatCard, WeeklyEmailCard } from './automations'
+import { AskCard, DraftsList, MakeCard, MarginVatCard, WeeklyEmailCard } from './automations'
+import { AskBar } from './ask-bar'
 import { CurrencyNote, CurrencySwitch } from './currency-switch'
 import { CashPositionPanel } from './cash-position'
 import { ConcentrationPanel } from './concentration'
@@ -63,6 +65,7 @@ interface Props {
   settings: AppSettings
   make: MakeStatus | null
   weekly: WeeklyEmailState
+  askState: AskState
   gmailNotice: string | null
 }
 
@@ -92,7 +95,7 @@ const TITLES: Record<Section, string> = {
   settings: 'Settings',
 }
 
-function DashboardBody({ ledger: rawLedger, today, overheads, overheadsSaved, overheadsError, overheadsWritable, xero, notice, expenses, expenseOverrides, expensesError, sources, oneDrive, oneDriveNotice, hosted, settings, make, weekly, gmailNotice }: Props) {
+function DashboardBody({ ledger: rawLedger, today, overheads, overheadsSaved, overheadsError, overheadsWritable, xero, notice, expenses, expenseOverrides, expensesError, sources, oneDrive, oneDriveNotice, hosted, settings, make, weekly, gmailNotice, askState }: Props) {
   const { fx } = useMoney()
   const [section, go] = useSection()
   // Reconcile against the untouched ledger; everything else uses Xero's live statuses where found.
@@ -198,6 +201,7 @@ function DashboardBody({ ledger: rawLedger, today, overheads, overheadsSaved, ov
       <TopBar
         title={TITLES[section]}
         subtitle={subtitle}
+        search={<AskBar orders={ledger.orders} customers={ledger.customers} aiReady={askState.configured} onOpenOrder={setOpenOrderId} onPickCustomer={(id) => { setCustomerId(id); go('orders') }} go={go} />}
         status={section === 'settings' ? null : <StatusPill sources={sources} checks={checks} note={xeroNote} alert={makeAlert ? 'A Make sync needs attention' : null}>{xeroBar}</StatusPill>}
         controls={section === 'settings' || section === 'deal-check' ? undefined : (
           <>
@@ -339,6 +343,7 @@ function DashboardBody({ ledger: rawLedger, today, overheads, overheadsSaved, ov
           </section>
           <MakeCard make={make} />
           <WeeklyEmailCard state={weekly} notice={gmailNotice} />
+          <AskCard state={askState} />
           <OverheadsPanel overheads={overheads} saved={overheadsSaved} loadError={overheadsError} writable={overheadsWritable} today={today} />
           <MarginVatCard enabled={settings.marginSchemeVat} writable={overheadsWritable} vatEurCents={marginVat} />
           <ChecksList checks={checks} />
