@@ -27,6 +27,7 @@ import { draftsAwaiting } from '@/lib/xero/pairing'
 import { liveView } from '@/lib/live-view'
 import { makeNeedsAttention, type MakeStatus } from '@/lib/make'
 import type { WeeklyEmailState } from '@/lib/weekly'
+import { DealChecker } from './deal-checker'
 import { DraftsList, MakeCard, MarginVatCard, WeeklyEmailCard } from './automations'
 import { CurrencyNote, CurrencySwitch } from './currency-switch'
 import { CashPositionPanel } from './cash-position'
@@ -80,6 +81,7 @@ const TITLES: Record<Section, string> = {
   overview: 'Profit overview',
   orders: 'Orders',
   matching: 'Invoice matching',
+  'deal-check': 'Check a deal',
   customers: 'Customers',
   suppliers: 'Suppliers',
   'credit-notes': 'Credit notes',
@@ -173,6 +175,8 @@ function DashboardBody({ ledger: rawLedger, today, overheads, overheadsSaved, ov
   )
   const subtitle = section === 'settings'
     ? 'Data sources, monthly overheads, and the checks every import must pass.'
+    : section === 'deal-check'
+      ? 'Before you commit: the margin after shipping, margin-scheme VAT and an FX cushion.'
     : section === 'expenses'
       ? <>{preset === 'all' ? 'All time: every expense row' : `${presetLabel}: ${formatRange(range)}`} · amounts in GBP, as logged</>
       : <>{presetLabel}: {formatRange(range)} · {customerName ?? 'All customers'}<CurrencyNote /></>
@@ -191,7 +195,7 @@ function DashboardBody({ ledger: rawLedger, today, overheads, overheadsSaved, ov
         title={TITLES[section]}
         subtitle={subtitle}
         status={section === 'settings' ? null : <StatusPill sources={sources} checks={checks} note={xeroNote} alert={makeAlert ? 'A Make sync needs attention' : null}>{xeroBar}</StatusPill>}
-        controls={section === 'settings' ? undefined : (
+        controls={section === 'settings' || section === 'deal-check' ? undefined : (
           <>
             <CurrencySwitch />
             <label className="sr-only" htmlFor="customer-filter">Customer</label>
@@ -295,6 +299,10 @@ function DashboardBody({ ledger: rawLedger, today, overheads, overheadsSaved, ov
       {section === 'matching' && drafts.length > 0 && <div className="mb-4"><DraftsList drafts={drafts} /></div>}
       {section === 'matching' && (
         <MatchingPanel matching={matching} connected={xero.connected} pairs={xero.pairs} orders={ledger.orders} writable={overheadsWritable} onSettings={() => go('settings')} onOpenOrder={setOpenOrderId} />
+      )}
+
+      {section === 'deal-check' && (
+        <DealChecker customers={customerRows(ledger.orders, units, ledger.creditNotes, null)} orders={ledger.orders} today={today} marginVat={settings.marginSchemeVat} />
       )}
 
       {section === 'customers' && (

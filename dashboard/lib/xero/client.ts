@@ -153,12 +153,14 @@ export async function refreshSnapshot(c: XeroConfig, sinceIso = '2026-01-01'): P
   const t = await validTokens(c)
   const problems: string[] = []
   const invoices: XeroInvoice[] = []
+  let invoicesOk = true
   const [y, m, d] = sinceIso.split('-').map(Number)
   const where = encodeURIComponent(`Date>=DateTime(${y},${m},${d})`)
   for (let page = 1; page <= 50; page++) {
     const r = await get(t, `/Invoices?where=${where}&page=${page}&pageSize=100`)
     if (!r.ok) {
       problems.push(r.problem)
+      invoicesOk = false
       break
     }
     const batch = (r.json.Invoices as Record<string, unknown>[] | undefined) ?? []
@@ -169,18 +171,20 @@ export async function refreshSnapshot(c: XeroConfig, sinceIso = '2026-01-01'): P
     if (batch.length < 100) break
   }
 
-  // Credit notes: optional. A missing permission is reported, never fatal.
-  const creditNotes: XeroCreditNote[] = []
+  // Credit notes: optional. A missing permission is reported, never fatal. A failed read is kept
+  // as "not read" (undefined), never as "none", so the credit checks don't report every credit missing.
+  let creditNotes: XeroCreditNote[] | undefined = []
   for (let page = 1; page <= 20; page++) {
     const r = await get(t, `/CreditNotes?where=${where}&page=${page}`)
     if (!r.ok) {
       problems.push(r.problem)
+      creditNotes = undefined
       break
     }
     const batch = (r.json.CreditNotes as Record<string, unknown>[] | undefined) ?? []
     for (const j of batch) {
       const cn = mapCreditNote(j)
-      if (cn) creditNotes.push(cn)
+      if (cn) creditNotes!.push(cn)
     }
     if (batch.length < 100) break
   }
@@ -196,7 +200,12 @@ export async function refreshSnapshot(c: XeroConfig, sinceIso = '2026-01-01'): P
     problems.push(b.problem)
   }
 
-  const snapshot: XeroSnapshot = { fetchedAt: new Date().toISOString(), tenantName: t.tenantName, baseCurrency: c.baseCurrency, invoices, creditNotes, bankBalances, problems }
+  // A failed invoice read would otherwise empty every live figure: keep the last good documents
+  // and say why they are not fresh.
+  const prev = invoicesOk ? null : await loadSnapshot()
+  const snapshot: XeroSnapshot = prev
+    ? { ...prev, problems: [`Showing Xero as of ${prev.fetchedAt.slice(0, 16).replace('T', ' ')} UTC: the refresh failed`, ...problems] }
+    : { fetchedAt: new Date().toISOString(), tenantName: t.tenantName, baseCurrency: c.baseCurrency, invoices, ...(creditNotes ? { creditNotes } : {}), bankBalances, problems }
   await getStore().set('xero:snapshot', snapshot)
   return snapshot
 }
