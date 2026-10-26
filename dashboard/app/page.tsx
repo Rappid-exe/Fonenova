@@ -6,11 +6,12 @@ import { currentUser } from '@/lib/session'
 import { syncSources } from '@/lib/sync'
 import { getDataSource, isHosted, loadExpenses, loadFxRate, loadOneDriveState, loadOverheads, loadSettings, loadXeroState, overheadsWritable, toClientLedger } from '@/lib/data-source'
 import { loadMakeStatus } from '@/lib/make'
+import { loadWeeklyEmailState } from '@/lib/weekly'
 import { todayIso } from '@/lib/periods'
 import { attentionItems } from '@/lib/attention'
 import { allocateCredits, expenseSummary } from '@/lib/metrics'
-import { draftsAwaiting, withXero } from '@/lib/xero/pairing'
-import { xeroChecks } from '@/lib/xero/checks'
+import { draftsAwaiting } from '@/lib/xero/pairing'
+import { liveView } from '@/lib/live-view'
 
 // Read the ledger on every request so a fresh import shows without a rebuild.
 export const dynamic = 'force-dynamic'
@@ -21,6 +22,7 @@ export default async function Page({ searchParams }: { searchParams: Promise<Rec
   const params = await searchParams
   const notice = params.xero ?? null
   const oneDriveNotice = params.onedrive ?? null
+  const gmailNotice = params.gmail ?? null
   // Second lock: proxy.ts already gates this route, but the data never loads without a session here either.
   const user = await currentUser()
   if (user === false) redirect('/login')
@@ -30,7 +32,7 @@ export default async function Page({ searchParams }: { searchParams: Promise<Rec
   // Straight after connecting Xero or OneDrive, skip the 30s throttle so the page shows the new state.
   const sources = await syncSources({ force: !!(notice || oneDriveNotice) })
   const source = getDataSource()
-  const [result, fx, oh, xero, exp, oneDrive, settings, make] = await Promise.all([source.load(), loadFxRate(), loadOverheads(), loadXeroState(), loadExpenses(), loadOneDriveState(), loadSettings(), loadMakeStatus()])
+  const [result, fx, oh, xero, exp, oneDrive, settings, make, weekly] = await Promise.all([source.load(), loadFxRate(), loadOverheads(), loadXeroState(), loadExpenses(), loadOneDriveState(), loadSettings(), loadMakeStatus(), loadWeeklyEmailState()])
 
   if (!result.ok) {
     return (
@@ -56,9 +58,8 @@ export default async function Page({ searchParams }: { searchParams: Promise<Rec
   const { ledger } = result
   // Work waiting, for the sidebar. Recomputed on every load, so a decided row drops off at once.
   // Same view the dashboard shows: ledger plus Xero orders, with the live Xero checks.
-  const merged = withXero(ledger, xero.snapshot, xero.pairs, todayIso())
-  const checks = xeroChecks({ ledger, orders: merged.ledger.orders, snapshot: xero.snapshot, today: todayIso() })
-  const high = attentionItems(merged.ledger, allocateCredits(merged.ledger.creditNotes), checks).filter((i) => i.priority === 'HIGH').length
+  const merged = liveView(ledger, xero.snapshot, xero.pairs, todayIso())
+  const high = attentionItems(merged.ledger, allocateCredits(merged.ledger.creditNotes), merged.checks).filter((i) => i.priority === 'HIGH').length
   const toReview = exp.log ? expenseSummary(exp.log, exp.overrides, oh.overheads, null).rows.filter((r) => r.cls === 'review').length : 0
   const toMatch = (merged.matching?.suggestions.length ?? 0) + draftsAwaiting(xero.snapshot).length
   const badges = {
@@ -68,7 +69,7 @@ export default async function Page({ searchParams }: { searchParams: Promise<Rec
   }
   return (
     <Shell email={email} badges={badges}>
-      <Dashboard ledger={toClientLedger(ledger)} today={todayIso()} fx={fx} overheads={oh.overheads} overheadsSaved={oh.saved} overheadsError={oh.error ?? null} overheadsWritable={overheadsWritable()} xero={xero} notice={notice} expenses={exp.log} expenseOverrides={exp.overrides} expensesError={exp.error ?? null} sources={sources} oneDrive={oneDrive} oneDriveNotice={oneDriveNotice} hosted={isHosted()} settings={settings} make={make} />
+      <Dashboard ledger={toClientLedger(ledger)} today={todayIso()} fx={fx} overheads={oh.overheads} overheadsSaved={oh.saved} overheadsError={oh.error ?? null} overheadsWritable={overheadsWritable()} xero={xero} notice={notice} expenses={exp.log} expenseOverrides={exp.overrides} expensesError={exp.error ?? null} sources={sources} oneDrive={oneDrive} oneDriveNotice={oneDriveNotice} hosted={isHosted()} settings={settings} make={make} weekly={weekly} gmailNotice={gmailNotice} />
     </Shell>
   )
 }

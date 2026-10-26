@@ -113,6 +113,20 @@ it replaces everything above for the ledger.
 
 Local `npm run dev` skips sign-in when `GOOGLE_CLIENT_ID` is unset. Production builds never do.
 
+## Friday cash email
+
+Every Friday at 16:00 UTC (`vercel.json`, `/api/cron/digest`, locked by `CRON_SECRET`) the
+dashboard emails who is late paying, supplier bills due in the next 14 days next to what clients
+owe, the live Xero checks, and drafts to approve. It is built by `lib/digest.ts` from the same
+view as the page (`lib/live-view.ts`) and sent through Gmail with a send-only connection
+(`lib/gmail.ts`, scope `gmail.send`; it can never read mail). Settings has **Connect Gmail** and
+**Send test email now**.
+
+Setup, once: in Google Cloud (project of the sign-in client) enable the **Gmail API**, add
+`https://dashboard.fonenova.com/gmail/callback` as a redirect URI on the OAuth client, and set
+the consent screen's user type to **Internal** so the connection never expires. Recipient:
+`DIGEST_TO`, else `AUTH_ALLOWED_EMAIL`.
+
 ## Live data from Xero (read-only)
 
 **How documents reach Xero.** Two Make.com scenarios create DRAFT documents: "Integration

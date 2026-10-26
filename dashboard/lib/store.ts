@@ -27,6 +27,9 @@ export type StoreKey =
   | 'xero:pairs'
   | 'settings'
   | 'onedrive:tokens'
+  | 'gmail:tokens'
+  | 'digest:last'
+  | 'ai:usage'
 
 export type ReadResult = { kind: 'ok'; value: unknown } | { kind: 'missing' } | { kind: 'invalid'; message: string }
 
@@ -60,9 +63,12 @@ const FILES: Record<StoreKey, string> = {
   'xero:pairs': 'xero/pairs.json',
   settings: 'settings.json',
   'onedrive:tokens': 'onedrive/tokens.json',
+  'gmail:tokens': 'gmail/tokens.json',
+  'digest:last': 'digest-last.json',
+  'ai:usage': 'ai-usage.json',
 }
 
-const SECRET_KEYS = new Set<StoreKey>(['xero:tokens', 'onedrive:tokens'])
+const SECRET_KEYS = new Set<StoreKey>(['xero:tokens', 'onedrive:tokens', 'gmail:tokens'])
 
 export class FileStore implements Store {
   readonly name = 'Local data folder'
